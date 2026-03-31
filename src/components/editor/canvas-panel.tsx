@@ -1,0 +1,199 @@
+import { useEffect, useRef } from "react";
+import { Studio, fontManager } from "openvideo";
+import { useStudioStore } from "@/stores/studio-store";
+import { editorFont } from "./constants";
+import { SelectionFloatingMenu } from "./selection-floating-menu";
+import { useClipActions } from "./options-floating-menu";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuShortcut,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import { Clipboard, Copy, CopyPlus, LockKeyhole, LockKeyholeOpen, Trash2 } from "lucide-react";
+// Canvas configuration constants
+const DEFAULT_CANVAS_SIZE = {
+  width: 1080,
+  height: 1920,
+} as const;
+
+const STUDIO_CONFIG = {
+  fps: 30,
+  bgColor: "#1C161D",
+  interactivity: true,
+  spacing: 20,
+} as const;
+interface CanvasPanelProps {
+  onReady?: () => void;
+}
+
+/**
+ * CanvasPanel - The main interactive canvas component for the video editor.
+ * Manages the Studio instance, canvas rendering, and responsive layout updates.
+ */
+export function CanvasPanel({ onReady }: CanvasPanelProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const studioRef = useRef<Studio | null>(null);
+  const onReadyRef = useRef(onReady);
+  const { setStudio } = useStudioStore();
+  const {
+    selectedClip,
+    isLocked,
+    hasClipboard,
+    handleCopy,
+    handlePaste,
+    handleDuplicate,
+    handleToggleLock,
+    handleDelete,
+  } = useClipActions();
+
+  // Keep onReady ref up to date
+  useEffect(() => {
+    onReadyRef.current = onReady;
+  }, [onReady]);
+
+  // Setup Studio and ResizeObserver (only once on mount)
+  useEffect(() => {
+    if (!canvasRef.current) return;
+
+    // Create studio instance
+    studioRef.current = new Studio({
+      ...DEFAULT_CANVAS_SIZE,
+      ...STUDIO_CONFIG,
+      canvas: canvasRef.current,
+    });
+
+    // Initialize fonts and notify when ready
+    const initializeStudio = async () => {
+      if (!studioRef.current) return;
+
+      try {
+        await Promise.all([
+          fontManager.loadFonts([
+            {
+              name: editorFont.fontFamily,
+              url: editorFont.fontUrl,
+            },
+          ]),
+          studioRef.current.ready,
+        ]);
+        onReadyRef.current?.();
+      } catch (error) {
+        console.error("Failed to initialize studio:", error);
+      }
+    };
+
+    initializeStudio();
+
+    // Update global store
+    setStudio(studioRef.current);
+
+    // Setup ResizeObserver for responsive layout
+    const canvas = canvasRef.current;
+    const parentElement = canvas.parentElement;
+    let resizeObserver: ResizeObserver | null = null;
+
+    if (parentElement) {
+      resizeObserver = new ResizeObserver(() => {
+        if (studioRef.current && (studioRef.current as any).updateArtboardLayout) {
+          (studioRef.current as any).updateArtboardLayout();
+        }
+      });
+      resizeObserver.observe(parentElement);
+    }
+
+    // Cleanup function
+    return () => {
+      // Disconnect ResizeObserver
+      if (resizeObserver && parentElement) {
+        resizeObserver.unobserve(parentElement);
+        resizeObserver.disconnect();
+      }
+
+      // Destroy Studio instance
+      if (studioRef.current) {
+        studioRef.current.destroy();
+        studioRef.current = null;
+        setStudio(null);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
+
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <div className="h-full w-full flex flex-col min-h-0 min-w-0 bg-card rounded-sm relative">
+          <div
+            style={{
+              flex: 1,
+              position: "relative", // Ensure relative positioning for absolute children if needed
+              overflow: "hidden", // Hide anything outside (though canvas masks it too)
+            }}
+          >
+            <canvas
+              ref={canvasRef}
+              style={{
+                display: "block",
+                width: "100%",
+                height: "100%",
+                outline: "none", // Avoid focus outline on canvas click
+              }}
+              tabIndex={0}
+            />
+            <SelectionFloatingMenu />
+          </div>
+        </div>
+      </ContextMenuTrigger>
+
+      {selectedClip && selectedClip?.type !== "Transition" && (
+        <ContextMenuContent className="w-44">
+          {!isLocked && (
+            <>
+              <ContextMenuItem onClick={handleCopy} disabled={!selectedClip}>
+                <Copy />
+                Copy
+                <ContextMenuShortcut>⌘ C</ContextMenuShortcut>
+              </ContextMenuItem>
+
+              <ContextMenuItem onClick={handlePaste} disabled={!hasClipboard}>
+                <Clipboard />
+                Paste
+                <ContextMenuShortcut>⌘ V</ContextMenuShortcut>
+              </ContextMenuItem>
+
+              <ContextMenuItem onClick={handleDuplicate} disabled={!selectedClip}>
+                <CopyPlus />
+                Duplicate
+                <ContextMenuShortcut>⌘ D</ContextMenuShortcut>
+              </ContextMenuItem>
+            </>
+          )}
+
+          {selectedClip ? (
+            <ContextMenuItem onClick={handleToggleLock}>
+              {isLocked ? <LockKeyholeOpen /> : <LockKeyhole />}
+              {isLocked ? "Unlock" : "Lock"}
+              <ContextMenuShortcut>⌘ L</ContextMenuShortcut>
+            </ContextMenuItem>
+          ) : (
+            <ContextMenuItem disabled>
+              <LockKeyhole />
+              Lock
+              <ContextMenuShortcut>⌘ L</ContextMenuShortcut>
+            </ContextMenuItem>
+          )}
+
+          {!isLocked && (
+            <ContextMenuItem onClick={handleDelete} disabled={!selectedClip}>
+              <Trash2 />
+              Delete
+              <ContextMenuShortcut>⌫</ContextMenuShortcut>
+            </ContextMenuItem>
+          )}
+        </ContextMenuContent>
+      )}
+    </ContextMenu>
+  );
+}
