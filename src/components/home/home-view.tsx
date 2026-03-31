@@ -8,10 +8,8 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Sparkles, Brain, Scissors, RefreshCw, Video, Bot } from "lucide-react";
+import { Sparkles, Brain, Scissors, Video } from "lucide-react";
 import React from "react";
-import { GenerateCaptionsModal } from "@/components/generate-captions-modal";
-import { LinkToVideoModal } from "@/components/link-to-video-modal";
 import { toast } from "sonner";
 
 interface ModeCardProps {
@@ -86,17 +84,9 @@ function ModeCard({
   );
 }
 
-export default function HomeView({
-  isAiCopilotEnabled,
-  isLinkToVideoEnabled,
-}: {
-  isAiCopilotEnabled: boolean;
-  isLinkToVideoEnabled: boolean;
-}) {
+export default function HomeView() {
   const router = useRouter();
   const { isMobile, toggleSidebar } = useSidebar();
-  const [isCaptionsModalOpen, setIsCaptionsModalOpen] = React.useState(false);
-  const [isLinkToVideoModalOpen, setIsLinkToVideoModalOpen] = React.useState(false);
   const [isCreating, setIsCreating] = React.useState<string | null>(null);
 
   const handleCreateProject = async (type: string) => {
@@ -123,10 +113,6 @@ export default function HomeView({
           router.push(`/edit/${project.id}`);
         }
       }
-      if (type === "ai-copilot") {
-        const { project } = await response.json();
-        router.push(`/projects/${project.id}`);
-      }
     } catch (error) {
       console.error("Error creating project:", error);
       toast.error("Failed to create project. Please try again.");
@@ -136,8 +122,6 @@ export default function HomeView({
 
   return (
     <main className="w-full min-h-screen bg-card transition-colors duration-500 overflow-x-hidden">
-      <GenerateCaptionsModal open={isCaptionsModalOpen} onOpenChange={setIsCaptionsModalOpen} />
-      <LinkToVideoModal open={isLinkToVideoModalOpen} onOpenChange={setIsLinkToVideoModalOpen} />
       <div className="h-14 flex items-center p-4 justify-between text-sm font-medium border-b sticky top-0 z-10 bg-card backdrop-blur-md">
         <div className="flex items-center gap-2">
           {isMobile && (
@@ -190,35 +174,6 @@ export default function HomeView({
             isCreating={isCreating === "ai-editor"}
             onClick={() => handleCreateProject("ai-editor")}
           />
-
-          {isAiCopilotEnabled && (
-            <ModeCard
-              index={5}
-              title="AI Copilot"
-              description="Chat with your footage to generate viral clips and summaries."
-              icon={Bot}
-              isCreating={isCreating === "ai-copilot"}
-              onClick={() => handleCreateProject("ai-copilot")}
-            />
-          )}
-
-          <ModeCard
-            index={6}
-            title="Smart Captions"
-            description="Add trendy captions, b-rolls, sound effects, and music."
-            icon={RefreshCw}
-            onClick={() => setIsCaptionsModalOpen(true)}
-          />
-
-          {isLinkToVideoEnabled && (
-            <ModeCard
-              index={7}
-              title="Link to Video"
-              description="Turn any URL into a polished video presentation."
-              icon={Video}
-              onClick={() => setIsLinkToVideoModalOpen(true)}
-            />
-          )}
         </div>
       </div>
     </main>

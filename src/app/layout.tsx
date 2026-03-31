@@ -1,4 +1,4 @@
-import { Geist_Mono, Space_Grotesk, IBM_Plex_Sans, Merriweather } from "next/font/google";
+import { Geist_Mono, Space_Grotesk, IBM_Plex_Sans, Merriweather, Oxanium } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { ReactQueryProvider } from "@/lib/react-query";
 import { PostHogProvider } from "@/lib/PostHogProvider";
@@ -35,6 +35,9 @@ export const metadata = createMetadata({
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 
+const oxanium = Oxanium({subsets:['latin'],variable:'--font-sans'});
+
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -44,7 +47,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn("font-sans", spaceGrotesk.variable, geistMono.variable)}
+      className={cn( spaceGrotesk.variable, geistMono.variable, "font-sans", oxanium.variable)}
     >
       <body className={`antialiased`}>
         <ThemeProvider>

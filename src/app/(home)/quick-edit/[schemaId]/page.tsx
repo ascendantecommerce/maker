@@ -3,7 +3,6 @@ import * as Sentry from "@sentry/nextjs";
 import { usePostHog } from "posthog-js/react";
 
 import { use, useState, useEffect } from "react";
-import AiCopilot from "@/components/ai-copilot";
 import { Loader2Icon } from "lucide-react";
 import Editor from "@/components/editor/editor";
 import { Project as UIProject } from "@/hooks/use-projects";
@@ -127,10 +126,6 @@ export default function Page({ params }: { params: Promise<{ schemaId: string }>
   }
 
   if (!projectData) return null;
-
-  if (projectData.project?.type === "ai-copilot") {
-    return <AiCopilot project={projectData.project} assets={projectData.assets} />;
-  }
 
   if (projectData.project?.type === "ai-editor") {
     return <Editor design={null} />;

@@ -1,23 +1,19 @@
 "use client";
 
-import { Sparkles, Scissors, Brain, RefreshCw, Bot, X, Video } from "lucide-react";
+import { Sparkles, Scissors, Brain, Bot, X, Video } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { GenerateCaptionsModal } from "@/components/generate-captions-modal";
-import { LinkToVideoModal } from "@/components/link-to-video-modal";
 import { toast } from "sonner";
 
 interface CreateProjectModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  isAiCopilotEnabled?: boolean;
-  isLinkToVideoEnabled?: boolean;
 }
 
-const getTools = (isAiCopilotEnabled = true, isLinkToVideoEnabled = true) => [
+const getTools = () => [
   {
     id: "ugc-video",
     title: "UGC Video Ads",
@@ -47,42 +43,16 @@ const getTools = (isAiCopilotEnabled = true, isLinkToVideoEnabled = true) => [
     badge: "New",
     type: "ai-editor",
   },
-  ...(isAiCopilotEnabled ? [{
-    id: "ai-copilot",
-    title: "AI Copilot",
-    description: "Chat with your footage to generate viral clips.",
-    icon: Bot,
-    badge: "Beta",
-    type: "ai-copilot",
-  }] : []),
-  {
-    id: "ai-captions",
-    title: "Smart Captions",
-    description: "Add trendy captions, b-rolls, and music.",
-    icon: RefreshCw,
-    isModal: "captions",
-  },
-  ...(isLinkToVideoEnabled ? [{
-    id: "link-to-video",
-    title: "Link to Video",
-    description: "Turn any URL into a polished video presentation.",
-    icon: Video,
-    isModal: "link-to-video",
-  }] : []),
 ];
 
 export function CreateProjectModal({ 
   open, 
   onOpenChange,
-  isAiCopilotEnabled = true,
-  isLinkToVideoEnabled = true 
 }: CreateProjectModalProps) {
   const router = useRouter();
   const [isCreating, setIsCreating] = useState<string | null>(null);
-  const [isCaptionsModalOpen, setIsCaptionsModalOpen] = useState(false);
-  const [isLinkToVideoModalOpen, setIsLinkToVideoModalOpen] = useState(false);
 
-  const tools = getTools(isAiCopilotEnabled, isLinkToVideoEnabled);
+  const tools = getTools();
 
   const handleCreateProject = async (type: string) => {
     setIsCreating(type);
@@ -114,12 +84,6 @@ export function CreateProjectModal({
   const handleToolClick = (tool: any) => {
     if (tool.type) {
       handleCreateProject(tool.type);
-    } else if (tool.isModal === "captions") {
-      setIsCaptionsModalOpen(true);
-      onOpenChange(false);
-    } else if (tool.isModal === "link-to-video") {
-      setIsLinkToVideoModalOpen(true);
-      onOpenChange(false);
     } else if (tool.href) {
       router.push(tool.href);
       onOpenChange(false);
@@ -128,8 +92,6 @@ export function CreateProjectModal({
 
   return (
     <>
-      <GenerateCaptionsModal open={isCaptionsModalOpen} onOpenChange={setIsCaptionsModalOpen} />
-      <LinkToVideoModal open={isLinkToVideoModalOpen} onOpenChange={setIsLinkToVideoModalOpen} />
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
           showCloseButton={false}
@@ -197,7 +159,7 @@ export function CreateProjectModal({
 
                   {isCreating === tool.type && (
                     <div className="absolute inset-0 bg-card/60 backdrop-blur-[1px] rounded-xl flex items-center justify-center">
-                      <RefreshCw className="size-4 animate-spin text-primary" />
+                      <Sparkles className="size-4 animate-spin text-primary" />
                     </div>
                   )}
                 </div>

@@ -4,7 +4,6 @@ import { usePostHog } from "posthog-js/react";
 
 import { use, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import AiCopilot from "@/components/ai-copilot";
 import { Loader2 } from "lucide-react";
 import Editor from "@/components/editor/editor";
 import { Project as UIProject } from "@/hooks/use-projects";
@@ -111,11 +110,6 @@ export default function Page({ params }: { params: Promise<{ projectId: string }
         <span className="ml-2">Converting schema...</span>
       </div>
     );
-  }
-
-  if (projectData?.project?.type === "ai-copilot") {
-    console.log("projectData13332", projectData);
-    return <AiCopilot project={projectData.project} assets={projectData.assets} />;
   }
 
   if (projectData?.project?.type === "ai-editor") {
