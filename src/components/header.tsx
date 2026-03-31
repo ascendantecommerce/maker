@@ -5,16 +5,13 @@ import { cn } from "@/lib/utils";
 import { motion, useScroll, useTransform } from "framer-motion";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useModalStore } from "@/stores/use-modal-store";
 import PricingModal from "./pricing-modal";
-import SigninModal from "./signin-modal";
 import ScenifyIcon from "./logos/scenify";
 import { authClient } from "@/lib/auth-client";
 
 export function Header() {
   const t = useTranslations();
   const { scrollY } = useScroll();
-  const { setModalSignin } = useModalStore();
   const { data: session } = authClient.useSession();
 
   // Transform scroll position to height and background opacity
@@ -32,7 +29,7 @@ export function Header() {
           style={{ opacity: backgroundOpacity }}
         />
 
-        <div className="relative z-10 flex justify-between items-center w-full  max-w-[1440px] mx-auto">
+        <div className="relative z-10 flex justify-between items-center w-full max-w-360 mx-auto">
           <Link href="/">
             <ScenifyIcon className="h-6.5" />
           </Link>
@@ -43,19 +40,17 @@ export function Header() {
             </Link>
           ) : (
             <div className="flex gap-2 items-center">
-              <Button
-                onClick={() => setModalSignin(true)}
-                className={cn(buttonVariants({}), "rounded-full font-semibold")}
-              >
-                {t("common.login")}
-              </Button>
+              <Link href="/">
+                <Button className={cn(buttonVariants({}), "rounded-full font-semibold")}>
+                  {t("common.login")}
+                </Button>
+              </Link>
             </div>
           )}
         </div>
       </motion.header>
 
       <PricingModal />
-      <SigninModal />
     </>
   );
 }
