@@ -1,7 +1,10 @@
 import { nanoid } from "nanoid";
 import { getInngestApp } from "../../index";
 import { initializeCharacterAdServices } from "./services";
-import { generateCharacterSeedImages, generateCharacterLipSyncClips } from "./steps";
+import {
+  generateCharacterSeedImages,
+  generateCharacterLipSyncClips,
+} from "./steps";
 import { mapInputToSchema } from "./utils/mapping";
 import { saveSchema } from "../common/steps";
 import { db } from "@/lib/database";
@@ -13,7 +16,7 @@ const inngest = getInngestApp();
 
 /**
  * Character-Driven Ad Orchestrator
- * 
+ *
  * Specialized pipeline for generating multi-character ads with native lip-sync.
  * Uses Veo 3.1 Fast's ability to generate video and lip-synced audio from a single payload.
  */
@@ -31,16 +34,16 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
       // 0. Stage 0: Schema Generation (from raw blocks)
       if ((!scheme.segments || scheme.segments.length === 0) && scheme.blocks) {
         scheme = await step.run("generate-schema-from-blocks", async () => {
-          const mapped = mapInputToSchema({ 
+          const mapped = mapInputToSchema({
             blocks: scheme.blocks!,
             product: scheme.product,
-            assets: scheme.assets 
+            assets: scheme.assets,
           });
           const updated = { ...scheme, ...mapped, id: schemeId };
-          
+
           // Stage 0.5: Persist the generated schema to DB (replaces manual initialization)
           await saveSchema(schemeId, updated, ResolverStatus.PROGRESS);
-          
+
           return updated;
         });
       }
@@ -53,7 +56,6 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
           .where("id", "=", schemeId)
           .execute();
       });
-
 
       await step.run("publish-analysis-start-toast", async () => {
         await publish({
@@ -68,39 +70,41 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
         });
       });
 
-
       // 2. Stage 1: Generate Scene Composition Images per Shot
       // We generate one scene image per shot to use as firstFrameUrl/referenceImages in Stage 2.
-      const characterResults = await step.run("initialize-character-images", async () => {
-        const shotUpdates = await generateCharacterSeedImages(
-          schemeId,
-          scheme,
-          services,
-          runToken
-        );
+      const characterResults = await step.run(
+        "initialize-character-images",
+        async () => {
+          const shotUpdates = await generateCharacterSeedImages(
+            schemeId,
+            scheme,
+            services,
+            runToken,
+          );
 
-        // Apply shot imageUrls onto the segments in-memory
-        const updatedSegments = scheme.segments.map((seg) => ({
-          ...seg,
-          shots: (seg.shots || []).map((shot, shotIndex) => {
-            const update = shotUpdates.find(
-              (u) => u.segmentId === seg.id && u.shotIndex === shotIndex
-            );
-            return update ? { ...shot, imageUrl: update.imageUrl } : shot;
-          }),
-        }));
+          // Apply shot imageUrls onto the segments in-memory
+          const updatedSegments = scheme.segments.map((seg) => ({
+            ...seg,
+            shots: (seg.shots || []).map((shot, shotIndex) => {
+              const update = shotUpdates.find(
+                (u) => u.segmentId === seg.id && u.shotIndex === shotIndex,
+              );
+              return update ? { ...shot, imageUrl: update.imageUrl } : shot;
+            }),
+          }));
 
-        const fullUpdatedScheme = { ...scheme, segments: updatedSegments };
+          const fullUpdatedScheme = { ...scheme, segments: updatedSegments };
 
-        // Persist the full scheme back to DB
-        await db
-          .updateTable("generations")
-          .set({ metadata: JSON.stringify(fullUpdatedScheme) })
-          .where("id", "=", schemeId)
-          .execute();
+          // Persist the full scheme back to DB
+          await db
+            .updateTable("generations")
+            .set({ metadata: JSON.stringify(fullUpdatedScheme) })
+            .where("id", "=", schemeId)
+            .execute();
 
-        return { segments: updatedSegments, count: shotUpdates.length };
-      });
+          return { segments: updatedSegments, count: shotUpdates.length };
+        },
+      );
 
       // Update local state for subsequent stages
       scheme.segments = characterResults.segments as typeof scheme.segments;
@@ -125,13 +129,13 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
           schemeId,
           scheme,
           services,
-          runToken
+          runToken,
         );
-        
+
         return {
-          clips: results.map(r => ({ id: r.id, url: r.videoUrl })),
-          successCount: results.filter(r => r.success).length,
-          totalCount: results.length
+          clips: results.map((r) => ({ id: r.id, url: r.videoUrl })),
+          successCount: results.filter((r) => r.success).length,
+          totalCount: results.length,
         };
       });
 
@@ -139,13 +143,13 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
       await step.run("mark-orchestration-complete", async () => {
         // Update generations metadata with the finalized character/segment mapping
         await db
-            .updateTable("generations")
-            .set({ 
-                status: ResolverStatus.COMPLETED,
-                metadata: JSON.stringify(scheme) 
-            })
-            .where("id", "=", schemeId)
-            .execute();
+          .updateTable("generations")
+          .set({
+            status: ResolverStatus.COMPLETED,
+            metadata: JSON.stringify(scheme),
+          })
+          .where("id", "=", schemeId)
+          .execute();
       });
 
       await step.run("publish-done-toast", async () => {
@@ -185,5 +189,5 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
 
       throw err;
     }
-  }
+  },
 );
