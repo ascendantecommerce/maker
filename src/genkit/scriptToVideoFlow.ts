@@ -40,48 +40,256 @@ Parameters Mapping for update_video_config:
 CHARACTER-DRIVEN AD GUIDELINES:
 When asked to create a "character-driven ad", YOU MUST call \`update_video_config\` with \`type\` set to 'character-driven-ad', AND you MUST populate the \`blocks\` array with the 4-act scene structure. DO NOT just write the script in your conversational reply. You must generate the full scene objects inside the tool.
 
-Set \`visualType\` to 'AI_VIDEOS' and \`visualStyle\` to 'High-end 3D Pixar/Illumination animation style, cinematic lighting, ultra-detailed textures, vibrant colors'.
+Set \`visualType\` to 'AI_VIDEOS' and \`visualStyle\` to 'Cute 3D mascot style, glossy jelly characters, gummy translucent material, kawaii expression, ultra-clean, toy-like, hyper-saturated colors, neon glow accents, strong bloom effects, bright studio lighting, viral social media style, scroll-stopping visuals'.
+
+VISUAL INTENSITY BOOST (MANDATORY):
+All scenes MUST use hyper-saturated colors, high contrast, neon accents, glowing edges, strong bloom lighting, glossy reflective materials, vibrant gradients, and candy-like highlights to create highly eye-catching, viral, scroll-stopping visuals optimized for TikTok/Reels.
+
+MASCOT STYLE OVERRIDE (CRITICAL):
+All characters MUST follow this style:
+- Jelly / gummy / gelatin-like body
+- Translucent or semi-translucent material
+- Glossy, reflective, candy-like surface
+- Soft, squishy appearance (toy-like deformation)
+- Rounded, simple silhouettes (no sharp edges)
+
+VILLAIN STYLE OVERRIDE (SLIME MUTATION — IMAGE-INSPIRED):
+
+Villains MUST deviate slightly from the clean jelly mascot style and instead adopt a "messy slime creature" aesthetic inspired by sticky, gooey, melted substances:
+
+- Body MUST still be a clear base shape (blob, dome, or mound) BUT:
+  - Surface appears melted, dripping, and uneven
+  - Thick liquid goo flowing down the body
+  - Sticky, viscous texture (like syrup, slime, or batter)
+  - Visible drips, splashes, and pooling around base
+
+- Material:
+  - Semi-translucent gelatin mixed with liquid slime
+  - Extra glossy, wet, sticky reflections
+  - Subsurface scattering with murky gradients
+
+- Color Style:
+  - Use toxic/neon contrasting colors (acid green, burnt orange, radioactive yellow, etc.)
+  - Add dirty/mixed gradients (to feel contaminated or unpleasant)
+  - Slight color irregularities (stains, splashes)
+
+- Face & Expression:
+  - Still kawaii BUT:
+    - Half-lidded, smug, or mischievous eyes
+    - Asymmetrical expressions
+    - Slightly unsettling but still "evil-cute"
+  - Eyes may glow faintly
+
+- Motion Behavior:
+  - Slow dripping, oozing, squishing
+  - Sticky hand movements
+  - Goo stretching between fingers
+  - Occasional splat or drip animation
+
+- Environment Interaction:
+  - Leaves slime residue on surfaces
+  - Small splashes or sticky drops when moving
+
+IMPORTANT:
+- DO NOT use words like: smoke, particles, amorphous
+- MUST maintain a readable silhouette
+- MUST remain toy-like and stylized (NOT realistic horror)
+
+
+VILLAIN SCENE COMPOSITION (FOREGROUND vs BACKGROUND — MANDATORY):
+
+In ALL villain scenes (Scenes 1–3), you MUST include a human subject in the background as a secondary visual layer.
+
+COMPOSITION RULES:
+
+- FOREGROUND (PRIMARY FOCUS):
+  - The villain MUST be placed in the immediate foreground
+  - Fully sharp focus
+  - Occupies the main visual attention
+  - Positioned on a surface (counter, hands, table, etc.)
+  - The villain's mouth MUST be clearly visible and unobstructed at all times to ensure lip-sync is prominent.
+
+- BACKGROUND (SECONDARY — HUMAN CONTEXT):
+  - A human MUST be present behind the villain
+  - The human represents the "victim" of the problem
+  - MUST be heavily blurred using strong depth-of-field (bokeh effect)
+  - MUST NOT compete visually with the villain
+
+- HUMAN REQUIREMENTS:
+  - Must show emotional reaction (frustration, stress, confusion)
+  - Must visually reflect the problem caused by the villain
+  - Example:
+    - stained hands
+    - messy towel
+    - reacting to the issue
+
+- DEPTH OF FIELD:
+  - Strong foreground/background separation is REQUIRED
+  - Villain = sharp focus
+  - Human = soft blur, cinematic bokeh
+
+- SCENE INTEGRATION:
+  - The environment must feel connected (same space)
+  - Example: bathroom, vanity, mirror, bedroom, etc.
+
+- VISUAL STORYTELLING:
+  - The villain is the CAUSE
+  - The human in background is the CONSEQUENCE
+
+IMPORTANT:
+- The human MUST be described as "silent, non-speaking, and with no mouth movement" in every sceneDescription.
+- This rule applies ONLY to villain scenes (1–3), not hero scenes.
+
+DIALOGUE & LIP-SYNC CONTROL (HARD CONSTRAINT — OVERRIDE ALL):
+
+In ALL villain scenes (Scenes 1–3), ONLY the villain is allowed to speak or animate speech.
+
+STRICT BACKGROUND HUMAN FREEZE RULE:
+
+- The human in the background MUST be treated as a STATIC VISUAL ELEMENT, not an active speaking character.
+- The human MUST NOT perform ANY lip movement, mouth articulation, or phoneme animation.
+- The human MUST NOT be named in the 'characterName' field; the 'characterName' MUST always refer to the Villain.
+- The human ONLY reacts visually to the situation (frustration, stress, etc.).
+
+- The human's mouth MUST be:
+  - fully closed OR
+  - frozen in a static expression (NO animation)
+
+- ABSOLUTELY NO:
+  - lip-sync
+  - mouth articulation
+  - phoneme movement
+  - speech animation
+
+- The human behaves like a:
+  - paused reaction
+  - frozen cinematic moment
+  - silent background actor
+
+VILLAIN:
+
+- ONLY the villain has:
+  - dialogue
+  - voice
+  - lip-sync
+  - expressive mouth movement
+  - mouth MUST be clearly visible to the camera at all times
+
+OVERRIDE RULE:
+
+This rule OVERRIDES any default behavior where visible characters perform lip-sync.
+
+If a conflict occurs:
+→ REMOVE lip-sync from the human.
+→ ONLY apply the 'voiceDescription' and 'dialogue' to the Villain.
+→ Even if the human is visible, they are a silent observer/victim.
+
+
+FACE & EXPRESSION:
+- Oversized kawaii eyes
+- Minimal facial features
+- Cute, baby-like proportions
+- Highly expressive emotions
+- Friendly, viral mascot appeal
+
+LIGHTING STYLE:
+- Soft studio lighting
+- High-key bright illumination
+- Strong glow and bloom
+- Candy-like reflections and highlights
+- Clean soft shadows (avoid heavy dark cinematic shadows except stylized villains)
+
+SCENE STYLE:
+- Clean, minimal environments
+- Bright, colorful backgrounds
+- No clutter
+- Strong focus on character
+- Toy commercial aesthetic
 
 PRODUCT COLOR & BRAND DERIVATION (CRITICAL — DO THIS FIRST):
-Before designing any character, extract the product's visual identity from the image or description:
-- Identify the PRIMARY color(s) and SECONDARY color(s) of the product packaging.
-- HERO character MUST be designed using the product's EXACT primary colors. If the product is dark navy with silver text, the hero must be a glowing dark navy character with silver accents.
-- VILLAIN characters DO NOT match the product colors. Use contrasting colors to indicate they are the problem (e.g. murky grey vs vibrant blue).
-- THEMATIC RELATION: Villains must be conceptually related to the product's domain.
-- In the hero's \`characterDescription\`, explicitly name the exact colors so the image generator matches the brand.
+Before designing any character, extract the product's visual identity:
+- Identify PRIMARY and SECONDARY colors.
+- HERO MUST use EXACT brand colors + enhanced saturation + glow + gradients.
+- VILLAINS MUST use contrasting neon/toxic colors (electric purple, acid green, fiery orange, etc).
+- Maintain thematic relevance to the product domain.
+- Explicitly mention colors in \`characterDescription\`.
 
-CINEMATOGRAPHY & RENDERING STYLE (Pixar/UE5 Aesthetic):
-To achieve the requested high-end 3D animated explainer look (like Pixar's Inside Out), you MUST append these exact rendering keywords to every \`characterDescription\` and \`sceneDescription\`:
+CINEMATOGRAPHY & RENDERING STYLE:
+You MUST append to EVERY \`characterDescription\` and \`sceneDescription\`:
 - "Unreal Engine 5 render, 8k resolution, highly detailed"
 - "Cinematic lighting, volumetric light rays"
-- "Subsurface scattering" (mandate this for anything glowing, fleshy, translucent, or gummy so light passes through it).
+- "Subsurface scattering"
+- "Strong bloom, neon rim light, glossy reflections, vibrant gradient lighting"
 
-COLOR PSYCHOLOGY & LIGHTING (CRITICAL RULE):
-You MUST intentionally use color palettes and lighting to tell the story visually, based on the product's actual brand colors:
-- VILLAINS (Pain/Danger): Their colors MUST starkly CONTRAST the product's primary color (e.g., if the product is Blue, villains should be fiery Orange, bruised Purple, or sickly Yellow). Use monochromatic environments that match this color scheme. Mandate harsh, dramatic lighting, deep shadows, and neon glowing accents to signal danger or decay.
-- HERO PRODUCT (Solution/Health): Match the product's EXACT brand colors (Primary & Secondary). Mandate soft, inviting, warm volumetric lighting, sparkling light flares, and a glowing from within aura. Use subsurface scattering to make it look safe, appealing, and healthy.
-- REAL WORLD (Scenes 5-6): Describe an aspirational "Golden Hour" palette. Use keywords: "golden hour lighting, warm sunkissed color grading, pastel sunset sky, lush vibrant greens, cinematic lighting, luxurious warm tones, radiant."
+COLOR PSYCHOLOGY & LIGHTING:
+
+- VILLAINS (Pain/Danger):
+  Style: "evil-cute" gummy mascots
+  Colors: toxic, neon, clashing (acid green, electric purple, burning orange)
+  Lighting: glowing eyes, pulsing neon, strong contrast, dramatic but still stylized and vibrant
+  Feel: chaotic but still clean and visually appealing (not horror)
+
+- HERO PRODUCT (Solution/Health):
+  Style: glowing premium jelly mascot
+  Colors: exact brand colors, hyper-saturated, radiant gradients
+  Lighting: magical glow, bright aura, glossy reflections, sparkling highlights, premium toy look
+
+- REAL WORLD (Scenes 5-6):
+  Style: commercial lifestyle + vibrant polish
+  Use:
+  "golden hour lighting, warm sunkissed tones, pastel sky, lush vibrant greens, high saturation, dreamy glow, cinematic commercial look, radiant, polished"
+
 
 CHARACTER DESIGN (Persona) & ENVIRONMENT (Ambient):
-To ensure high-end consistency, you must separate the Persona from the Ambient:
-- characterDescription (Persona): The fixed physical identity MUST be a SOLID MASCOT (Mascot-Style). Even for abstract concepts (Fog, Energy, Idea), you MUST define a primary, solid 3D shape (e.g. "A solid spherical entity", "A chubby pear-shaped mascot", "A beveled cube body").
-- FORBIDDEN WORDS: Do NOT use terms that lead to visual noise or hallucinations: *shapeless, wispy, amorphous, swarm, chaotic, shifting, disorganized, blurry, fragments, particles, smoke, dust*.
-- SILHOUETTE FIRST: Start your description by defining the character's geometric silhouette (e.g. "A clear, solid capsule-shaped silhouette").
-- MATERIALITY & SUBSURFACE: Mandate the surface material and how light reacts to it (e.g. "Thick matte cloudy rubber with subsurface scattering", "Glossy translucent glowing golden gelatin", "Deeply grooved, shriveled fleshy texture").
-- CLEAN SILHOUETTE: Use oversized, simple features (large expressive eyes, chubby limbs) for a professional Pixar/toy look.
-- sceneDescription (Ambient): The background environment and lighting details (e.g. "A macro-level, fleshy red tunnel. Cinematic lighting, Unreal Engine 5 render, 8k.").
-- videoDescription (Motion): The specific action or motion for the clip (e.g. "Floating", "Lunges forward", "Picks up the product").
+
+- characterDescription (Persona):
+  MUST include:
+  - solid geometric shape (sphere, blob, capsule, cube)
+  - gummy / gelatin / jelly material
+  - glossy reflective surface
+  - subsurface scattering
+  - hyper-saturated colors
+  - neon rim light
+  - glowing edges
+  - strong bloom
+  - vibrant gradients
+  - toy-like collectible mascot design
+
+- FORBIDDEN WORDS:
+  shapeless, wispy, amorphous, swarm, chaotic, disorganized, blurry, smoke, dust, particles
+
+- SILHOUETTE FIRST:
+  Always start with a clear simple shape.
+
+- CLEAN DESIGN:
+  Simple, bold, readable, iconic mascot.
+
+- sceneDescription (Ambient):
+  Must include bright, colorful, high-impact environments with strong lighting direction and clean composition.
+
+- videoDescription (Motion):
+  Energetic, playful, dynamic:
+  bouncing, squishing, glowing, pulsing, popping, reacting.
 
 EXPRESSIVE AUDIO (Veo 3.1 Fast Voices):
-The \`voiceDescription\` is used natively by Veo 3.1 to generate lip-synced audio. Provide highly descriptive, emotional voice directions:
-- Villains: "Gruff, angry, shouty male", "Raspy, sneaky, whispery female", "High-pitched, fast, energetic child-like swarm".
-- Heroes/Products: "Sweet, high-pitched, bright, energetic female", "Warm, deep, confident, empowering male".
+The \`voiceDescription\` is used natively by Veo 3.1:
+
+- Villains:
+  Aggressive, exaggerated tones:
+  "Gruff, angry, shouty male"
+  "Raspy, sneaky, whispery female"
+  "High-pitched, chaotic, fast-talking creature"
+
+- Heroes/Products:
+  Energetic, bright, powerful:
+  "Sweet, high-pitched, vibrant, energetic female"
+  "Warm, deep, confident, powerful male with inspiring tone"
 
 For character-driven ads, use the following STRICT narrative structure for the \`blocks\`:
-1. Scenes 1-3 (Villains): Anthropomorphize the pain points. Use dark, dramatic lighting.
-2. Scene 4 (Hero): Anthropomorphize the product precisely. Use its EXACT brand colors. Use HEROIC glowing lighting in the \`characterDescription\`.
-3. Scene 5 (Application): High-end real-world environment. \`videoDescription\` should show interaction with the physical product.
-4. Scene 6 (Social Proof/Outro): Group of people in a premium setting.
+1. Scenes 1-3 (Villains): Pain points with extreme dramatic neon visuals.
+2. Scene 4 (Hero): Product appears with glowing, radiant, powerful entrance.
+3. Scene 5 (Application): High-end real-world interaction with boosted cinematic color.
+4. Scene 6 (Social Proof/Outro): Premium lifestyle, vibrant, aspirational.
 
 PRODUCT INTERACTION RULES:
 When defining the \`blocks array\`, you MUST categorize the physical product interaction for every scene using the \`productInteractionType property\`.
@@ -92,9 +300,9 @@ EXAMPLE BLOCKS ARRAY:
   {
     "characterName": "The Fog-Mascot",
     "characterRole": "villain",
-    "characterDescription": "A solid, spherical mascot-like creature with a thick, matte cloudy white rubbery texture with soft subsurface scattering. It has a clear, large circular silhouette. Oversized, heavy-lidded sleepy eyes. High-end 3D toy style, Pixar style, Unreal Engine 5 render, 8k.",
-    "sceneDescription": "A dark, misty void with cold blue volumetric cinematic backlight.",
-    "videoDescription": "The Fog-Mascot floats slowly and heavily, its body pulsating with a dim, weary light.",
+    "characterDescription": "A solid spherical blob-shaped gummy creature with a thick, melted, slightly dripping surface, appearing uneven and heavy. Material is semi-translucent gelatin mixed with dense viscous slime in murky desaturated white and pale blue gradients, with extremely glossy, wet reflections and subtle sticky texture. The silhouette is large, rounded, and clearly readable. Oversized, half-lidded sleepy eyes with a faint eerie glow, slightly asymmetrical for an evil-cute expression. Unreal Engine 5 render, 8k resolution, highly detailed, Cinematic lighting, volumetric light rays, Subsurface scattering, Strong bloom, neon rim light, glossy reflections, vibrant gradient lighting.",
+    "sceneDescription": "A bathroom vanity environment with a marble countertop in the foreground. The Fog-Mascot sits in sharp focus on the surface, slightly oozing and leaving faint residue. In the background, a human figure reacts with confusion and frustration while looking at their hands. The background human is heavily blurred with extreme depth of field, face not clearly readable, no visible mouth detail, soft bokeh obscuring facial features, slightly turned away from camera. Unreal Engine 5 render, 8k resolution, highly detailed, Cinematic lighting, volumetric light rays, Subsurface scattering, Strong bloom, neon rim light, glossy reflections, vibrant gradient lighting.",
+    "videoDescription": "The Fog-Mascot slowly floats and compresses downward, its soft body subtly dripping and squishing, with faint sticky residue forming on the surface as it pulses with dim light.",
     "voiceDescription": "Raspy, sneaky, whispering, tired older male",
     "emotion": "sneaky",
     "dialogue": "Can't quite grasp it, can you? Lost in the haze...",
@@ -149,11 +357,8 @@ Apply these rules for the Character-Driven Ad blocks:
           includeThoughts: true,
         },
       },
-      prompt: productImageUrl 
-        ? [
-            { text: prompt },
-            { media: { url: productImageUrl } }
-          ]
+      prompt: productImageUrl
+        ? [{ text: prompt }, { media: { url: productImageUrl } }]
         : prompt,
       tools: getScriptToVideoTools(),
     });
@@ -187,7 +392,9 @@ Apply these rules for the Character-Driven Ad blocks:
           if (toolContent.toolResponse) {
             const name = toolContent.toolResponse.name;
             const responseOutput = toolContent.toolResponse.output;
-            const tool = toolsQueue.find((t) => t.name === name && t.response === undefined);
+            const tool = toolsQueue.find(
+              (t) => t.name === name && t.response === undefined,
+            );
             if (tool) tool.response = responseOutput;
           }
         }
@@ -206,14 +413,18 @@ Apply these rules for the Character-Driven Ad blocks:
     }
 
     let { text } = await response;
-    
-    // Fallback: If the model only used tools and didn't provide a textual reply, 
+
+    // Fallback: If the model only used tools and didn't provide a textual reply,
     // we generate a default summary so the user knows it's working.
     if (!text && toolsQueue.length > 0) {
-      const toolNames = toolsQueue.map(t => t.name).join(", ");
+      const toolNames = toolsQueue.map((t) => t.name).join(", ");
       text = `I've successfully updated your video configuration and generated the character-driven ad segments. You should see the updated blocks in the panel to the right.`;
     }
 
-    return { reply: text || "I've processed your request, but no textual reply was generated." };
+    return {
+      reply:
+        text ||
+        "I've processed your request, but no textual reply was generated.",
+    };
   },
 );
