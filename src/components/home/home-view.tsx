@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Sparkles, Brain, Scissors, Video } from "lucide-react";
+import { Sparkles, Brain, Scissors, Video, Users } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
 
@@ -144,6 +144,14 @@ export default function HomeView() {
 
           <ModeCard
             index={1}
+            title="Character-Driven Ad"
+            description="Generate multi-character ads with native lip-sync and cinematic consistency."
+            icon={Users}
+            href="/script-to-video?mode=character-driven-ad"
+          />
+
+          <ModeCard
+            index={2}
             title="Fake UGC Ads"
             description="High-converting AI-generated UGC style ads using lifestyle visuals and avatars."
             icon={Sparkles}

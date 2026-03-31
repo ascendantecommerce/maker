@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles, Scissors, Brain, Bot, X, Video } from "lucide-react";
+import { Sparkles, Scissors, Brain, Bot, X, Video, Users } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -14,6 +14,13 @@ interface CreateProjectModalProps {
 }
 
 const getTools = () => [
+  {
+    id: "character-driven-ad",
+    title: "Character-Driven Ad",
+    description: "Generate multi-character ads with native lip-sync.",
+    icon: Users,
+    href: "/script-to-video?mode=character-driven-ad",
+  },
   {
     id: "ugc-video",
     title: "UGC Video Ads",

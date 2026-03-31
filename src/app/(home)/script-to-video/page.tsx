@@ -19,6 +19,7 @@ function ScriptToVideoContent() {
     | "narrative-video"
     | "product-video-ad"
     | "ugc-video-ad"
+    | "character-driven-ad"
     | null;
 
   const { script } = useScriptStore();
