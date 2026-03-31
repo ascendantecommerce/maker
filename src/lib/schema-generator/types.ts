@@ -11,11 +11,13 @@ export interface VoiceConfig {
 export interface UserScriptBlock {
   characterName: string;
   characterRole: "villain" | "hero" | "human" | "narrator";
-  visualDescription: string;
+  characterDescription: string;
+  sceneDescription: string;
+  videoDescription: string;
   voiceDescription: string;
   emotion: string;
   dialogue: string;
-  cameraMotion: string;
+  productInteractionType?: "package_hero" | "product_in_hand" | "product_on_surface" | "product_reveal" | "none";
 }
 
 export interface CharacterConfig {

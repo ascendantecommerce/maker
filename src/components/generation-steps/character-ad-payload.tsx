@@ -17,11 +17,12 @@ const DEFAULT_BLOCKS: UserScriptBlock[] = [
   {
     characterName: "The Skeptic",
     characterRole: "villain",
-    visualDescription: "Anthropomorphic wolf in a business suit, skeptical expression",
+    characterDescription: "Anthropomorphic wolf in a business suit, skeptical expression",
+    sceneDescription: "Dark office setup, shadowy lighting",
+    videoDescription: "Character looks directly at camera, skeptical",
     voiceDescription: "deep, gravelly, cynical",
     emotion: "skeptical",
     dialogue: "You really think this product will work? I've seen it all before.",
-    cameraMotion: "slow zoom in"
   }
 ];
 
