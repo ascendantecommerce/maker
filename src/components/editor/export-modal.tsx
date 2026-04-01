@@ -13,8 +13,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Video, Music, Clock } from "lucide-react";
+import { Loader2, Video, Music, Clock, Download } from "lucide-react";
 import { useStudioStore } from "@/stores/studio-store";
+import { LogoIcons } from "@/components/shared/logos";
+import GoogleIcon from "../logos/google";
 
 interface ExportModalProps {
   open: boolean;
@@ -47,9 +49,17 @@ const QUALITY_PRESETS = [
 
 // Which container formats work with which video codecs
 const VIDEO_FORMATS = [
-  { value: "mp4", label: "MP4", codecs: ["avc1.42E032", "hvc1.1.6.L123.B0", "vp09.00.10.08"] },
+  {
+    value: "mp4",
+    label: "MP4",
+    codecs: ["avc1.42E032", "hvc1.1.6.L123.B0", "vp09.00.10.08"],
+  },
   { value: "webm", label: "WebM", codecs: ["vp09.00.10.08"] },
-  { value: "mkv", label: "MKV", codecs: ["avc1.42E032", "hvc1.1.6.L123.B0", "vp09.00.10.08"] },
+  {
+    value: "mkv",
+    label: "MKV",
+    codecs: ["avc1.42E032", "hvc1.1.6.L123.B0", "vp09.00.10.08"],
+  },
   { value: "mov", label: "MOV", codecs: ["avc1.42E032", "hvc1.1.6.L123.B0"] },
 ];
 
@@ -79,15 +89,23 @@ const SAMPLE_RATES = [
 
 export function ExportModal({ open, onOpenChange }: ExportModalProps) {
   const { studio } = useStudioStore();
-  const studioOpts = studio?.getOptions() || { width: 1920, height: 1080, fps: 30 };
+  const studioOpts = studio?.getOptions() || {
+    width: 1920,
+    height: 1080,
+    fps: 30,
+  };
 
   // Step state
   const [isConfiguring, setIsConfiguring] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [exportBlobUrl, setExportBlobUrl] = useState<string | null>(null);
+  const [exportBlob, setExportBlob] = useState<Blob | null>(null);
   const [exportStartTime, setExportStartTime] = useState<number | null>(null);
-  const [exportCombinator, setExportCombinator] = useState<Compositor | null>(null);
+  const [exportCombinator, setExportCombinator] = useState<Compositor | null>(
+    null,
+  );
+  const [isSavingToDrive, setIsSavingToDrive] = useState(false);
 
   // Export settings
   const [includeVideo, setIncludeVideo] = useState(true);
@@ -129,10 +147,12 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
       URL.revokeObjectURL(exportBlobUrl);
       setExportBlobUrl(null);
     }
+    setExportBlob(null);
     setExportStartTime(null);
     setIsExporting(false);
     setExportProgress(0);
     setIsConfiguring(true);
+    setIsSavingToDrive(false);
   };
 
   const handleClose = () => {
@@ -168,10 +188,12 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
 
     try {
       const json = studio.exportToJSON();
-      if (!json.clips || json.clips.length === 0) throw new Error("No clips to export");
+      if (!json.clips || json.clips.length === 0)
+        throw new Error("No clips to export");
 
       const validClips = json.clips.filter((clipJSON: any) => {
-        if (["Text", "Caption", "Effect", "Transition"].includes(clipJSON.type)) return true;
+        if (["Text", "Caption", "Effect", "Transition"].includes(clipJSON.type))
+          return true;
         return clipJSON.src && clipJSON.src.trim() !== "";
       });
       if (validClips.length === 0) throw new Error("No valid clips to export");
@@ -201,14 +223,14 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
       const stream = com.output();
       const blob = await new Response(stream).blob();
       const blobUrl = URL.createObjectURL(blob);
+      setExportBlob(blob);
       setExportBlobUrl(blobUrl);
       setIsExporting(false);
 
-      setTimeout(() => {
-        handleDownload(blobUrl);
-        toast.success("Rendering complete! Your download has started.");
-        setTimeout(() => handleClose(), 1500);
-      }, 500);
+      // setTimeout(() => {
+      //   handleDownload(blobUrl);
+      //   toast.success("Rendering complete! Your download has started.");
+      // }, 500);
     } catch (error) {
       Log.error("Export error:", error);
       alert("Failed to export: " + (error as Error).message);
@@ -217,10 +239,79 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
     }
   };
 
+  const handleSaveToDrive = async () => {
+    if (!exportBlob) return;
+    setIsSavingToDrive(true);
+    try {
+      const fileName = `scenify-export-${Date.now()}.${format}`;
+      const formData = new FormData();
+      formData.append("file", exportBlob, fileName);
+      formData.append("fileName", fileName);
+
+      const res = await fetch("/api/drive/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      // Drive not connected yet — start the OAuth flow
+      if (!res.ok && data.error === "needs_drive_auth") {
+        const oauthRes = await fetch(
+          `/api/drive/oauth?redirectBack=${encodeURIComponent(window.location.href)}`,
+        );
+        const oauthData = await oauthRes.json();
+        if (oauthData.url) {
+          toast.info("Redirecting to Google to connect Drive…");
+          window.location.href = oauthData.url;
+        } else {
+          toast.error("Could not start Drive connection. Please try again.");
+        }
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error(data.error || "Upload to Drive failed");
+      }
+
+      toast.success(
+        <span>
+          Saved to Google Drive!
+          {data.webViewLink && (
+            <>
+              {" "}
+              <a
+                href={data.webViewLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline font-semibold"
+              >
+                Open in Drive
+              </a>
+            </>
+          )}
+        </span>,
+        { duration: 6000 },
+      );
+    } catch (err) {
+      Log.error("Save to Drive error:", err);
+      toast.error("Failed to save to Drive: " + (err as Error).message);
+    } finally {
+      setIsSavingToDrive(false);
+      handleClose();
+    }
+  };
+
   if (!open) return null;
 
   // Shared field row
-  const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  const Row = ({
+    label,
+    children,
+  }: {
+    label: string;
+    children: React.ReactNode;
+  }) => (
     <div className="flex items-center justify-between gap-4">
       <span className="text-xs text-muted-foreground shrink-0">{label}</span>
       <div className="flex-1 min-w-0">{children}</div>
@@ -246,7 +337,8 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
                 Export
               </DialogTitle>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {studioOpts.width}×{studioOpts.height} · {(maxDuration / 1e6).toFixed(1)}s
+                {studioOpts.width}×{studioOpts.height} ·{" "}
+                {(maxDuration / 1e6).toFixed(1)}s
               </p>
             </div>
 
@@ -256,9 +348,14 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
                 <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                   <div className="flex items-center gap-2">
                     <Video className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span className="text-xs font-medium text-foreground">Video</span>
+                    <span className="text-xs font-medium text-foreground">
+                      Video
+                    </span>
                   </div>
-                  <Switch checked={includeVideo} onCheckedChange={setIncludeVideo} />
+                  <Switch
+                    checked={includeVideo}
+                    onCheckedChange={setIncludeVideo}
+                  />
                 </div>
                 <div
                   className={`px-4 py-3 flex flex-col gap-3 transition-opacity ${!includeVideo ? "opacity-30 pointer-events-none" : ""}`}
@@ -327,9 +424,14 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
                 <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                   <div className="flex items-center gap-2">
                     <Music className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span className="text-xs font-medium text-foreground">Audio</span>
+                    <span className="text-xs font-medium text-foreground">
+                      Audio
+                    </span>
                   </div>
-                  <Switch checked={includeAudio} onCheckedChange={setIncludeAudio} />
+                  <Switch
+                    checked={includeAudio}
+                    onCheckedChange={setIncludeAudio}
+                  />
                 </div>
                 <div
                   className={`px-4 py-3 flex flex-col gap-3 transition-opacity ${!includeAudio ? "opacity-30 pointer-events-none" : ""}`}
@@ -365,7 +467,10 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
                     </Select>
                   </Row>
                   <Row label="Sample Rate">
-                    <Select value={audioSampleRate} onValueChange={setAudioSampleRate}>
+                    <Select
+                      value={audioSampleRate}
+                      onValueChange={setAudioSampleRate}
+                    >
                       <SelectTrigger className={selectCls}>
                         <SelectValue />
                       </SelectTrigger>
@@ -385,7 +490,9 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
               <div className="flex items-center justify-between mt-1">
                 <div className="flex items-center gap-1.5 text-muted-foreground">
                   <Clock className="w-3 h-3" />
-                  <span className="text-[11px]">{(maxDuration / 1e6).toFixed(2)}s</span>
+                  <span className="text-[11px]">
+                    {(maxDuration / 1e6).toFixed(2)}s
+                  </span>
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -424,18 +531,29 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
                 { label: "FPS", value: fps },
                 {
                   label: "Resolution",
-                  value: includeVideo ? `${studioOpts.width}×${studioOpts.height}` : "N/A",
+                  value: includeVideo
+                    ? `${studioOpts.width}×${studioOpts.height}`
+                    : "N/A",
                 },
                 { label: "Video", value: includeVideo ? "On" : "Off" },
                 { label: "Audio", value: includeAudio ? "On" : "Off" },
                 {
                   label: "Sample",
-                  value: includeAudio ? `${Number(audioSampleRate) / 1000}k` : "N/A",
+                  value: includeAudio
+                    ? `${Number(audioSampleRate) / 1000}k`
+                    : "N/A",
                 },
               ].map(({ label, value }) => (
-                <div key={label} className="rounded-lg border border-border bg-card px-3 py-2">
-                  <p className="text-[10px] text-muted-foreground mb-0.5">{label}</p>
-                  <p className="text-xs font-medium text-foreground truncate">{value}</p>
+                <div
+                  key={label}
+                  className="rounded-lg border border-border bg-card px-3 py-2"
+                >
+                  <p className="text-[10px] text-muted-foreground mb-0.5">
+                    {label}
+                  </p>
+                  <p className="text-xs font-medium text-foreground truncate">
+                    {value}
+                  </p>
                 </div>
               ))}
             </div>
@@ -449,7 +567,8 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
                   {exportProgress > 0 && exportStartTime
                     ? (() => {
                         const elapsed = Date.now() - exportStartTime;
-                        const remaining = (elapsed / exportProgress - elapsed) / 1000;
+                        const remaining =
+                          (elapsed / exportProgress - elapsed) / 1000;
                         const mins = Math.floor(remaining / 60);
                         const secs = Math.floor(remaining % 60);
                         return ` · ${mins}m ${secs}s left`;
@@ -465,13 +584,43 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
               </div>
             </div>
 
+            {/* Action buttons shown after export completes */}
+            {!isExporting && exportBlobUrl && (
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => handleDownload()}
+                  className="flex-1 h-9 text-xs rounded-xl border border-border bg-card text-foreground hover:bg-muted gap-1.5"
+                  disabled={isSavingToDrive}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Download
+                </Button>
+                <Button
+                  onClick={handleSaveToDrive}
+                  disabled={isSavingToDrive}
+                  className="flex-1 h-9 text-xs rounded-xl bg-white text-[#1a73e8] hover:bg-gray-100 border border-gray-200 gap-1.5 font-semibold shadow-sm disabled:opacity-60"
+                >
+                  {isSavingToDrive ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <GoogleIcon className="h-3.5 w-3.5" />
+                  )}
+                  Save to Drive
+                </Button>
+              </div>
+            )}
+
             <Button
               variant="ghost"
               onClick={handleClose}
               className="w-full h-9 text-xs rounded-xl border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted"
+              disabled={isSavingToDrive}
             >
-              {isExporting && <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />}
-              Cancel Export
+              {isExporting && (
+                <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+              )}
+              {isExporting ? "Cancel Export" : "Close"}
             </Button>
           </div>
         )}

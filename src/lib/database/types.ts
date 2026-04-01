@@ -164,7 +164,7 @@ export type Project = Selectable<ProjectTable>;
 export type NewProject = Insertable<ProjectTable>;
 export type ProjectUpdate = Updateable<ProjectTable>;
 
-export type Provider = "INSTAGRAM" | "YOUTUBE" | "TIKTOK";
+export type Provider = "INSTAGRAM" | "YOUTUBE" | "TIKTOK" | "GOOGLE_DRIVE";
 
 export interface UserSocialAccountTable {
   id: string;
