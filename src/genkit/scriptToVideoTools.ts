@@ -52,10 +52,12 @@ export function getScriptToVideoTools() {
           voiceDescription: z.string().optional(),
           emotion: z.string().optional(),
           dialogue: z.string().optional(),
-          productInteractionType: z.enum(["package_hero", "product_in_hand", "product_on_surface", "product_reveal", "none"])
+          productInteractionType: z.enum(["packaging_hero", "product_content_hero", "packaging_in_hand", "product_content_in_hand", "packaging_on_surface", "product_content_on_surface", "product_reveal", "none"])
             .optional()
-            .describe("Set to a specific view mode if this scene MUST prominently display or interact with the physical product, otherwise 'none'.")
+            .describe("Set the focus to either the outer packaging or the internal product content for this scene.")
         })).optional().describe("Used exclusively to define scenes when type is 'character-driven-ad'."),
+        productName: z.string().optional().describe("The name of the product."),
+        productDescription: z.string().optional().describe("A brief description of the product."),
       }),
       outputSchema: z.object({
         message: z.string(),

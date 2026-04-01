@@ -1,0 +1,98 @@
+import { db } from "@/lib/database";
+import { GeminiService } from "@/lib/gemini/generator";
+import { ResolverStatus } from "@/utils/enum";
+import { getInngestApp } from "../../index";
+import { workflowChannel } from "../../utils/common";
+import { ToastType } from "../../utils/types";
+import { CHARACTER_AD_SYSTEM_PROMPT } from "@/lib/prompts/assistant-script";
+
+const inngest = getInngestApp();
+
+/**
+ * Character-Driven Ad Script Generator
+ * 
+ * Specialized function for writing creative dialogues and acts for character ads.
+ */
+export const generateCharacterAdScript = inngest.createFunction(
+  { id: "character-ad-script-generator", concurrency: 5 },
+  { event: "character-ad/script.request" },
+  async ({ event, step, publish }) => {
+    const { message, imageUrls, schemaId, previousSchema, productName, productDescription } = event.data;
+    const channel = workflowChannel(schemaId);
+
+    // 1. Initial Status Update
+    await step.run("mark-scripting-start", async () => {
+      await db
+        .updateTable("generations")
+        .set({ 
+          status: ResolverStatus.PROGRESS, 
+          metadata: { message: "AI is writing your character-driven script..." } 
+        })
+        .where("id", "=", schemaId)
+        .execute();
+        
+      await publish({
+        channel,
+        topic: "steps",
+        data: {
+          type: ToastType.STEP_START,
+          step: "Scripting",
+          message: "Our creative writer is crafting your story...",
+        },
+      });
+    });
+
+    // 2. Specialized Gemini Generation
+    const result = await step.run("generate-script-content", async () => {
+      const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+      if (!apiKey) throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set");
+
+      const gemini = new GeminiService(apiKey, "gemini-2.5-flash-lite");
+      return await gemini.generateScriptAssistant({
+        message,
+        imageUrls,
+        schema: previousSchema,
+        productName,
+        productDescription,
+        systemPrompt: CHARACTER_AD_SYSTEM_PROMPT,
+      });
+    });
+
+    // 3. Persist the generated script to the generation record
+    await step.run("save-script-result", async () => {
+      await db
+        .updateTable("generations")
+        .set({ 
+          input: result, 
+          status: ResolverStatus.COMPLETED,
+          metadata: { message: "Scripting complete." }
+        })
+        .where("id", "=", schemaId)
+        .execute();
+    });
+
+    // 4. Notify Frontend
+    await step.run("notify-success", async () => {
+      await publish({
+        channel,
+        topic: "script/generate.complete",
+        data: {
+          result,
+          schemaId,
+        },
+      });
+
+      await publish({
+        channel,
+        topic: "steps",
+        data: {
+          type: ToastType.STEP_END,
+          step: "Scripting",
+          message: "Script generated successfully!",
+        },
+      });
+    });
+
+    return result;
+  }
+);

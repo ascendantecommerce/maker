@@ -236,4 +236,9 @@ export interface Schema {
     name: string;
     url: string;
   };
+  productImages?: {
+    id: string;
+    name: string;
+    url: string;
+  }[];
 }

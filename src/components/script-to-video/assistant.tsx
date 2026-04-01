@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 import { useScriptStore } from "@/stores/script-store";
 import { useVideoConfigStore } from "@/stores/video-config-store";
 import { useSchemaStore } from "@/stores/schema-store";
-import { streamFlow } from "@genkit-ai/next/client";
 import {
   InputGroup,
   InputGroupAddon,
@@ -26,15 +25,13 @@ interface Message {
   status?: string;
 }
 
-interface AssistantProps {
-  endpoint?: string;
-  flowName?: string;
+interface ProductImage {
+  id: string;
+  name: string;
+  url: string;
 }
 
-export const Assistant = ({
-  endpoint = "/api/chat/script-to-video",
-  flowName = "scriptToVideoFlow",
-}: AssistantProps) => {
+export const Assistant = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -46,6 +43,7 @@ export const Assistant = ({
 
   const { setScript } = useScriptStore();
   const { params, setParams } = useVideoConfigStore();
+  const { schema } = useSchemaStore();
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -56,38 +54,56 @@ export const Assistant = ({
       return;
     }
 
-    const file = files[0];
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please upload an image file");
-      return;
-    }
-
-    const toastId = toast.loading("Uploading product image...");
+    const toastId = toast.loading(`Uploading ${files.length} product image(s)...`);
     setIsUploadingProduct(true);
 
     try {
-      const result = await uploadFile(file, session.user.id);
+      const uploadedImages: ProductImage[] = [];
+      for (const file of Array.from(files)) {
+        if (!file.type.startsWith("image/")) {
+          toast.error(`File ${file.name} is not an image`);
+          continue;
+        }
+        const result = await uploadFile(file, session.user.id);
+        uploadedImages.push({
+          id: crypto.randomUUID(),
+          name: file.name,
+          url: result.url,
+        });
+      }
 
-      const newProductImage = {
-        id: crypto.randomUUID(),
-        name: file.name,
-        url: result.url,
-      };
+      if (uploadedImages.length > 0) {
+        const newAssets = uploadedImages.map((img) => ({
+          ...img,
+          type: "image",
+        }));
 
-      setParams((prev: any) => ({
-        ...prev,
-        productImage: newProductImage,
-      }));
-      useSchemaStore.getState().updateSchema({
-        productImage: newProductImage,
-      });
+        setParams((prev: any) => ({
+          ...prev,
+          productImages: [...(prev.productImages || []), ...uploadedImages],
+          assets: [...(prev.assets || []), ...newAssets],
+          // Keep productImage for backward compatibility with other parts of the app if needed
+          productImage: prev.productImage || uploadedImages[0],
+        }));
 
-      toast.success("Product image uploaded! Ready for script generation.", {
-        id: toastId,
-      });
+        useSchemaStore.getState().updateSchema((prev: any) => ({
+          productImages: [...(prev?.productImages || []), ...uploadedImages],
+          assets: [...(prev?.assets || []), ...newAssets],
+          productImage: prev?.productImage || uploadedImages[0],
+        }));
+
+        toast.success(
+          `${uploadedImages.length} image(s) added! Ready for script generation.`,
+          {
+            id: toastId,
+          },
+        );
+      } else {
+        toast.dismiss(toastId);
+      }
     } catch (error) {
       console.error("Product image error:", error);
-      toast.error("Failed to upload product image", { id: toastId });
+      toast.error("Failed to upload product images", { id: toastId });
     } finally {
       setIsUploadingProduct(false);
       if (fileInputRef.current) {
@@ -96,17 +112,26 @@ export const Assistant = ({
     }
   };
 
-  const removeProductImage = () => {
-    setParams((prev: any) => ({
-      ...prev,
-      productImage: undefined,
-    }));
-    useSchemaStore.getState().updateSchema({
-      productImage: undefined,
+  const removeProductImage = (id: string) => {
+    setParams((prev: any) => {
+      const newImages = (prev.productImages || []).filter((img: ProductImage) => img.id !== id);
+      const newAssets = (prev.assets || []).filter((asset: any) => asset.id !== id);
+      return {
+        ...prev,
+        productImages: newImages,
+        assets: newAssets,
+        productImage: newImages[0] || undefined,
+      };
     });
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    useSchemaStore.getState().updateSchema((prev: any) => {
+      const newImages = (prev?.productImages || []).filter((img: ProductImage) => img.id !== id);
+      const newAssets = (prev?.assets || []).filter((asset: any) => asset.id !== id);
+      return {
+        productImages: newImages,
+        assets: newAssets,
+        productImage: newImages[0] || undefined,
+      };
+    });
   };
 
   // Auto-scroll to bottom
@@ -133,100 +158,96 @@ export const Assistant = ({
     const assistantMessage: Message = {
       role: "model",
       content: "",
-      status: "running",
+      status: "thinking",
     };
     setMessages((prev) => [...prev, assistantMessage]);
 
     try {
-      const flow = streamFlow({
-        url: endpoint,
-        input: {
+      // 1. Trigger Async Generation
+      const response = await fetch("/api/script/generate-async", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           message: messageText,
-          productImageUrl: params.productImage?.url,
-        },
+          schemaId: schema?.id,
+          previousSchema: schema,
+          imageUrls: params.productImages?.map((img: ProductImage) => img.url) || (params.productImage ? [params.productImage.url] : []),
+          productName: params.product?.name,
+          productDescription: params.product?.description,
+          mode: params.type || "character-driven-ad",
+        }),
       });
 
-      for await (const chunkStr of flow.stream) {
-        const chunk = JSON.parse(chunkStr);
+      if (!response.ok) throw new Error("Failed to trigger generation");
+      const { generationId } = await response.json();
 
-        if (chunk.event === "reasoning") {
-          setMessages((prev) => {
-            const last = prev[prev.length - 1];
-            return [...prev.slice(0, -1), { ...last, status: "thinking" }];
-          });
+      // 2. Poll for Completion
+      let attempts = 0;
+      const maxAttempts = 30; // 60 seconds total
+      const poll = async () => {
+        if (attempts >= maxAttempts) {
+          throw new Error("Generation timed out");
+        }
+        attempts++;
+
+        const res = await fetch(`/api/resolve-schema/${generationId}`);
+        if (!res.ok) throw new Error("Failed to poll status");
+        const data = await res.json();
+
+        if (data.status === "COMPLETED") {
+          const result = data.scheme;
+          if (result) {
+            // Apply product updates (Extracted metadata)
+            if (result.productName || result.productDescription) {
+              const productUpdates = {
+                name: result.productName || params.product?.name || "",
+                description: result.productDescription || params.product?.description || "",
+              };
+              setParams((prev: any) => ({ ...prev, product: productUpdates }));
+              useSchemaStore.getState().updateSchema({ product: productUpdates });
+            }
+
+            // Apply script updates
+            if (result.script) {
+              const cleanScript = result.script.replace(/\\n/g, "\n").replace(/\n\s*\n/g, "\n\n");
+              setScript(cleanScript);
+              useSchemaStore.getState().updateSchema({ script: cleanScript });
+            }
+
+            // Apply block updates
+            if (result.blocks) {
+              setParams((prev: any) => ({ ...prev, blocks: result.blocks }));
+              useSchemaStore.getState().updateSchema({ blocks: result.blocks });
+            }
+
+            setMessages((prev) => [
+              ...prev.slice(0, -1),
+              {
+                role: "model",
+                content: result.reply || "I've updated the script and scenes for you.",
+                status: "complete"
+              },
+            ]);
+          }
+          return;
+        } else if (data.status === "FAILED") {
+          throw new Error("AI generation failed");
         }
 
-        if (chunk.event === "tool") {
-          console.log("Tool call from flow:", chunk, chunk.name, chunk.arg);
-          handleToolAction({
-            action: chunk.name,
-            ...chunk.arg,
-            ...chunk.response,
-          });
-        }
-      }
+        // Wait 2s and poll again
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        return poll();
+      };
 
-      const result = await flow.output;
-      setMessages((prev) => [
-        ...prev.slice(0, -1),
-        { role: "model", content: result.reply, status: "complete" },
-      ]);
+      await poll();
     } catch (error) {
       console.error("Chat error:", error);
       setMessages((prev) => [
         ...prev.slice(0, -1),
-        { role: "model", content: "Something went wrong." },
+        { role: "model", content: "Something went wrong during generation. Please try again." },
       ]);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleToolAction = (input: any) => {
-    console.log("handleToolAction", input);
-    const { action, ...args } = input;
-
-    if (action === "update_video_config" || action === "update_ugc_config") {
-      if (args.script) {
-        // Sanitize script: remove literal \n characters that might be sent by the LLM
-        const cleanScript = args.script.replace(/\\n/g, "\n").replace(/\n\s*\n/g, "\n\n");
-        setScript(cleanScript);
-        useSchemaStore.getState().updateSchema({ script: cleanScript });
-      }
-      
-      if (args.blocks) {
-        setParams((prev: any) => ({ ...prev, blocks: args.blocks }));
-        useSchemaStore.getState().updateSchema({ blocks: args.blocks });
-      }
-
-      setParams((prev: any) => {
-        const updates: any = {};
-        if (args.type) updates.type = args.type;
-        if (args.aspectRatio) updates.aspectRatio = args.aspectRatio;
-        if (args.duration) updates.duration = parseInt(args.duration.toString(), 10);
-        if (args.quality) updates.quality = args.quality;
-
-        if (args.visualType || args.visualStyle) {
-          updates.visuals = {
-            ...(prev.visuals || {}),
-          };
-          if (args.visualType) updates.visuals.type = args.visualType;
-          if (args.visualStyle) {
-            updates.visuals.style = args.visualStyle.toLowerCase();
-          }
-        }
-
-        if (args.captionPosition || args.captionSize) {
-          updates.caption = {
-            ...(prev.caption || {}),
-          };
-          if (args.captionPosition) updates.caption.position = args.captionPosition;
-          if (args.captionSize) updates.caption.size = args.captionSize;
-        }
-
-        useSchemaStore.getState().updateSchema(updates);
-        return updates;
-      });
     }
   };
 
@@ -386,43 +407,42 @@ export const Assistant = ({
               ref={fileInputRef}
               className="hidden"
               accept="image/*"
+              multiple
               onChange={handleFileUpload}
             />
+            <div className="flex items-center gap-2 max-w-[300px] overflow-x-auto no-scrollbar py-1">
+              {params.productImages?.map((img: ProductImage) => (
+                <div key={img.id} className="flex items-center gap-2 px-2 h-8 bg-muted/50 rounded-lg border border-border text-[10px] shrink-0 group">
+                  <ImageIcon className="w-3 h-3 text-primary shrink-0" />
+                  <span className="max-w-[80px] truncate font-medium">
+                    {img.name}
+                  </span>
+                  <button
+                    onClick={() => removeProductImage(img.id)}
+                    className="p-0.5 hover:bg-background rounded-sm focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
+                    title="Remove image"
+                  >
+                    <X className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+                  </button>
+                </div>
+              ))}
 
-            {params.productImage || isUploadingProduct ? (
-              <div className="flex items-center gap-2 px-3 h-9 bg-muted/50 rounded-lg border border-border text-xs mr-1">
-                {isUploadingProduct ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
-                    <span className="text-muted-foreground">Uploading...</span>
-                  </>
-                ) : (
-                  <>
-                    <ImageIcon className="w-3.5 h-3.5 text-primary shrink-0" />
-                    <span className="max-w-[120px] truncate font-medium">
-                      {params.productImage?.name}
-                    </span>
-                    <button
-                      onClick={removeProductImage}
-                      className="ml-1 p-0.5 hover:bg-background rounded-sm focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
-                      title="Remove product image"
-                    >
-                      <X className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
-                    </button>
-                  </>
-                )}
-              </div>
-            ) : (
+              {isUploadingProduct && (
+                <div className="flex items-center gap-2 px-3 h-8 bg-muted/50 rounded-lg border border-border text-xs shrink-0">
+                  <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                </div>
+              )}
+
               <InputGroupButton
                 variant="ghost"
-                className="rounded-lg h-9 px-3 text-xs gap-1.5 font-medium"
+                className="rounded-lg h-9 px-3 text-xs gap-1.5 font-medium shrink-0"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isLoading}
                 title="Add Product Image"
               >
                 <span className="text-base leading-none mb-0.5">+</span> Product
               </InputGroupButton>
-            )}
+            </div>
 
             <InputGroupButton
               variant="default"

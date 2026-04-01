@@ -21,7 +21,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "imageUrls array is required" }, { status: 400 });
     }
 
-    const model = "gemini-2.0-flash"; // Fixed to valid model name
+    const model = "gemini-2.5-flash-lite"; // Fixed to valid model name
 
     const imagesData = await Promise.all(
       imageUrls.map(async (url: string) => {

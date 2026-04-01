@@ -9,7 +9,7 @@ import { tmpdir } from "os";
 // Ensure API key is present
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 if (!apiKey) {
-  throw new Error("GEMINI_API_KEY is not defined");
+  throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not defined");
 }
 
 const genAI = new GoogleGenAI({ apiKey });

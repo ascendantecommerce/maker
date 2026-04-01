@@ -50,6 +50,11 @@ export interface GenerateScriptParams {
     name: string;
     url: string;
   };
+  productImages?: {
+    id: string;
+    name: string;
+    url: string;
+  }[];
   type?: "narrative-video" | "product-video-ad" | "ugc-video-ad" | "character-driven-ad";
   pacing?: "fast" | "regular" | "relaxed";
   blocks?: UserScriptBlock[];
