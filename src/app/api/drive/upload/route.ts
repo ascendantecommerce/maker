@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 const DRIVE_API = "https://www.googleapis.com/drive/v3";
 const DRIVE_UPLOAD_API = "https://www.googleapis.com/upload/drive/v3";
-const SCENIFY_FOLDER_NAME = "scenify";
+const FOLDER_NAME = "generated";
 
 /**
  * Refreshes an expired Google Drive access token.
@@ -31,11 +31,13 @@ async function refreshDriveToken(refreshToken: string): Promise<string | null> {
 }
 
 /**
- * Finds or creates the "scenify" folder in the user's Google Drive root.
+ * Finds or creates the "generated" folder in the user's Google Drive root.
  */
-async function getOrCreateScenifyFolder(accessToken: string): Promise<string> {
+async function getOrCreateGeneratedFolder(
+  accessToken: string,
+): Promise<string> {
   const query = encodeURIComponent(
-    `name='${SCENIFY_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+    `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
   );
   const searchRes = await fetch(
     `${DRIVE_API}/files?q=${query}&fields=files(id,name)&spaces=drive`,
@@ -59,7 +61,7 @@ async function getOrCreateScenifyFolder(accessToken: string): Promise<string> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      name: SCENIFY_FOLDER_NAME,
+      name: FOLDER_NAME,
       mimeType: "application/vnd.google-apps.folder",
     }),
   });
@@ -82,9 +84,13 @@ async function uploadFileToDrive(
   mimeType: string,
   fileBuffer: ArrayBuffer,
 ): Promise<{ id: string; name: string; webViewLink: string }> {
-  const boundary = "scenify_boundary_" + Date.now();
+  const boundary = "generated_boundary_" + Date.now();
 
-  const metadata = JSON.stringify({ name: fileName, parents: [folderId], mimeType });
+  const metadata = JSON.stringify({
+    name: fileName,
+    parents: [folderId],
+    mimeType,
+  });
 
   const metadataPart = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n`;
   const filePart = `--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`;
@@ -96,12 +102,18 @@ async function uploadFileToDrive(
   const fileBytes = new Uint8Array(fileBuffer);
 
   const combined = new Uint8Array(
-    metadataBytes.length + filePartBytes.length + fileBytes.length + closingBytes.length,
+    metadataBytes.length +
+      filePartBytes.length +
+      fileBytes.length +
+      closingBytes.length,
   );
   combined.set(metadataBytes, 0);
   combined.set(filePartBytes, metadataBytes.length);
   combined.set(fileBytes, metadataBytes.length + filePartBytes.length);
-  combined.set(closingBytes, metadataBytes.length + filePartBytes.length + fileBytes.length);
+  combined.set(
+    closingBytes,
+    metadataBytes.length + filePartBytes.length + fileBytes.length,
+  );
 
   const uploadRes = await fetch(
     `${DRIVE_UPLOAD_API}/files?uploadType=multipart&fields=id,name,webViewLink`,
@@ -116,7 +128,9 @@ async function uploadFileToDrive(
   );
 
   if (!uploadRes.ok) {
-    throw new Error(`Drive upload failed (${uploadRes.status}): ${await uploadRes.text()}`);
+    throw new Error(
+      `Drive upload failed (${uploadRes.status}): ${await uploadRes.text()}`,
+    );
   }
 
   return uploadRes.json();
@@ -167,7 +181,9 @@ export async function POST(req: NextRequest) {
     // 4. Parse the incoming form data
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
-    const fileName = (formData.get("fileName") as string) || `scenify-video-${Date.now()}.mp4`;
+    const fileName =
+      (formData.get("fileName") as string) ||
+      `generated-video-${Date.now()}.mp4`;
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -176,14 +192,25 @@ export async function POST(req: NextRequest) {
     const mimeType = file.type || "video/mp4";
     const fileBuffer = await file.arrayBuffer();
 
-    // 5. Ensure the "scenify" folder exists
-    const folderId = await getOrCreateScenifyFolder(accessToken);
+    // 5. Ensure the "generated" folder exists
+    const folderId = await getOrCreateGeneratedFolder(accessToken);
 
     // 6. Upload the file
-    const driveFile = await uploadFileToDrive(accessToken, folderId, fileName, mimeType, fileBuffer);
+    const driveFile = await uploadFileToDrive(
+      accessToken,
+      folderId,
+      fileName,
+      mimeType,
+      fileBuffer,
+    );
 
     return NextResponse.json(
-      { success: true, fileId: driveFile.id, fileName: driveFile.name, webViewLink: driveFile.webViewLink },
+      {
+        success: true,
+        fileId: driveFile.id,
+        fileName: driveFile.name,
+        webViewLink: driveFile.webViewLink,
+      },
       { status: 200 },
     );
   } catch (error) {

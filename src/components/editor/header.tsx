@@ -30,6 +30,7 @@ import { Separator } from "../ui/separator";
 import AutosizeInput from "../ui/autosize-input";
 import { debounce } from "lodash";
 import GoogleIcon from "../logos/google";
+import { toSlug } from "@/utils/format-title";
 
 export default function Header({
   projectId,
@@ -203,6 +204,7 @@ export default function Header({
     saveTitle(newTitle);
   };
 
+  
   /**
    * Exports the video with default settings, auto-downloads it, then
    * uploads the result to the user's Google Drive "scenify" folder.
@@ -261,7 +263,7 @@ export default function Header({
       const stream = com.output();
       const blob = await new Response(stream).blob();
 
-      const fileName = `scenify-export-${Date.now()}.mp4`;
+      const fileName = `${toSlug(title)}-${Date.now()}.mp4`;
 
       toast.loading("Uploading to Google Drive…", { id: toastId });
 

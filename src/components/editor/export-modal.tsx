@@ -15,8 +15,10 @@ import {
 } from "@/components/ui/select";
 import { Loader2, Video, Music, Clock, Download } from "lucide-react";
 import { useStudioStore } from "@/stores/studio-store";
+import { useSchemaStore } from "@/stores/schema-store";
 import { LogoIcons } from "@/components/shared/logos";
 import GoogleIcon from "../logos/google";
+import { toSlug } from "@/utils/format-title";
 
 interface ExportModalProps {
   open: boolean;
@@ -89,6 +91,8 @@ const SAMPLE_RATES = [
 
 export function ExportModal({ open, onOpenChange }: ExportModalProps) {
   const { studio } = useStudioStore();
+  const { schema } = useSchemaStore();
+  const title = schema?.title || "Untitled Project";
   const studioOpts = studio?.getOptions() || {
     width: 1920,
     height: 1080,
@@ -243,7 +247,7 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
     if (!exportBlob) return;
     setIsSavingToDrive(true);
     try {
-      const fileName = `scenify-export-${Date.now()}.${format}`;
+      const fileName = `${toSlug(title)}-${Date.now()}.mp4`;
       const formData = new FormData();
       formData.append("file", exportBlob, fileName);
       formData.append("fileName", fileName);
