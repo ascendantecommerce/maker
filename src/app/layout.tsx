@@ -1,4 +1,4 @@
-import { Geist_Mono, Space_Grotesk, IBM_Plex_Sans, Merriweather, Oxanium } from "next/font/google";
+import { Geist_Mono, Inter } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { ReactQueryProvider } from "@/lib/react-query";
 import { PostHogProvider } from "@/lib/PostHogProvider";
@@ -8,19 +8,10 @@ import { baseUrl, createMetadata } from "@/utils/metadata";
 import { Analytics } from "@vercel/analytics/next";
 import { cn } from "@/lib/utils";
 
-// const merriweatherHeading = Merriweather({ subsets: ["latin"], variable: "--font-heading" });
-
-// const ibmPlexSans = IBM_Plex_Sans({ subsets: ["latin"], variable: "--font-sans" });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
-});
-
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
-  subsets: ["latin"],
-  display: "swap",
 });
 
 export const metadata = createMetadata({
@@ -35,7 +26,7 @@ export const metadata = createMetadata({
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-const oxanium = Oxanium({ subsets: ['latin'], variable: '--font-sans' });
+const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 
 export default function RootLayout({
@@ -47,7 +38,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn(spaceGrotesk.variable, geistMono.variable, "font-sans", oxanium.variable)}
+      className={cn(geistMono.variable, "font-sans", inter.variable)}
     >
       <body className={`antialiased`}>
         <ThemeProvider>
