@@ -1,5 +1,7 @@
 "use client";
+
 import React, { useEffect } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
@@ -33,28 +35,42 @@ export default function Home() {
 
   if (isPending) {
     return (
-      <div className="w-full h-screen flex flex-col items-center justify-center bg-card">
+      <div className="w-full h-screen flex flex-col items-center justify-center bg-background">
         <Icons.spinner className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="w-full h-screen flex flex-col items-center justify-center bg-card">
-      <div className="max-w-90 w-full p-8 border border-border rounded-xl bg-background flex flex-col items-center text-center">
-        <h1 className="text-2xl font-semibold mb-2">
-          Log in or sign up
-        </h1>
-        <p className="text-muted-foreground text-sm mb-6">
-          You'll get smarter responses and can upload files, images, and more.
-        </p>
+    <div className="w-full h-screen flex flex-col items-center justify-center bg-background p-6 font-sans relative overflow-hidden">
+      {/* Top Left Logo (Branding as-is) */}
+      <div className="absolute top-10 left-10">
+        <div className="relative w-8 h-8 overflow-hidden rounded-md border border-border">
+          <Image
+            src="/logo.webp"
+            alt="Logo"
+            fill
+            className="object-cover"
+          />
+        </div>
+      </div>
+
+      {/* Main Centered Content (Cardless Auth) */}
+      <div className="flex flex-col items-center text-center max-w-sm w-full px-4">
+        <div className="mb-8 flex flex-col items-center gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground leading-tight">
+            Log in or sign up
+          </h1>
+          <p className="text-muted-foreground text-sm leading-relaxed max-w-[280px]">
+            Continue with Google to access your dashboard and manage your ecommerce insights.
+          </p>
+        </div>
 
         <Button
-          type="button"
-          variant="secondary"
+          variant="outline"
           disabled={isLoadingGoogle}
           onClick={signInWithGoogle}
-          className="w-full border border-border h-12 rounded-full"
+          className="w-full h-11 rounded-full border-border bg-transparent hover:bg-muted font-medium text-sm transition-all duration-300"
         >
           {isLoadingGoogle ? (
             <Icons.spinner className="mr-3 h-5 w-5 animate-spin" />
