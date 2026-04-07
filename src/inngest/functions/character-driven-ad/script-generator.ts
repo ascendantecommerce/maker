@@ -4,14 +4,17 @@ import { ResolverStatus } from "@/utils/enum";
 import { getInngestApp } from "../../index";
 import { workflowChannel } from "../../utils/common";
 import { ToastType } from "../../utils/types";
-import { CHARACTER_AD_SYSTEM_PROMPT } from "@/lib/prompts/assistant-script";
+import { CHARACTER_AD_SYSTEM_PROMPT, CHARACTER_AD_SCRIPT_OUTPUT_SCHEMA } from "@/lib/prompts/assistant-script";
 
 const inngest = getInngestApp();
 
 /**
  * Character-Driven Ad Script Generator
  * 
- * Specialized function for writing creative dialogues and acts for character ads.
+ * Generates a script as ordered `segments`, each with a nested `character` object —
+ * matching the shape of other video types (UGC, narrative, etc.).
+ * The orchestrator's scheme-creator step later expands these into full VideoSchema
+ * segments with firstFramePrompt, videoPrompt, etc.
  */
 export const generateCharacterAdScript = inngest.createFunction(
   { id: "character-ad-script-generator", concurrency: 5 },
@@ -42,7 +45,7 @@ export const generateCharacterAdScript = inngest.createFunction(
       });
     });
 
-    // 2. Specialized Gemini Generation
+    // 2. Specialized Gemini Generation — produces segments with character objects
     const result = await step.run("generate-script-content", async () => {
       const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
       if (!apiKey) throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set");
@@ -51,19 +54,21 @@ export const generateCharacterAdScript = inngest.createFunction(
 
       const strictCharacterInstruction = `
 CRITICAL LIPSYNC & BRANDING RULES:
-1. LIPSYNC CONTROL: Inside your \`videoDescription\`, you MUST explicitly state who is speaking to guide the video generator. Always add: "Only the [Character Name] is speaking and moving their mouth. The human in the background is completely silent with their mouth shut tight."
-2. DO NOT hide the human's face. You can keep them in clear view, but you MUST specify they are completely silent.
-3. NO TEXT: Do not describe any text, letters, words, logos, or labels on the character itself! If you must describe text, it can ONLY be the character's exact name.
+1. LIPSYNC CONTROL: Inside each segment's \`videoDescription\`, you MUST explicitly state who is speaking. Always add: "Only the [Character Name] is speaking and moving their mouth. The human in the background is completely silent with their mouth shut tight."
+2. DO NOT hide the human's face. You can keep them in clear view, but they must be completely silent.
+3. NO TEXT: Do not describe any text, letters, words, logos, or labels on the character itself.
 
-ANTI-HALLUCINATION ROLES:
-- Heroes and Villains must be solid 3D characters or anthropomorphized objects that properly embody the core idea or product (e.g., an animated bottle of lotion, a heavy 3D anchor, or an expressive pill).
-- You MUST BE THE CREATIVE DESIGNER. Your \`characterDescription\` must fully and realistically define the exact 3D material (like matte plastic, solid metal, smooth vinyl), shape, and expression of the character.
-- Avoid literary, abstract, or metaphorical descriptions (e.g., do NOT write "A personified representation of uneven self-tanner"). Instead, describe exactly the physical 3D object the Image Generator should draw (e.g., "A smug, anthropomorphic brown plastic self-tanner bottle with arms, legs, and a mischievous face").
-- SCENE REQUIREMENT: Environments MUST ALWAYS be clean, bright, modern, premium Pixar 3D rooms (e.g., well-lit bathroom or bedroom). NEVER use dimly lit, chaotic, abstract, or spooky rooms, even for villains!`;
+OUTPUT FORMAT — SEGMENTS WITH CHARACTER:
+- Output \`segments\` (NOT \`blocks\`). Each segment represents one scene.
+- DIALOGUE PATTERN: EVERY segment's dialogue MUST start with: "Hi, I’m [Character Name]." or "Hi, I’m a [Character Name]..."
+- Each segment MUST have a \`character\` object with: name, role, visualDescription, voiceDescription.
+- \`character.visualDescription\` MUST be a LITERAL physical description of the 3D object/mascot (e.g., "A smug anthropomorphic brown plastic self-tanner bottle with arms, legs, and a mischievous Pixar face"). NEVER use metaphorical descriptions.
+- Characters with the same name share the same visual — re-use the same \`name\` for recurring characters.
+- \`sceneDescription\` MUST always be a cleanly lit, premium, modern Pixar 3D interior. NEVER dark, gloomy, or abstract.`;
 
       const styleInstruction = visualStyle 
-        ? `\n\nUSER SELECTED VISUAL STYLE: "${visualStyle}"\nCRITICAL MANDATE: Ensure ALL characterDescription and sceneDescription fields perfectly match this chosen aesthetic.${strictCharacterInstruction}`
-        : `\n\nCRITICAL MANDATE: Ensure ALL characterDescription and sceneDescription fields strictly follow a High-end 3D Pixar/Illumination animation style.${strictCharacterInstruction}`;
+        ? `\n\nUSER SELECTED VISUAL STYLE: "${visualStyle}"\nCRITICAL MANDATE: Ensure ALL character.visualDescription and sceneDescription fields perfectly match this chosen aesthetic.${strictCharacterInstruction}`
+        : `\n\nCRITICAL MANDATE: Ensure ALL character.visualDescription and sceneDescription fields strictly follow a High-end 3D Pixar/Illumination animation style.${strictCharacterInstruction}`;
 
       return await gemini.generateScriptAssistant({
         message,
@@ -72,6 +77,7 @@ ANTI-HALLUCINATION ROLES:
         productName,
         productDescription,
         systemPrompt: CHARACTER_AD_SYSTEM_PROMPT + styleInstruction,
+        outputSchema: CHARACTER_AD_SCRIPT_OUTPUT_SCHEMA,
       });
     });
 

@@ -3,10 +3,28 @@ import { VideoSchema, Segment, CharacterConfig, UserScriptBlock } from "@/types/
 import { resolutionType, aspectRatioType } from "@/utils/enum";
 
 export interface GenerateCharacterVideoInput {
-  blocks: UserScriptBlock[];
+  blocks?: UserScriptBlock[];
+  /** New format: segments with nested character objects from the script generator */
+  segments?: CharacterSegmentInput[];
   product?: { name?: string; description?: string };
   assets?: { url: string; type: string }[];
   visuals?: { style?: string; type?: string };
+}
+
+/** A scene segment as produced by the new CHARACTER_AD_SCRIPT_OUTPUT_SCHEMA */
+export interface CharacterSegmentInput {
+  title: string;
+  text: string;
+  character: {
+    name: string;
+    role: "villain" | "hero" | "human" | "narrator";
+    visualDescription: string;
+    voiceDescription: string;
+    emotion: string;
+  };
+  sceneDescription: string;
+  videoDescription: string;
+  productInteractionType?: UserScriptBlock["productInteractionType"];
 }
 
 const DEFAULT_STYLE = "High-end 3D Pixar/Illumination animation style, cinematic lighting, ultra-detailed textures, vibrant colors";
@@ -29,10 +47,134 @@ const calculateEstimatedDuration = (text: string): number => {
   return Math.ceil(words / 2.5);
 };
 
+/** Build a product-action prefix for a given interaction type */
+function buildProductActionPrefix(interaction: string, productName: string, productDescription?: string): string {
+  let productAction = "";
+  switch (interaction) {
+    case "packaging_hero":
+      productAction = `The external product packaging and container are prominently displayed. `;
+      break;
+    case "product_content_hero":
+      productAction = `The actual internal product content (the substance itself) is shown clearly as the center of focus. `;
+      break;
+    case "packaging_in_hand":
+      productAction = `The character holds the product's packaging/container naturally in their stable hands. `;
+      break;
+    case "product_content_in_hand":
+      productAction = `The character holds the actual inner product content (e.g., gummy, liquid, or substance) in their hand for scale. `;
+      break;
+    case "packaging_on_surface":
+      productAction = `The product packaging/container rests neatly on a nearby surface. `;
+      break;
+    case "product_content_on_surface":
+      productAction = `The actual inner product content (the substance itself) rests neatly on a nearby surface. `;
+      break;
+    case "product_reveal":
+      productAction = `The character specifically shows the transition from the packaging to the actual internal product content. `;
+      break;
+  }
+  return `${productAction}Featuring the product "${productName}" (${productDescription || ""}). `;
+}
+
 /**
- * Maps the frontend's deterministic JSON payload into the internal VideoSchema.
- * This skips the standard LLM-based script parsing because the user provides 
- * structured scenes directly.
+ * Build a fully-mapped segment from character + scene data.
+ * Shared by both the new `segments` format and the legacy `blocks` format.
+ */
+function buildMappedSegment(
+  index: number,
+  schemaId: string,
+  globalStyle: string,
+  character: CharacterConfig,
+  data: {
+    title: string;
+    text: string;
+    sceneDescription?: string;
+    videoDescription?: string;
+    emotion?: string;
+    productInteractionType?: string;
+  },
+  product?: { name?: string; description?: string },
+): Segment & { character: CharacterConfig } {
+  const segmentId = `${schemaId}-seg-${index}`;
+  const calculatedDuration = calculateEstimatedDuration(data.text);
+  const durationMs = calculatedDuration * 1000;
+
+  const interaction = data.productInteractionType || "none";
+  const isProductShot = interaction !== "none";
+
+  let promptPrefix = globalStyle;
+  if (isProductShot && product?.name) {
+    promptPrefix = `${globalStyle}, ${buildProductActionPrefix(interaction, product.name, product.description)}`;
+  }
+
+  const emotionPrompt = data.emotion ? `with a ${data.emotion} expression` : "";
+  const characterVisual = `${character.visualDescription}${emotionPrompt ? `, ${emotionPrompt}` : ""}`;
+
+  // Stage 1: firstFramePrompt (Persona + Ambient)
+  const isContentShot = interaction.includes("product_content");
+  const visualQuality = "cinematic lighting, ultra-detailed textures, Pixar style";
+  const packagingAccuracy = "The product packaging in the scene must be reproduced with exact colors, exact branding text, and exact label details from the reference image — do not stylize, recolor, or alter the product packaging in any way, photorealistic product, faithful brand reproduction";
+  const contentAccuracy = "Focus heavily on the texture, material, and visual characteristics of the internal product content (the substance) as shown in the reference images — maintain high visual fidelity to its shape and appearance.";
+  const productAccuracy = isContentShot ? contentAccuracy : packagingAccuracy;
+
+  const firstFramePrompt = [
+    globalStyle,
+    characterVisual,
+    data.sceneDescription || DEFAULT_SCENE_VISUAL,
+    visualQuality,
+    isProductShot ? productAccuracy : "",
+    SINGLE_FRAME_SUFFIX,
+  ].filter(Boolean).join(", ");
+
+  // Stage 2: videoPrompt (Veo)
+  const finalVideoPrompt = [
+    promptPrefix,
+    characterVisual,
+    data.sceneDescription || DEFAULT_SCENE_VISUAL,
+    data.videoDescription || DEFAULT_MOTION_VISUAL,
+    "the character has NO TEXT, NO LETTERS, AND NO WORDS on them.",
+    SINGLE_FRAME_SUFFIX,
+  ].filter(Boolean).join(", ");
+
+  return {
+    id: segmentId,
+    title: data.title,
+    description: data.videoDescription || data.sceneDescription || "",
+    text: data.text,
+    characterId: character.id,
+    character: { ...character, emotion: data.emotion },
+    emotion: data.emotion,
+    tags: [character.name, character.role, data.emotion || ""],
+    prompt_preview: `${promptPrefix}, ${character.visualDescription} in ${data.sceneDescription || DEFAULT_SCENE_VISUAL}`,
+    shots: [
+      {
+        type: isProductShot ? "product" : "generic",
+        category: character.role,
+        characterId: character.id,
+        words: data.text,
+        emotion: data.emotion,
+        firstFramePrompt,
+        videoPrompt: finalVideoPrompt,
+        display: { from: 0, to: durationMs },
+        duration: durationMs,
+      },
+    ],
+    duration: durationMs,
+    estimatedDuration: calculatedDuration,
+  };
+}
+
+/**
+ * Maps the frontend's JSON payload into the internal VideoSchema.
+ *
+ * Accepts TWO input shapes:
+ * 1. **New format** (preferred): `input.segments` — array of scene objects each with a nested
+ *    `character: { name, role, visualDescription, voiceDescription }`. Produced by the character
+ *    ad script generator using `CHARACTER_AD_SCRIPT_OUTPUT_SCHEMA`.
+ * 2. **Legacy format**: `input.blocks` — flat `UserScriptBlock[]` array.
+ *
+ * In both cases, every output `Segment` will have a `character` field set to the resolved
+ * `CharacterConfig` object so the orchestrator downstream can work with character data directly.
  */
 export function mapInputToSchema(input: GenerateCharacterVideoInput): VideoSchema {
   const schemaId = `char-ad-${nanoid(8)}`;
@@ -40,126 +182,92 @@ export function mapInputToSchema(input: GenerateCharacterVideoInput): VideoSchem
   const aspectRatio = DEFAULT_ASPECT_RATIO;
   const videoTitle = DEFAULT_TITLE;
 
-  // 1. Deduplicate Characters
-  const characterMap = new Map<string, CharacterConfig>();
-  input.blocks.forEach((block) => {
-    if (!characterMap.has(block.characterName)) {
-      let visualDescription = block.characterDescription;
-      if (!visualDescription) {
-        console.log("USING DEFAULT VISUAL DESCRIPTION")
-        if (block.characterRole === "hero") visualDescription = DEFAULT_HERO_VISUAL;
-        else if (block.characterRole === "villain") visualDescription = DEFAULT_VILLAIN_VISUAL;
-        else if (block.characterRole === "human") visualDescription = DEFAULT_HUMAN_VISUAL;
-        else visualDescription = DEFAULT_SCENE_VISUAL;
-      }
+  // ── Resolve input source ────────────────────────────────────────────────
+  const hasNewSegments = input.segments && input.segments.length > 0;
+  const hasLegacyBlocks = input.blocks && input.blocks.length > 0;
 
-      characterMap.set(block.characterName, {
-        id: `char-${nanoid(4)}`,
-        name: block.characterName,
-        role: block.characterRole,
-        visualDescription,
-        voiceDescription: block.voiceDescription || (block.characterRole === "villain" ? "Raspy, sneaky, fast-talking" : "Warm, deep, confident"),
-        baseImageUrl: undefined,
-      });
-    }
-  });
+  if (!hasNewSegments && !hasLegacyBlocks) {
+    throw new Error("mapInputToSchema: either `segments` or `blocks` must be provided");
+  }
+
+  // ── Build character registry ────────────────────────────────────────────
+  const characterMap = new Map<string, CharacterConfig>();
+
+  if (hasNewSegments) {
+    // New format: read character from each segment
+    input.segments!.forEach((seg) => {
+      const { name, role, visualDescription, voiceDescription } = seg.character;
+      if (!characterMap.has(name)) {
+        let finalVisualDescription = visualDescription;
+        if (!finalVisualDescription) {
+          if (role === "hero") finalVisualDescription = DEFAULT_HERO_VISUAL;
+          else if (role === "villain") finalVisualDescription = DEFAULT_VILLAIN_VISUAL;
+          else if (role === "human") finalVisualDescription = DEFAULT_HUMAN_VISUAL;
+          else finalVisualDescription = DEFAULT_SCENE_VISUAL;
+        }
+        characterMap.set(name, {
+          id: `char-${nanoid(4)}`,
+          name,
+          role,
+          visualDescription: finalVisualDescription,
+          voiceDescription: voiceDescription || (role === "villain" ? "Raspy, sneaky, fast-talking" : "Warm, deep, confident"),
+          baseImageUrl: undefined,
+        });
+      }
+    });
+  } else {
+    // Legacy format: read character from blocks
+    input.blocks!.forEach((block) => {
+      if (!characterMap.has(block.characterName)) {
+        let visualDescription = block.characterDescription;
+        if (!visualDescription) {
+          if (block.characterRole === "hero") visualDescription = DEFAULT_HERO_VISUAL;
+          else if (block.characterRole === "villain") visualDescription = DEFAULT_VILLAIN_VISUAL;
+          else if (block.characterRole === "human") visualDescription = DEFAULT_HUMAN_VISUAL;
+          else visualDescription = DEFAULT_SCENE_VISUAL;
+        }
+        characterMap.set(block.characterName, {
+          id: `char-${nanoid(4)}`,
+          name: block.characterName,
+          role: block.characterRole,
+          visualDescription,
+          voiceDescription: block.voiceDescription || (block.characterRole === "villain" ? "Raspy, sneaky, fast-talking" : "Warm, deep, confident"),
+          baseImageUrl: undefined,
+        });
+      }
+    });
+  }
 
   const characters = Array.from(characterMap.values());
 
-  // 2. Map blocks to segments
-  const segments: Segment[] = input.blocks.map((block, index) => {
-    const character = characterMap.get(block.characterName)!;
-    const segmentId = `${schemaId}-seg-${index}`;
+  // ── Map to segments ─────────────────────────────────────────────────────
+  let segments: (Segment & { character: CharacterConfig })[];
 
-    const calculatedDuration = calculateEstimatedDuration(block.dialogue);
-    const durationMs = calculatedDuration * 1000;
-
-    const interaction = block.productInteractionType || "none";
-    const isProductShot = interaction !== "none";
-    
-    let promptPrefix = globalStyle;
-    if (isProductShot && input.product?.name) {
-      let productAction = "";
-      switch (interaction) {
-        case "packaging_hero":
-          productAction = `The external product packaging and container are prominently displayed. `;
-          break;
-        case "product_content_hero":
-          productAction = `The actual internal product content (the substance itself) is shown clearly as the center of focus. `;
-          break;
-        case "packaging_in_hand":
-          productAction = `The character holds the product's packaging/container naturally in their stable hands. `;
-          break;
-        case "product_content_in_hand":
-          productAction = `The character holds the actual inner product content (e.g., gummy, liquid, or substance) in their hand for scale. `;
-          break;
-        case "packaging_on_surface":
-          productAction = `The product packaging/container rests neatly on a nearby surface. `;
-          break;
-        case "product_content_on_surface":
-          productAction = `The actual inner product content (the substance itself) rests neatly on a nearby surface. `;
-          break;
-        case "product_reveal":
-          productAction = `The character specifically shows the transition from the packaging to the actual internal product content. `;
-          break;
-      }
-      promptPrefix = `${globalStyle}, ${productAction}Featuring the product "${input.product.name}" (${input.product.description || ""}). `;
-    }
-
-    // 3. Construct Prompts (Stages 1 & 2)
-    // Building blocks for stable, scalable prompt generation.
-    const isContentShot = interaction.includes("product_content");
-    const visualQuality = "cinematic lighting, ultra-detailed textures, Pixar style";
-    const packagingAccuracy = "The product packaging in the scene must be reproduced with exact colors, exact branding text, and exact label details from the reference image — do not stylize, recolor, or alter the product packaging in any way, photorealistic product, faithful brand reproduction";
-    const contentAccuracy = "Focus heavily on the texture, material, and visual characteristics of the internal product content (the substance) as shown in the reference images — maintain high visual fidelity to its shape and appearance.";
-    const productAccuracy = isContentShot ? contentAccuracy : packagingAccuracy;
-
-    // Stage 1: firstFramePrompt (Persona + Ambient)
-    const firstFramePrompt = [
-      globalStyle,
-      character.visualDescription,
-      block.sceneDescription || DEFAULT_SCENE_VISUAL,
-      visualQuality,
-      isProductShot ? productAccuracy : "",
-      SINGLE_FRAME_SUFFIX
-    ].filter(Boolean).join(", ");
-
-    // Stage 2: videoPrompt (Veo) (Persona + Ambient + Action)
-    const finalVideoPrompt = [
-      promptPrefix,
-      character.visualDescription,
-      block.sceneDescription || DEFAULT_SCENE_VISUAL,
-      block.videoDescription || DEFAULT_MOTION_VISUAL,
-      "the character has NO TEXT, NO LETTERS, AND NO WORDS on them.",
-      SINGLE_FRAME_SUFFIX
-    ].filter(Boolean).join(", ");
-
-    return {
-      id: segmentId,
-      title: `Scene ${index + 1}: ${block.characterName}`,
-      description: block.videoDescription || block.sceneDescription,
-      text: block.dialogue,
-      characterId: character.id,
-      emotion: block.emotion,
-      tags: [block.characterName, block.characterRole, block.emotion],
-      prompt_preview: `${promptPrefix}, ${block.characterDescription} in ${block.sceneDescription}`,
-      shots: [
-        {
-          type: isProductShot ? "product" : "generic",
-          category: block.characterRole,
-          characterId: character.id,
-          words: block.dialogue,
-          emotion: block.emotion,
-          firstFramePrompt,
-          videoPrompt: finalVideoPrompt,
-          display: { from: 0, to: durationMs },
-          duration: durationMs,
-        },
-      ],
-      duration: durationMs,
-      estimatedDuration: calculatedDuration,
-    };
-  });
+  if (hasNewSegments) {
+    segments = input.segments!.map((seg, index) => {
+      const character = characterMap.get(seg.character.name)!;
+      return buildMappedSegment(index, schemaId, globalStyle, character, {
+        title: seg.title,
+        text: seg.text,
+        sceneDescription: seg.sceneDescription,
+        videoDescription: seg.videoDescription,
+        emotion: seg.character.emotion,
+        productInteractionType: seg.productInteractionType,
+      }, input.product);
+    });
+  } else {
+    segments = input.blocks!.map((block, index) => {
+      const character = characterMap.get(block.characterName)!;
+      return buildMappedSegment(index, schemaId, globalStyle, character, {
+        title: `Scene ${index + 1}: ${block.characterName}`,
+        text: block.dialogue,
+        sceneDescription: block.sceneDescription,
+        videoDescription: block.videoDescription,
+        emotion: block.emotion,
+        productInteractionType: block.productInteractionType,
+      }, input.product);
+    });
+  }
 
   return {
     id: schemaId,

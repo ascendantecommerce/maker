@@ -175,7 +175,7 @@ export const Assistant = () => {
           productName: params.product?.name,
           productDescription: params.product?.description,
           visualStyle: params.visuals?.style || schema?.visuals?.style,
-          mode: params.type || "character-driven-ad",
+          mode: schema?.type || params.type || "character-driven-ad",
         }),
       });
 
@@ -215,8 +215,13 @@ export const Assistant = () => {
               useSchemaStore.getState().updateSchema({ script: cleanScript });
             }
 
-            // Apply block updates
-            if (result.blocks) {
+            // Apply block/segment updates
+            if (result.segments && result.segments.length > 0) {
+              // New format: character-driven ad returns segments with character objects
+              setParams((prev: any) => ({ ...prev, segments: result.segments, blocks: undefined }));
+              useSchemaStore.getState().updateSchema({ segments: result.segments, blocks: undefined });
+            } else if (result.blocks) {
+              // Legacy format: flat blocks array (kept for backward compatibility)
               setParams((prev: any) => ({ ...prev, blocks: result.blocks }));
               useSchemaStore.getState().updateSchema({ blocks: result.blocks });
             }
@@ -411,11 +416,11 @@ export const Assistant = () => {
               multiple
               onChange={handleFileUpload}
             />
-            <div className="flex items-center gap-2 max-w-[300px] overflow-x-auto no-scrollbar py-1">
+            <div className="flex items-center gap-2 max-w-75 overflow-x-auto no-scrollbar py-1">
               {params.productImages?.map((img: ProductImage) => (
                 <div key={img.id} className="flex items-center gap-2 px-2 h-8 bg-muted/50 rounded-lg border border-border text-[10px] shrink-0 group">
                   <ImageIcon className="w-3 h-3 text-primary shrink-0" />
-                  <span className="max-w-[80px] truncate font-medium">
+                  <span className="max-w-20 truncate font-medium">
                     {img.name}
                   </span>
                   <button

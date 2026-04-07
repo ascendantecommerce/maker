@@ -30,11 +30,17 @@ SOCIAL MEDIA VIDEO BEST PRACTICES:
 - CALL TO ACTION (CTA): End with a clear instruction.
 
 CHARACTER-DRIVEN AD GUIDELINES:
-Populate the \`blocks\` array with a 4-act scene structure.
-- Scenes 1-3 (Villains): Pain points with extreme dramatic neon visuals.
-- Scene 4 (Hero): Product appears with glowing, radiant, powerful entrance.
-- Scene 5 (Application): High-end real-world interaction with boosted cinematic color.
-- Scene 6 (Social Proof/Outro): Premium lifestyle, vibrant, aspirational.
+Populate the \`segments\` array with a structure where each character (villain or hero) introduces themselves directly.
+- EVERY segment's dialogue MUST start with: "Hi, I’m [Character Name]." or "Hi, I’m a [Character Name]..."
+- Scenes 1-3 (Villains): Pain points where characters represent the problem.
+- Scene 4 (Hero): Product appears as the solution.
+- Scene 5 (Application): Real-world interaction.
+- Scene 6 (Social Proof/Outro): Aspirational.
+
+EXAMPLE DIALOGUE STYLE:
+- "Hi, I’m Self-Tanner. You rub me all over your body hoping for that perfect glow, but what you usually get is streaky legs..."
+- "Hi, I’m Bronzing Lotion. I sit on top of your skin and stain whatever you touch..."
+- "Hi, I’m a tanning gummy, and unlike them, I don’t sit on your skin at all. I use natural plant-based beta-carotene..."
 
 VISUAL INTENSITY BOOST (MANDATORY):
 All scenes MUST use crystal clear details, sharp focus, and vivid colors. Avoid excessive bloom, haze, or visual noise. Use high contrast, clean professional lighting (studio or daylight), glossy reflective materials, and candy-like highlights to create highly eye-catching, viral, scroll-stopping visuals.
@@ -117,3 +123,83 @@ export const ASSISTANT_SCRIPT_OUTPUT_SCHEMA = {
   },
   required: ["script", "reply", "blocks"]
 };
+
+/**
+ * Output schema for character-driven ad script generation.
+ * Generates flat `segments` (each with a nested `character` object),
+ * matching the same structure used by other video types. The orchestrator
+ * then expands these into full VideoSchema segments with image/video prompts.
+ */
+export const CHARACTER_AD_SCRIPT_OUTPUT_SCHEMA = {
+  description: "Character-driven ad script with per-segment character data",
+  type: "object",
+  properties: {
+    script: { type: "string", description: "The full combined narration/dialogue script text" },
+    reply: { type: "string", description: "The conversational response to the user" },
+    productName: { type: "string", description: "Extracted or consolidated product name" },
+    productDescription: { type: "string", description: "Extracted or consolidated product description" },
+    segments: {
+      type: "array",
+      description: "Ordered list of scenes. Each scene is a segment with a character.",
+      items: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "Short title for the scene, e.g. 'Scene 1: Brain Fog Villain'" },
+          text: { type: "string", description: "The spoken dialogue for this scene" },
+          character: {
+            type: "object",
+            description: "Character performing this scene",
+            properties: {
+              name: { type: "string", description: "Unique character name" },
+              role: { type: "string", enum: ["villain", "hero", "human", "narrator"] },
+              visualDescription: {
+                type: "string",
+                description: "LITERAL 3D physical description of the character. Describe exact material, shape, color. NEVER use metaphorical or human descriptions."
+              },
+              voiceDescription: {
+                type: "string",
+                description: "Voice tone and style for audio generation (e.g. 'Raspy, sneaky, fast-talking')"
+              },
+              emotion: { type: "string", description: "The current emotional state or expression of the character" }
+            },
+            required: ["name", "role", "visualDescription", "voiceDescription", "emotion"]
+          },
+          sceneDescription: {
+            type: "string",
+            description: "Detailed visual description of the environment. MUST be a cleanly lit, bright, modern Pixar 3D room."
+          },
+          videoDescription: {
+            type: "string",
+            description: "Description of character motion and action in the scene"
+          },
+          productInteractionType: {
+            type: "string",
+            enum: ["packaging_hero", "product_content_hero", "packaging_in_hand", "product_content_in_hand", "packaging_on_surface", "product_content_on_surface", "product_reveal", "none"]
+          }
+        },
+        required: ["title", "text", "character", "sceneDescription", "videoDescription", "productInteractionType"]
+      }
+    }
+  },
+  required: ["script", "reply", "segments"]
+};
+
+export const CHARACTER_AD_PARSER_SYSTEM_PROMPT = `You are a script-to-schema parser for character-driven ads.
+Your task is to take a raw script string and split it into structured segments according to the provided JSON schema.
+
+RULES:
+1. SEGMENT SPLITTING: Every time you see a character introduce themselves (e.g., "Hi, I’m [Character Name]" or "Hi, I’m a [Character Name]..."), start a NEW segment.
+2. DIALOGUE: The 'text' field for each segment must contain the dialogue starting from the introduction until the next character's introduction or the end of the script.
+3. CHARACTER ATTRIBUTION:
+   - Identify the character's Name and Role (villain, hero, human, or narrator).
+   - Identify the character's current Emotion (e.g., "mischievous", "empowered", "frustrated").
+   - Generate a detailed "visualDescription" in a High-end 3D Pixar/Disney style.
+   - Generate a "voiceDescription" (e.g., "Raspy, sneaky" for villains, "Warm, confident" for heroes).
+4. BRANDING: Keep 'productName' and 'productDescription' consistent with the provided context.
+5. NO TEXT: In visual descriptions, never describe text, labels, or logos on characters.
+
+SCENE SETTING:
+- All scenes must be cleanly lit, modern Pixar 3D interiors.
+- Human background characters must be soft-focused and silent.
+
+Do not modify the original dialogue text. Only structure it into the requested JSON segments.`;

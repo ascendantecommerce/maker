@@ -3,7 +3,7 @@ import { getInngestApp } from "../../index";
 import { initializeCharacterAdServices } from "./services";
 import {
   generateCharacterSeedImages,
-  generateCharacterLipSyncClips,
+  generateSegmentVideo,
   refineCharacterClips,
 } from "./steps";
 import { mapInputToSchema } from "./utils/mapping";
@@ -12,6 +12,8 @@ import { db } from "@/lib/database";
 import { ResolverStatus } from "@/utils/enum";
 import { ToastType, VideoSchema } from "../../utils/types";
 import { workflowChannel } from "../../utils/common";
+import { GeminiService } from "@/lib/gemini/generator";
+import { CHARACTER_AD_PARSER_SYSTEM_PROMPT, CHARACTER_AD_SCRIPT_OUTPUT_SCHEMA } from "@/lib/prompts/assistant-script";
 
 const inngest = getInngestApp();
 
@@ -32,23 +34,45 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
     const services = initializeCharacterAdServices();
 
     try {
-      // 0. Stage 0: Schema Generation (from raw blocks)
-      if ((!scheme.segments || scheme.segments.length === 0) && scheme.blocks) {
-        scheme = await step.run("generate-schema-from-blocks", async () => {
+      // 0. Stage 0: Schema Generation (from raw script or missing segments)
+      if (!scheme.segments || scheme.segments.length === 0) {
+        scheme = await step.run("generate-schema-from-content", async () => {
+          let segmentsInput: any = scheme.segments;
+
+          // If segments are missing but script is present, parse the script into segments
+          if ((!segmentsInput || segmentsInput.length === 0) && scheme.script) {
+            const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+            if (!apiKey) throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set");
+
+            const gemini = new GeminiService(apiKey, "gemini-2.5-flash-lite");
+            const result = await gemini.generateScriptAssistant({
+              message: `Parse this script into structured segments: \n\n${scheme.script}`,
+              productName: scheme.product?.name,
+              productDescription: scheme.product?.description,
+              systemPrompt: CHARACTER_AD_PARSER_SYSTEM_PROMPT,
+              outputSchema: CHARACTER_AD_SCRIPT_OUTPUT_SCHEMA,
+            });
+
+            segmentsInput = result.segments;
+          }
+
           const mapped = mapInputToSchema({
-            blocks: scheme.blocks!,
+            segments: segmentsInput,
+            blocks: scheme.blocks,
             product: scheme.product,
             assets: scheme.assets,
             visuals: scheme.visuals,
           });
+          
           const updated = { ...scheme, ...mapped, id: schemeId };
 
-          // Stage 0.5: Persist the generated schema to DB (replaces manual initialization)
+          // Stage 0.5: Persist the generated schema to DB
           await saveSchema(schemeId, updated, ResolverStatus.PROGRESS);
 
           return updated;
         });
       }
+
 
       // 1. Initial Status Update
       await step.run("mark-orchestration-start", async () => {
@@ -84,33 +108,58 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
             runToken,
           );
 
-          // Apply shot imageUrls onto the segments in-memory
-          const updatedSegments = scheme.segments.map((seg) => ({
-            ...seg,
-            shots: (seg.shots || []).map((shot, shotIndex) => {
-              const update = shotUpdates.find(
-                (u) => u.segmentId === seg.id && u.shotIndex === shotIndex,
-              );
-              return update ? { ...shot, imageUrl: update.imageUrl } : shot;
-            }),
-          }));
+          // 1. Update segments (shot imageUrl + segment firstFrameUrl)
+          const updatedSegments = scheme.segments.map((seg) => {
+            const shotUpdate = shotUpdates.find((u) => u.segmentId === seg.id && u.shotIndex === 0);
+            return {
+              ...seg,
+              firstFrameUrl: shotUpdate?.imageUrl || seg.firstFrameUrl,
+              imageUrl: shotUpdate?.imageUrl || seg.imageUrl,
+              shots: (seg.shots || []).map((shot, shotIndex) => {
+                const update = shotUpdates.find(
+                  (u) => u.segmentId === seg.id && u.shotIndex === shotIndex,
+                );
+                return update ? { ...shot, imageUrl: update.imageUrl } : shot;
+              }),
+            };
+          });
 
-          const fullUpdatedScheme = { ...scheme, segments: updatedSegments };
+          // 2. Update character baseImageUrl for global consistency
+          const updatedCharacters = (scheme.characters || []).map((char) => {
+            const firstAppearance = shotUpdates.find((u) => {
+              const seg = scheme.segments.find((s) => s.id === u.segmentId);
+              return seg?.characterId === char.id;
+            });
+            return firstAppearance
+              ? { ...char, baseImageUrl: firstAppearance.imageUrl }
+              : char;
+          });
 
-          // Persist the full scheme back to DB
+          const fullUpdatedScheme = {
+            ...scheme,
+            segments: updatedSegments,
+            characters: updatedCharacters,
+          };
+
+          // 3. Persist the full scheme back to DB metadata
           await db
             .updateTable("generations")
             .set({ metadata: JSON.stringify(fullUpdatedScheme) })
             .where("id", "=", schemeId)
             .execute();
 
-          return { segments: updatedSegments, count: shotUpdates.length };
+          return { 
+            segments: updatedSegments, 
+            characters: updatedCharacters,
+            count: shotUpdates.length 
+          };
         },
       );
 
       // Update local state for subsequent stages
       scheme.segments = characterResults.segments as typeof scheme.segments;
-      // return {scheme  }
+      scheme.characters = characterResults.characters as typeof scheme.characters;
+      
       await step.run("publish-veo-start-toast", async () => {
         await publish({
           channel,
@@ -127,7 +176,7 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
       // 3. Stage 2: Generate Videos (Veo 3.1 Fast)
       // Every segment iterates through Veo 3.1 Fast with Dialogue + VoiceDescription.
       const videoResults = await step.run("generate-video-clips", async () => {
-        const results = await generateCharacterLipSyncClips(
+        const results = await generateSegmentVideo(
           schemeId,
           scheme,
           services,

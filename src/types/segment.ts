@@ -25,6 +25,7 @@ export interface CharacterConfig {
   role: "villain" | "hero" | "human" | "narrator";
   visualDescription: string;
   voiceDescription: string;
+  emotion?: string;
   baseImageUrl?: string;
 }
 
@@ -118,6 +119,8 @@ export interface Segment {
   characterId?: string;
   emotion?: string;
   cameraMotion?: string;
+  firstFrameUrl?: string;
+  imageUrl?: string;
   estimatedDuration?: number;
 }
 

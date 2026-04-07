@@ -14,7 +14,7 @@ import { buildCharacterAdNegativePrompt } from "@/lib/prompts";
  * Each segment contains dialogue and a link to a character with a base image.
  * Image-to-Video is used to maintain character consistency based on the seed image.
  */
-export const generateCharacterLipSyncClips = async (
+export const generateSegmentVideo = async (
   schemeId: string,
   scheme: VideoSchema,
   services: CharacterAdServices,

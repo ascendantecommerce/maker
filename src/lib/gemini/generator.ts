@@ -175,6 +175,8 @@ export class GeminiService {
     productName?: string;
     productDescription?: string;
     systemPrompt?: string;
+    /** Override the Gemini response schema (e.g. CHARACTER_AD_SCRIPT_OUTPUT_SCHEMA) */
+    outputSchema?: Record<string, any>;
   }): Promise<any> {
     try {
       let prompt = `USER REQUEST: ${input.message}`;
@@ -223,7 +225,7 @@ Apply these rules for the Character-Driven Ad blocks:
         contents: contents,
         config: {
           responseMimeType: "application/json",
-          responseSchema: ASSISTANT_SCRIPT_OUTPUT_SCHEMA as any,
+          responseSchema: (input.outputSchema || ASSISTANT_SCRIPT_OUTPUT_SCHEMA) as any,
         },
       });
 

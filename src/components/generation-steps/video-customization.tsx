@@ -17,7 +17,6 @@ import { VIDEO_STYLES } from "@/constants/video-styles";
 import { AssetsConfig } from "./assets-config";
 import { ProductConfig } from "./product-config";
 import { AvatarConfig } from "./avatar-config";
-import { CharacterAdPayload } from "./character-ad-payload";
 
 interface VideoCustomizationProps {
   generationParams: Partial<Schema>;
@@ -81,7 +80,6 @@ export function VideoCustomization({
     generationParams.product || { name: "", description: "" },
   );
   const [avatar, setAvatar] = useState<Schema["avatar"]>(generationParams.avatar);
-  const [blocks, setBlocks] = useState<Schema["blocks"]>(generationParams.blocks || []);
 
   // Voice transformation function
   const transformVoices = useCallback((voicesList: any[]): Voice[] => {
@@ -163,7 +161,6 @@ export function VideoCustomization({
     if (generationParams.product) setProduct(generationParams.product);
     if (generationParams.avatar) setAvatar(generationParams.avatar);
     if (generationParams.pacing) setPacing(generationParams.pacing as any);
-    if (generationParams.blocks) setBlocks(generationParams.blocks);
   }, [generationParams]);
 
   // Update generation params when local state changes
@@ -181,8 +178,7 @@ export function VideoCustomization({
       JSON.stringify(avatar) !== JSON.stringify(generationParams.avatar) ||
       pacing !== generationParams.pacing ||
       (activeVoice && selectedVoice !== generationParams.voice?.id) ||
-      (isCustomVoice && selectedVoice !== generationParams.voice?.url) ||
-      JSON.stringify(blocks) !== JSON.stringify(generationParams.blocks);
+      (isCustomVoice && selectedVoice !== generationParams.voice?.url);
 
     if (hasChanges) {
       setGenerationParams((prev) => ({
@@ -194,7 +190,6 @@ export function VideoCustomization({
         product: product?.name || product?.description ? product : undefined,
         avatar,
         pacing,
-        blocks,
         ...(activeVoice
           ? { voice: { id: activeVoice.id, name: activeVoice.name } }
           : isCustomVoice
@@ -211,8 +206,6 @@ export function VideoCustomization({
     product,
     avatar,
     pacing,
-    selectedVoice,
-    blocks,
     voices,
     setGenerationParams,
   ]);
@@ -256,14 +249,7 @@ export function VideoCustomization({
           className="w-full h-[calc(100vh-64px)] md:h-[calc(100vh-64px)]"
         >
           <div className="text-sm">
-            {isCharacterAd ? (
-              <CharacterAdPayload
-                blocks={blocks || []}
-                onChange={setBlocks}
-              />
-            ) : (
-              <ScriptEditing />
-            )}
+            <ScriptEditing />
             <Separator />
 
             <AspectRatioConfig aspectRatio={aspectRatio} onAspectRatioChange={setAspectRatio} />

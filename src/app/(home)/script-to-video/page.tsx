@@ -49,8 +49,9 @@ function ScriptToVideoContent() {
       return;
     }
 
-    if (isCharacterAd && (!generationParams.blocks || generationParams.blocks.length === 0)) {
-      console.warn("Character-driven ad requires a 'blocks' array");
+    if (isCharacterAd && (!generationParams.segments || generationParams.segments.length === 0)
+        && (!generationParams.blocks || generationParams.blocks.length === 0)) {
+      console.warn("Character-driven ad requires 'segments' (with character data) or legacy 'blocks'");
       setIsGenerating(false);
       return;
     }

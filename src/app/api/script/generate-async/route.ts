@@ -74,6 +74,7 @@ export async function POST(req: Request) {
 
   const eventName = eventMapping[mode as string] || "script/generate.request";
 
+    
   await inngest.send({
     name: eventName,
     data: {
