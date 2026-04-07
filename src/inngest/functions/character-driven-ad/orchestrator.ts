@@ -173,7 +173,9 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
         ...seg,
         shots: (seg.shots || []).map((shot) => {
           const refined = refinedVideoResults.clips.find((c) => c.id === seg.id);
-          return refined ? { ...shot, videoUrl: refined.url } : shot;
+          return refined
+            ? { ...shot, videoUrl: refined.url, effects: refined.effects }
+            : shot;
         }),
       }));
 

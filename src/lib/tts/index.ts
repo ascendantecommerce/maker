@@ -297,4 +297,32 @@ export class TtsService {
       throw new Error("Unable to isolate audio. Please try again later.");
     }
   }
+
+  async generateSfx(text: string, durationSeconds?: number): Promise<Buffer> {
+    try {
+      const response = await fetch(`${this.baseUrl}/v1/sound-effects`, {
+        method: "POST",
+        headers: {
+          "xi-api-key": this.apiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text,
+          duration_seconds: durationSeconds,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("ElevenLabs Sound Effects Error:", errorData);
+        throw new Error("Failed to generate sound effect.");
+      }
+
+      const sfxBuffer = await response.arrayBuffer();
+      return Buffer.from(sfxBuffer);
+    } catch (err: any) {
+      console.error("ElevenLabs SFX Error:", err);
+      throw new Error("Unable to generate sound effect. Please try again later.");
+    }
+  }
 }
