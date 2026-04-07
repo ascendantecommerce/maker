@@ -14,6 +14,7 @@ import {
   buildStandardVideoPrompt,
   buildVideoPrompt,
   AUDIO_RATING_PROMPT,
+  VIDEO_SFX_ANALYSIS_PROMPT,
   getStandardImagePacingInstruction,
   getStandardVideoPacingInstruction,
   buildProductContextBlock,
@@ -160,6 +161,42 @@ export class GeminiService {
       throw new Error(
         "Failed to analyze reference video. Please try again with a different video.",
       );
+    }
+  }
+
+  async analyzeVideoForSfx(
+    videoBuffer: Buffer,
+    contentType: string,
+  ): Promise<{ effects: { prompt: string; start: number; end: number }[] }> {
+    try {
+      const base64Video = videoBuffer.toString("base64");
+
+      const response = await this.gemini.models.generateContent({
+        model: this.model,
+        contents: [
+          { text: VIDEO_SFX_ANALYSIS_PROMPT },
+          {
+            inlineData: {
+              mimeType: contentType,
+              data: base64Video,
+            },
+          },
+        ],
+        config: {
+          responseMimeType: "application/json",
+        },
+      });
+
+      const analysisText = response?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+      const analysis = JSON.parse(analysisText);
+
+      return {
+        effects: analysis.effects || [],
+      };
+    } catch (err: any) {
+      console.error("Video SFX analysis failed:", err);
+      // Return empty effects list instead of failing the whole pipeline
+      return { effects: [] };
     }
   }
 

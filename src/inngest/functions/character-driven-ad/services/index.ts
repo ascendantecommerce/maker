@@ -2,6 +2,7 @@ import { GeminiService } from "@/lib/gemini/generator";
 import { VideoGenerator } from "@/lib/video-generation";
 import { ImageGenerator } from "@/lib/image-generation";
 import { R2StorageService } from "@/lib/r2-storage";
+import { TtsService } from "@/lib/tts";
 import { config } from "../../../config";
 
 export interface CharacterAdServices {
@@ -9,6 +10,7 @@ export interface CharacterAdServices {
   videoGenerator: VideoGenerator;
   imageGenerator: ImageGenerator;
   r2: R2StorageService;
+  tts: TtsService;
 }
 
 /**
@@ -49,5 +51,6 @@ export function initializeCharacterAdServices(): CharacterAdServices {
     videoGenerator,
     imageGenerator,
     r2,
+    tts: new TtsService(config.elevenLabs.url, config.elevenLabs.key, config.elevenLabs.model),
   };
 }
