@@ -6,6 +6,11 @@ import { schemaLipsync } from "./lipsync-resolver";
 import { ugcVideoOrchestrator } from "./ugc";
 import { fakeUgcVideoOrchestrator } from "./fake-ugc/orchestrator";
 import { characterDrivenAdOrchestrator } from "./character-driven-ad/orchestrator";
+import { generateCharacterAdScript } from "./character-driven-ad/script-generator";
+import { generateNarrativeScript } from "./narrative/script-generator";
+import { generateProductAdScript } from "./product/script-generator";
+import { generateUGCScript } from "./ugc/script-generator";
+import { generateFakeUGCScript } from "./fake-ugc/script-generator";
 
 export const functions = [
   narrativeVideoOrchestrator,
@@ -16,4 +21,9 @@ export const functions = [
   ugcVideoOrchestrator,
   fakeUgcVideoOrchestrator,
   characterDrivenAdOrchestrator,
+  generateCharacterAdScript,
+  generateNarrativeScript,
+  generateProductAdScript,
+  generateUGCScript,
+  generateFakeUGCScript,
 ];

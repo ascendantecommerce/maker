@@ -29,6 +29,10 @@ import {
   buildUgcUnifiedPrompt,
   buildFakeUgcUnifiedPrompt,
 } from "../prompts";
+import { 
+  ASSISTANT_SCRIPT_SYSTEM_PROMPT, 
+  ASSISTANT_SCRIPT_OUTPUT_SCHEMA 
+} from "../prompts/assistant-script";
 
 export class GeminiService {
   public gemini: GoogleGenAI;
@@ -161,6 +165,75 @@ export class GeminiService {
       throw new Error(
         "Failed to analyze reference video. Please try again with a different video.",
       );
+    }
+  }
+
+  async generateScriptAssistant(input: {
+    message: string;
+    imageUrls?: string[];
+    schema?: any;
+    productName?: string;
+    productDescription?: string;
+    systemPrompt?: string;
+  }): Promise<any> {
+    try {
+      let prompt = `USER REQUEST: ${input.message}`;
+
+      if (input.imageUrls && input.imageUrls.length > 0) {
+        prompt += `\n\n[PRODUCT IMAGE ANALYSIS]:
+Analyze the uploaded product image to identify:
+1. PRIMARY COLOR(S): The dominant colors of the product/packaging.
+2. SECONDARY COLOR(S): Accents and branding highlights.
+3. CORE THEME: What problem does this product solve?
+
+Apply these rules for the Character-Driven Ad blocks:
+- HERO: MUST match the product's primary and secondary colors exactly (e.g., if packaging is dark blue, the hero must be dark blue).
+- VILLAINS: MUST represent the problem the product solves (e.g., "Brain Fog", "Fatigue"). Their colors should contrast the hero (murky, dark, or negative tones) and SHOULD NOT match the product colors.
+- THEMATIC COHESION: Even with contrasting colors, villains should feel like they belong in a story about the product's benefits.`;
+      }
+
+      const contents: any[] = [
+        { text: input.systemPrompt || ASSISTANT_SCRIPT_SYSTEM_PROMPT },
+        { text: prompt }
+      ];
+
+      if (input.schema) {
+        contents.push({ text: `CURRENT CONFIGURATION: ${JSON.stringify(input.schema)}` });
+      }
+
+      if (input.productName || input.productDescription) {
+        contents.push({ text: `PRODUCT INFO: Name: ${input.productName || ""}, Description: ${input.productDescription || ""}` });
+      }
+
+      if (input.imageUrls && input.imageUrls.length > 0) {
+        for (const url of input.imageUrls) {
+          const { buffer, contentType } = await fileUrlToBuffer(url);
+          const imageData = await this.prepareImageForGemini(buffer, contentType);
+          contents.push({
+            inlineData: {
+              mimeType: imageData.mimeType,
+              data: imageData.data,
+            },
+          });
+        }
+      }
+
+      const response = await this.gemini.models.generateContent({
+        model: this.model,
+        contents: contents,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: ASSISTANT_SCRIPT_OUTPUT_SCHEMA as any,
+        },
+      });
+
+      const text = response?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) throw new Error("Empty response from Gemini");
+
+      return JSON.parse(text);
+    } catch (err) {
+      console.error("Error in generateScriptAssistant:", err);
+      throw err;
     }
   }
 
@@ -899,7 +972,7 @@ export class GeminiService {
       const ratingPrompt = AUDIO_RATING_PROMPT;
 
       const response = await this.gemini.models.generateContent({
-        // Use gemini-2.0-flash-lite for efficient audio analysis as requested
+        // Use gemini-2.5-flash-lite-lite for efficient audio analysis as requested
         model: "gemini-2.5-flash-lite",
         contents: [
           { text: ratingPrompt },

@@ -303,8 +303,8 @@ export function VideoCustomization({
               </>
             )}
 
-            {/* Narrative & Product: Visuals Style */}
-            {(isNarrative || isProduct) && (
+            {/* Narrative, Product & Character Ads: Visuals Style */}
+            {(isNarrative || isProduct || isCharacterAd) && (
               <>
                 <VisualsConfig
                   selectedVisualType={selectedVisualType}

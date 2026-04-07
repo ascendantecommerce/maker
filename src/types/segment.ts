@@ -16,7 +16,7 @@ export interface UserScriptBlock {
   voiceDescription: string;
   emotion: string;
   dialogue: string;
-  productInteractionType?: "package_hero" | "product_in_hand" | "product_on_surface" | "product_reveal" | "none";
+  productInteractionType?: "packaging_hero" | "product_content_hero" | "packaging_in_hand" | "product_content_in_hand" | "packaging_on_surface" | "product_content_on_surface" | "product_reveal" | "none";
 }
 
 export interface CharacterConfig {

@@ -58,7 +58,7 @@ export const generateUGCVideo = inngest.createFunction(
         },
       });
 
-      const gemini = new GeminiService(config.gemini.key, "gemini-2.0-flash-exp");
+      const gemini = new GeminiService(config.gemini.key, "gemini-2.5-flash-lite-exp");
 
       // Fetch project and schema early to get product/avatar context
       const project = await step.run("fetch-project-ugc", async () =>

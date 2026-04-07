@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     }
 
     const genAI = new GoogleGenAI({ apiKey });
-    const model = "gemini-2.0-flash";
+    const model = "gemini-2.5-flash-lite";
 
     const promptExpansionText = `You are a world-class AI prompt engineer specializing in authentic UGC (User Generated Content) aesthetics. 
     Your goal is to expand a simple avatar description into a hyper-realistic image generation prompt that looks like a real person recorded it on their phone or a casual camera setup.

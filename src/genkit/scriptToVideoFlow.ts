@@ -293,7 +293,16 @@ For character-driven ads, use the following STRICT narrative structure for the \
 
 PRODUCT INTERACTION RULES:
 When defining the \`blocks array\`, you MUST categorize the physical product interaction for every scene using the \`productInteractionType property\`.
-Choose precisely ONE of the following (exact strings): "package_hero", "product_in_hand", "product_on_surface", "product_reveal", "none".
+
+Choose precisely ONE of the following (exact strings):
+- "packaging_hero": Focuses on the external packaging/container (box, bottle, bag).
+- "product_content_hero": Focuses on the actual product itself (the gummy, the liquid, the pill).
+- "packaging_in_hand": A human figure holds the package.
+- "product_content_in_hand": A human figure holds the actual inner product content.
+- "packaging_on_surface": The package rests on a surface (counter, table).
+- "product_content_on_surface": The inner product content rests on a surface.
+- "product_reveal": A scene specifically showing the transition from packaging to the inner product.
+- "none": No physical product interaction.
 
 EXAMPLE BLOCKS ARRAY:
 [
@@ -312,12 +321,12 @@ EXAMPLE BLOCKS ARRAY:
     "characterName": "The Clarity Core",
     "characterRole": "hero",
     "characterDescription": "A perfectly beveled, vibrant DARK NAVY BLUE cube mascot with a clear, sharp square silhouette. Bright silver molecular structure patterns are etched into its glossy outer shell. Large, bright expressive silver eyes. Glowing subsurface scattering. High-end 3D animation style, Pixar style, Unreal Engine 5 render, 8k.",
-    "sceneDescription": "A beam of intense silver cinematic volumetric spotlight illuminating a pristine minimalist space.",
+    "sceneDesoagecription": "A beam of intense silver cinematic volumetric spotlight illuminating a pristine minimalist space.",
     "videoDescription": "The Clarity Core steps forward triumphantly, its body radiating intense silver and navy light rays.",
     "voiceDescription": "Sweet, high-pitched, bright, energetic young female",
     "emotion": "triumphant",
     "dialogue": "Time to clear the fog and ignite your inner power!",
-    "productInteractionType": "package_hero"
+    "productInteractionType": "packaging_hero"
   }
 ]`;
 
@@ -327,26 +336,32 @@ export const scriptToVideoFlow = ai.defineFlow(
     inputSchema: z.object({
       message: z.string(),
       productImageUrl: z.string().optional(),
+      productImageUrls: z.array(z.string()).optional(),
     }),
     outputSchema: z.object({
       reply: z.string(),
     }),
     streamSchema: z.string(),
   },
-  async ({ message, productImageUrl }, { sendChunk }) => {
+  async ({ message, productImageUrl, productImageUrls }, { sendChunk }) => {
     let prompt = `[USER]: ${message}`;
 
-    if (productImageUrl) {
+    const finalImageUrls = productImageUrls || (productImageUrl ? [productImageUrl] : []);
+
+    if (finalImageUrls.length > 0) {
       prompt += `\n\n[PRODUCT IMAGE ANALYSIS]:
-Analyze the uploaded product image to identify:
-1. PRIMARY COLOR(S): The dominant colors of the product/packaging.
-2. SECONDARY COLOR(S): Accents and branding highlights.
-3. CORE THEME: What problem does this product solve?
+Analyze ALL provided product images cumulatively to identify:
+1. PRIMARY & SECONDARY BRAND COLORS: The dominant palette for the hero character.
+2. PACKAGING vs PRODUCT CONTENT: Distinguish between the outer container (packaging) and the inner substance (product content). 
+   - Note the textures (Is it a liquid? A solid gummy? A powder?).
+   - Note the specific details (Is there a logo? A specific color on the pill?).
+3. CORE THEME: The problem the product solves (to inform villain design).
 
 Apply these rules for the Character-Driven Ad blocks:
-- HERO: MUST match the product's primary and secondary colors exactly (e.g., if packaging is dark blue, the hero must be dark blue).
-- VILLAINS: MUST represent the problem the product solves (e.g., "Brain Fog", "Fatigue"). Their colors should contrast the hero (murky, dark, or negative tones) and SHOULD NOT match the product colors.
-- THEMATIC COHESION: Even with contrasting colors, villains should feel like they belong in a story about the product's benefits.`;
+- HERO: MUST match the exact brand colors identified across ALL images.
+- VILLAINS: MUST contrast the hero and represent the problem.
+- MULTI-ASSET COHESION: If one image shows the box and another shows the gummy inside, ensure you switch \`productInteractionType\` logically (e.g., Scene 4: packaging, Scene 5: product_content).
+- DIALOGUE RELEVANCE: Use text/logos found on the packaging to make the hero's dialogue more authentic.`;
     }
 
     const { stream, response } = ai.generateStream({
@@ -357,8 +372,8 @@ Apply these rules for the Character-Driven Ad blocks:
           includeThoughts: true,
         },
       },
-      prompt: productImageUrl
-        ? [{ text: prompt }, { media: { url: productImageUrl } }]
+      prompt: finalImageUrls.length > 0
+        ? [{ text: prompt }, ...finalImageUrls.map(url => ({ media: { url } }))]
         : prompt,
       tools: getScriptToVideoTools(),
     });
