@@ -174,6 +174,7 @@ export const Assistant = () => {
           imageUrls: params.productImages?.map((img: ProductImage) => img.url) || (params.productImage ? [params.productImage.url] : []),
           productName: params.product?.name,
           productDescription: params.product?.description,
+          visualStyle: params.visuals?.style || schema?.visuals?.style,
           mode: params.type || "character-driven-ad",
         }),
       });

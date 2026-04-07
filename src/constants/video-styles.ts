@@ -39,7 +39,7 @@ export const VIDEO_STYLES = [
       "https://cdn.web.imagine.art/remote-config/solutions/shorts/generation/media_styles/pixar.webp",
     name: "Pixar",
     description:
-      "The signature computer animation style known for its high detail, expressive characters, and vibrant worlds.",
+      "High-end 3D Pixar/Illumination animation style, immersive environments, crystal-clear 8k render, subsurface scattering, cinematic studio lighting, ultra-detailed textures, and vibrant candy-like colors.",
   },
   {
     id: FrameStyle.Cartoon,

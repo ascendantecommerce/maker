@@ -20,6 +20,7 @@ export async function POST(req: Request) {
     previousSchema, 
     productName, 
     productDescription,
+    visualStyle,
     mode = "character-driven-ad" 
   } = body;
 
@@ -82,6 +83,7 @@ export async function POST(req: Request) {
       previousSchema,
       productName,
       productDescription,
+      visualStyle,
     },
   });
 

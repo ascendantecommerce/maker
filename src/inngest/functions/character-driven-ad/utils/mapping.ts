@@ -6,6 +6,7 @@ export interface GenerateCharacterVideoInput {
   blocks: UserScriptBlock[];
   product?: { name?: string; description?: string };
   assets?: { url: string; type: string }[];
+  visuals?: { style?: string; type?: string };
 }
 
 const DEFAULT_STYLE = "High-end 3D Pixar/Illumination animation style, cinematic lighting, ultra-detailed textures, vibrant colors";
@@ -13,13 +14,13 @@ const DEFAULT_ASPECT_RATIO = "9:16";
 const DEFAULT_TITLE = "Character-Driven Ad";
 
 /** Appended to firstFramePrompt to prevent AI image layout artifacts */
-const SINGLE_FRAME_SUFFIX = "single cinematic frame, no split screen, no panels, no collage, no before-and-after, no multiple views, no text overlays, no watermarks, no borders";
+const SINGLE_FRAME_SUFFIX = "single cinematic frame, NO TEXT, no letters, no words, no labels, no split screen, no panels, no collage, no before-and-after, no multiple views, no text overlays, no watermarks, no borders";
 
-const DEFAULT_HERO_VISUAL = "Cute 3D mascot style, glossy jelly character, gummy translucent material, kawaii expression, ultra-clean, toy-like, hyper-saturated colors, neon glow accents, bright studio lighting";
-const DEFAULT_VILLAIN_VISUAL = "evil-cute gummy mascot, toxic/neon contrasting colors (acid green, electric purple), melted dripping surface, thick liquid goo, messy slime creature aesthetic, viscous texture, mischievous expression";
+const DEFAULT_HERO_VISUAL = "Cute 3D character, highly expressive facial features, premium realistic PBR materials (matte plastic, smooth vinyl, or soft felt depending on the object), ultra-clean, brightly lit, high-end Pixar animation style";
+const DEFAULT_VILLAIN_VISUAL = "Mischievous 3D character or anthropomorphized object representing the problem, highly expressive facial features, premium solid materials, high-end Pixar animation style";
 const DEFAULT_HUMAN_VISUAL = "blurred cinematic human subject in background, reacting with emotional frustration or stress, out of focus (bokeh)";
-const DEFAULT_SCENE_VISUAL = "Bright colorful minimal studio environment, cinematic lighting, volumetric light rays, subsurface scattering, strong bloom, neon rim light, glossy reflections";
-const DEFAULT_MOTION_VISUAL = "energetic playful motion, bouncing, squishing, glowing, reacting to the product";
+const DEFAULT_SCENE_VISUAL = "Clean, bright, modern premium Pixar 3D interior, cinematic lighting, volumetric light rays, glossy reflections";
+const DEFAULT_MOTION_VISUAL = "Energetic, expressive, and playful 3D character animation, highly dynamic movements reacting to the product";
 
 const calculateEstimatedDuration = (text: string): number => {
   if (!text) return 4;
@@ -35,7 +36,7 @@ const calculateEstimatedDuration = (text: string): number => {
  */
 export function mapInputToSchema(input: GenerateCharacterVideoInput): VideoSchema {
   const schemaId = `char-ad-${nanoid(8)}`;
-  const globalStyle = DEFAULT_STYLE;
+  const globalStyle = input.visuals?.style || DEFAULT_STYLE;
   const aspectRatio = DEFAULT_ASPECT_RATIO;
   const videoTitle = DEFAULT_TITLE;
 
@@ -45,6 +46,7 @@ export function mapInputToSchema(input: GenerateCharacterVideoInput): VideoSchem
     if (!characterMap.has(block.characterName)) {
       let visualDescription = block.characterDescription;
       if (!visualDescription) {
+        console.log("USING DEFAULT VISUAL DESCRIPTION")
         if (block.characterRole === "hero") visualDescription = DEFAULT_HERO_VISUAL;
         else if (block.characterRole === "villain") visualDescription = DEFAULT_VILLAIN_VISUAL;
         else if (block.characterRole === "human") visualDescription = DEFAULT_HUMAN_VISUAL;
@@ -128,6 +130,8 @@ export function mapInputToSchema(input: GenerateCharacterVideoInput): VideoSchem
       character.visualDescription,
       block.sceneDescription || DEFAULT_SCENE_VISUAL,
       block.videoDescription || DEFAULT_MOTION_VISUAL,
+      "the character has NO TEXT, NO LETTERS, AND NO WORDS on them.",
+      SINGLE_FRAME_SUFFIX
     ].filter(Boolean).join(", ");
 
     return {

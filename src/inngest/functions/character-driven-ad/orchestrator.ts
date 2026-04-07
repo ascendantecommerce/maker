@@ -38,6 +38,7 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
             blocks: scheme.blocks!,
             product: scheme.product,
             assets: scheme.assets,
+            visuals: scheme.visuals,
           });
           const updated = { ...scheme, ...mapped, id: schemeId };
 
@@ -108,7 +109,7 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
 
       // Update local state for subsequent stages
       scheme.segments = characterResults.segments as typeof scheme.segments;
-
+      // return {scheme  }
       await step.run("publish-veo-start-toast", async () => {
         await publish({
           channel,
