@@ -269,4 +269,32 @@ export class TtsService {
       throw new Error("Unable to synthesize speech. Please try again later.");
     }
   }
+
+  async isolateAudio(buffer: Buffer): Promise<Buffer> {
+    try {
+      const formData = new FormData();
+      const blob = new Blob([new Uint8Array(buffer)]);
+      formData.append("audio", blob, "audio.mp3");
+
+      const response = await fetch(`${this.baseUrl}/v1/audio-isolation`, {
+        method: "POST",
+        headers: {
+          "xi-api-key": this.apiKey,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("ElevenLabs Audio Isolation Error:", errorData);
+        throw new Error("Failed to isolate audio.");
+      }
+
+      const isolatedBuffer = await response.arrayBuffer();
+      return Buffer.from(isolatedBuffer);
+    } catch (err: any) {
+      console.error("ElevenLabs Isolation Error:", err);
+      throw new Error("Unable to isolate audio. Please try again later.");
+    }
+  }
 }
