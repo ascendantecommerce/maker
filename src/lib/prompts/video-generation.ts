@@ -15,9 +15,16 @@ import {
   GENERIC_SHOT_RULES,
 } from "./product-image-prompts";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 1. VIDEO ANALYSIS
-// ─────────────────────────────────────────────────────────────────────────────
+export const VIDEO_SFX_ANALYSIS_PROMPT = `You are a cinematic sound designer. Analyze this video and identify key actions, movements, or transitions that should have a sound effect (SFX) to enhance the viewer's experience.
+
+Please analyze the video and provide a JSON object with the following field:
+
+1. **effects**: A list of suggested sound effects, each with:
+   - "prompt": (string) A concise, descriptive prompt to generate this sound effect (e.g., "gentle wind chime", "car tire screech", "subtle digital ding").
+   - "start": (number) Start time in milliseconds relative to the video beginning.
+   - "end": (number) End time in milliseconds relative to the video beginning.
+
+Return ONLY strictly valid JSON.`;
 
 export const VIDEO_ANALYSIS_PROMPT = `You are a Professional Direct Response Video Editor. Analyze this video's structure and style.
 IMPORTANT: Provide a **concise, high-level structural overview**. Do NOT provide a second-by-second log of every single scene. Focus on the *types* of content and the editing techniques used.

@@ -4,6 +4,7 @@ import { initializeCharacterAdServices } from "./services";
 import {
   generateCharacterSeedImages,
   generateCharacterLipSyncClips,
+  refineCharacterClips,
 } from "./steps";
 import { mapInputToSchema } from "./utils/mapping";
 import { saveSchema } from "../common/steps";
@@ -140,7 +141,46 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
         };
       });
 
-      // 4. Final Status Update
+      // 4. Stage 3: Audio Refinement (ElevenLabs Audio Isolation + ffmpeg merge)
+      await step.run("publish-refinement-start-toast", async () => {
+        await publish({
+          channel,
+          topic: "steps",
+          data: {
+            type: ToastType.STEP_START,
+            step: "Refining Audio",
+            stepIndex: 3,
+            message: `Enhancing ${videoResults.clips.length} videos with studio-quality audio isolation...`,
+          },
+        });
+      });
+
+      const refinedVideoResults = await step.run("refine-generated-videos", async () => {
+        const refinedClips = await refineCharacterClips(
+          schemeId,
+          videoResults.clips,
+          services,
+          runToken,
+        );
+
+        return {
+          clips: refinedClips,
+          successCount: refinedClips.length,
+        };
+      });
+
+      // Update scheme metadata with refined URLs
+      scheme.segments = scheme.segments.map((seg) => ({
+        ...seg,
+        shots: (seg.shots || []).map((shot) => {
+          const refined = refinedVideoResults.clips.find((c) => c.id === seg.id);
+          return refined
+            ? { ...shot, videoUrl: refined.url, effects: refined.effects }
+            : shot;
+        }),
+      }));
+
+      // 5. Final Status Update
       await step.run("mark-orchestration-complete", async () => {
         // Update generations metadata with the finalized character/segment mapping
         await db
@@ -160,7 +200,7 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
           data: {
             type: ToastType.FUNCTION_COMPLETE,
             step: "Completed",
-            message: "All character scenes generated successfully!",
+            message: "All character scenes refined with studio-quality audio!",
           },
         });
       });

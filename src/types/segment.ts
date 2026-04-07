@@ -51,6 +51,7 @@ export interface VisualShot {
     to: number; // end time in milliseconds
   };
   duration?: number; // duration in milliseconds
+  effects?: { prompt: string; start: number; end: number }[];
 }
 
 export interface VisualBroll {

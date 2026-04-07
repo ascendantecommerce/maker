@@ -3,11 +3,12 @@ import { IconShare } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { useStudioStore } from "@/stores/studio-store";
 import { usePanelStore } from "@/stores/panel-store";
-import { Log, type IClip } from "openvideo";
+import { Log, type IClip, Compositor } from "openvideo";
 import { ExportModal } from "./export-modal";
 import { LogoIcons } from "../shared/logos";
 import Link from "next/link";
 import { Icons } from "../shared/icons";
+import { toast } from "sonner";
 import {
   Keyboard,
   FileJson,
@@ -16,6 +17,7 @@ import {
   Upload,
   MessageSquare,
   ArrowLeftIcon,
+  Loader2,
 } from "lucide-react";
 import { ShortcutsModal } from "./shortcuts-modal";
 import {
@@ -27,6 +29,8 @@ import {
 import { Separator } from "../ui/separator";
 import AutosizeInput from "../ui/autosize-input";
 import { debounce } from "lodash";
+import GoogleIcon from "../logos/google";
+import { toSlug } from "@/utils/format-title";
 
 export default function Header({
   projectId,
@@ -42,6 +46,7 @@ export default function Header({
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [title, setTitle] = useState(projectName || "Untitled video");
+  const [isSavingToDrive, setIsSavingToDrive] = useState(false);
 
   useEffect(() => {
     if (projectName) {
@@ -74,7 +79,13 @@ export default function Header({
     setCanUndo(studio.history.canUndo());
     setCanRedo(studio.history.canRedo());
 
-    const handleHistoryChange = ({ canUndo, canRedo }: { canUndo: boolean; canRedo: boolean }) => {
+    const handleHistoryChange = ({
+      canUndo,
+      canRedo,
+    }: {
+      canUndo: boolean;
+      canRedo: boolean;
+    }) => {
       setCanUndo(canUndo);
       setCanRedo(canRedo);
     };
@@ -169,7 +180,9 @@ export default function Header({
         });
 
         if (validClips.length === 0) {
-          throw new Error("No valid clips found in JSON. All clips have empty source URLs.");
+          throw new Error(
+            "No valid clips found in JSON. All clips have empty source URLs.",
+          );
         }
 
         const validJson = { ...json, clips: validClips };
@@ -190,6 +203,138 @@ export default function Header({
     setTitle(newTitle);
     saveTitle(newTitle);
   };
+
+  
+  /**
+   * Exports the video with default settings, auto-downloads it, then
+   * uploads the result to the user's Google Drive "scenify" folder.
+   */
+  const handleSaveToDrive = async () => {
+    if (!studio) return;
+
+    setIsSavingToDrive(true);
+    const toastId = toast.loading("Rendering video for Google Drive…");
+
+    let com: Compositor | null = null;
+
+    try {
+      const json = studio.exportToJSON();
+
+      if (!json.clips || json.clips.length === 0) {
+        throw new Error("No clips to export");
+      }
+
+      const validClips = json.clips.filter((clipJSON: any) => {
+        if (["Text", "Caption", "Effect", "Transition"].includes(clipJSON.type))
+          return true;
+        return clipJSON.src && clipJSON.src.trim() !== "";
+      });
+
+      if (validClips.length === 0) {
+        throw new Error("No valid clips to export");
+      }
+
+      const settings = json.settings || {};
+      const studioOpts = studio.getOptions() || {
+        width: 1920,
+        height: 1080,
+        fps: 30,
+      };
+
+      const combinatorOpts: any = {
+        width: settings.width || studioOpts.width || 1920,
+        height: settings.height || studioOpts.height || 1080,
+        fps: studioOpts.fps || 30,
+        bgColor: settings.bgColor || "#000000",
+        format: "mp4",
+        videoCodec: "avc1.42E032",
+        bitrate: 10_000_000,
+        audio: true,
+        audioCodec: "aac",
+        audioSampleRate: 48000,
+      };
+
+      com = new Compositor(combinatorOpts);
+
+      await com.initPixiApp();
+
+      await com.loadFromJSON({ ...json, clips: validClips });
+
+      const stream = com.output();
+      const blob = await new Response(stream).blob();
+
+      const fileName = `${toSlug(title)}-${Date.now()}.mp4`;
+
+      toast.loading("Uploading to Google Drive…", { id: toastId });
+
+      const formData = new FormData();
+      formData.append("file", blob, fileName);
+      formData.append("fileName", fileName);
+
+      const res = await fetch("/api/drive/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok && data.error === "needs_drive_auth") {
+        toast.dismiss(toastId);
+        setIsSavingToDrive(false);
+
+        if (com) com.destroy();
+
+        const oauthRes = await fetch(
+          `/api/drive/oauth?redirectBack=${encodeURIComponent(window.location.href)}`,
+        );
+
+        const oauthData = await oauthRes.json();
+
+        if (oauthData.url) {
+          toast.info("Redirecting to Google to connect Drive…");
+          window.location.href = oauthData.url;
+        } else {
+          toast.error("Could not start Drive connection. Please try again.");
+        }
+
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error(data.error || "Upload to Drive failed");
+      }
+
+      if (com) com.destroy();
+
+      toast.success(
+        <span>
+          Saved to Google Drive ✓
+          {data.webViewLink && (
+            <>
+              {" · "}
+              <a
+                href={data.webViewLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline font-semibold"
+              >
+                Open in Drive
+              </a>
+            </>
+          )}
+        </span>,
+        { id: toastId, duration: 8000 },
+      );
+    } catch (err) {
+      Log.error("Save to Drive error:", err);
+
+      toast.error("Failed to save to Drive: " + (err as Error).message, {
+        id: toastId,
+      });
+    } finally {
+      if (com) com.destroy();
+      setIsSavingToDrive(false);
+    }
+  };
   return (
     <header className="relative flex h-[52px] w-full shrink-0 items-center justify-between px-4 bg-card z-10 border-b">
       {/* Left Section */}
@@ -200,12 +345,25 @@ export default function Header({
         >
           <ArrowLeftIcon className="size-5" /> Back
         </Link>
-        <Separator orientation="vertical" className="!h-6 w-1 bg-stone-600 ml-2" />
+        <Separator
+          orientation="vertical"
+          className="!h-6 w-1 bg-stone-600 ml-2"
+        />
         <div className=" pointer-events-auto flex h-10 items-center">
-          <Button onClick={() => studio?.undo()} disabled={!canUndo} variant="ghost" size="icon">
+          <Button
+            onClick={() => studio?.undo()}
+            disabled={!canUndo}
+            variant="ghost"
+            size="icon"
+          >
             <Icons.undo className="size-5" />
           </Button>
-          <Button onClick={() => studio?.redo()} disabled={!canRedo} variant="ghost" size="icon">
+          <Button
+            onClick={() => studio?.redo()}
+            disabled={!canRedo}
+            variant="ghost"
+            size="icon"
+          >
             <Icons.redo className="size-5" />
           </Button>
         </div>
@@ -254,8 +412,14 @@ export default function Header({
           </Button>
         </Link>
 
-        <ExportModal open={isExportModalOpen} onOpenChange={setIsExportModalOpen} />
-        <ShortcutsModal open={isShortcutsModalOpen} onOpenChange={setIsShortcutsModalOpen} />
+        <ExportModal
+          open={isExportModalOpen}
+          onOpenChange={setIsExportModalOpen}
+        />
+        <ShortcutsModal
+          open={isShortcutsModalOpen}
+          onOpenChange={setIsShortcutsModalOpen}
+        />
 
         <Button
           className="flex h-7 gap-1 border border-border"
@@ -265,9 +429,34 @@ export default function Header({
             console.log(studio?.exportToJSON());
           }}
         >
-          <IconShare width={18} /> <span className="hidden md:block">Share</span>
+          <IconShare width={18} />{" "}
+          <span className="hidden md:block">Share</span>
         </Button>
-        <Button size="sm" className="gap-2 rounded-full" onClick={() => setIsExportModalOpen(true)}>
+
+        {/* Save to Google Drive */}
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={isSavingToDrive}
+          onClick={handleSaveToDrive}
+          className="h-7 gap-1.5 rounded-full border border-border bg-white text-neutral-700 hover:bg-gray-50 dark:bg-white dark:text-neutral-800 dark:hover:bg-gray-100 font-medium shadow-sm disabled:opacity-60"
+          title="Export and save to Google Drive"
+        >
+          {isSavingToDrive ? (
+            <Loader2 className="size-4 animate-spin text-[#4285F4]" />
+          ) : (
+            <GoogleIcon className="size-4" />
+          )}
+          <span className="hidden md:block">
+            {isSavingToDrive ? "Saving…" : "Save to Drive"}
+          </span>
+        </Button>
+
+        <Button
+          size="sm"
+          className="gap-2 rounded-full"
+          onClick={() => setIsExportModalOpen(true)}
+        >
           Download
         </Button>
       </div>
