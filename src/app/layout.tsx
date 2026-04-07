@@ -25,17 +25,17 @@ const spaceGrotesk = Space_Grotesk({
 
 export const metadata = createMetadata({
   title: {
-    template: "%s | Scenify",
-    default: "Scenify - AI Video Generator & Editor",
+    template: "%s | AE",
+    default: "AE - AI Video Generator & Editor",
   },
   description:
-    "Create stunning marketing videos, social media content, and more with Scenify. The next-generation AI video generator and editor for creators and businesses.",
+    "Create stunning marketing videos, social media content, and more with AE. The next-generation AI video generator and editor for creators and businesses.",
   metadataBase: baseUrl,
 });
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-const oxanium = Oxanium({subsets:['latin'],variable:'--font-sans'});
+const oxanium = Oxanium({ subsets: ['latin'], variable: '--font-sans' });
 
 
 export default function RootLayout({
@@ -47,7 +47,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn( spaceGrotesk.variable, geistMono.variable, "font-sans", oxanium.variable)}
+      className={cn(spaceGrotesk.variable, geistMono.variable, "font-sans", oxanium.variable)}
     >
       <body className={`antialiased`}>
         <ThemeProvider>

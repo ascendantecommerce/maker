@@ -18,7 +18,6 @@ import { LogOut, ChevronRight, Moon, Sun } from "lucide-react";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
-import ScenifyIcon from "./logos/scenify";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { authClient } from "@/lib/auth-client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -28,6 +27,7 @@ import { useFolders } from "@/hooks/use-folders";
 import { CreateProjectModal } from "./create-project-modal";
 import { useMemo, useState } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import Image from "next/image";
 
 export function AppSidebar() {
   const { toggleSidebar, open, openMobile, isMobile, setOpenMobile } = useSidebar();
@@ -120,8 +120,22 @@ export function AppSidebar() {
                 <div className="flex items-center justify-between h-10">
                   {shouldShowLabels && (
                     <div className="ml-2">
-                      <Link href="/home" onClick={handleMobileClose}>
-                        <ScenifyIcon className="h-6" />
+                      <Link
+                        href="/home"
+                        onClick={handleMobileClose}
+                        className="flex items-center gap-2"
+                      >
+                        <div className="relative w-6 h-6 overflow-hidden rounded-md border border-border">
+                          <Image
+                            src="/logo.webp"
+                            alt="Logo"
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                        <span className="font-semibold text-sm tracking-tight text-foreground truncate">
+                          Ascendant Ecommerce
+                        </span>
                       </Link>
                     </div>
                   )}
@@ -172,9 +186,9 @@ export function AppSidebar() {
                       onClick={() => {
                         setIsCreateModalOpen(true);
                         handleMobileClose();
-                      }}
+                       }}
                     >
-                      <Icons.plus className="size-10 !text-inherit" />
+                      <Icons.plus className="size-10 text-inherit!" />
                       {shouldShowLabels && <span className="text-zinc-200">Create new</span>}
                     </SidebarMenuButton>,
                     "Create project",
@@ -310,7 +324,7 @@ export function AppSidebar() {
                       </SidebarMenuButton>
                     </PopoverTrigger>
                     <PopoverContent
-                      className="w-[--radix-dropdown-menu-trigger-width] w-64 rounded-lg p-2"
+                      className="w-64 rounded-lg p-2"
                       side={isMobile ? "bottom" : "right"}
                       align="end"
                       sideOffset={4}
@@ -326,7 +340,7 @@ export function AppSidebar() {
                               <Button
                                 variant="secondary"
                                 size="sm"
-                                className="h-6 text-[10px] px-2 h-7 bg-white text-zinc-950 hover:bg-white/90"
+                                className="h-7 text-[10px] px-2 bg-white text-zinc-950 hover:bg-white/90"
                               >
                                 Upgrade
                               </Button>

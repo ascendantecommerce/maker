@@ -61,7 +61,7 @@ export default function Home() {
           <h1 className="text-2xl font-semibold tracking-tight text-foreground leading-tight">
             Log in or sign up
           </h1>
-          <p className="text-muted-foreground text-sm leading-relaxed max-w-[280px]">
+          <p className="text-muted-foreground text-sm leading-relaxed max-w-70">
             Continue with Google to access your dashboard and manage your ecommerce insights.
           </p>
         </div>
