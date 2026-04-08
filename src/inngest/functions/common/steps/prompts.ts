@@ -1,6 +1,9 @@
+import { VideoType } from "@/utils/enum";
 import { GeminiService } from "@/lib/gemini/generator";
 import type { Schema, VisualShot, VisualBroll } from "@/lib/schema-generator/types";
-import { VideoType } from "@/utils/enum";
+import * as productPrompts from "../../product/prompts";
+import * as narrativePrompts from "../../narrative/prompts";
+import { buildVideoGenerationSchemaContext, buildVideoGenerationPrompt } from "@/lib/prompts";
 
 export const generateStandardPrompts = async (
   scheme: any,
@@ -18,21 +21,46 @@ export const generateStandardPrompts = async (
   if (isProductVideo) {
     if (scheme?.visuals?.type === VideoType.AI_IMAGES) {
       let schemaPrompts, price;
+
+      const segmentsText = (generatedSchema.segments || [])
+        .map((s: any, i: number) => `Segment ${i + 1} (ID: ${s.id}): ${s.text}`)
+        .join("\n");
+
       if (scheme.assets?.length) {
+        const pacingInstruction = productPrompts.getProductImagePacingInstruction();
+        const schemaContext = buildVideoGenerationSchemaContext(
+          segmentsText,
+          pacingInstruction,
+          generatedSchema.topic?.name,
+          generatedSchema.description,
+        );
+        const prompt = productPrompts.buildProductImagePrompt(
+          productPrompts.buildProductContextBlock(scheme.product?.name, scheme.product?.description),
+          schemaContext,
+          productPrompts.SCHEMA_OUTPUT_INSTRUCTIONS,
+          scheme.visuals.style,
+        );
+
         const res = await gemini.generateProductImagePrompts(
           scheme.assets.map((a: any) => a.url),
-          scheme.product?.name,
-          scheme.product?.description,
+          prompt,
           generatedSchema as Schema,
-          scheme.pacing,
-          scheme.visuals.style,
         );
         schemaPrompts = res.prompts;
         price = res.price;
       } else {
-        const res = await gemini.generateStandardImagePrompts(
-          generatedSchema as Schema,
+        const pacingInstruction = narrativePrompts.getNarrativeImagePacingInstruction();
+        const prompt = narrativePrompts.buildNarrativeImagePrompt(
+          segmentsText,
+          pacingInstruction,
+          generatedSchema.topic?.name,
+          generatedSchema.description,
           scheme.visuals.style,
+        );
+
+        const res = await gemini.generateStandardImagePrompts(
+          prompt,
+          generatedSchema as Schema,
         );
         schemaPrompts = res.prompts;
         price = res.price;
@@ -41,20 +69,47 @@ export const generateStandardPrompts = async (
       generatedPrompts = schemaPrompts as any;
     } else if (scheme?.visuals?.type === VideoType.AI_VIDEOS) {
       let videoPrompts, price;
+
+      const segmentsText = (generatedSchema.segments || [])
+        .map((s: any, i: number) => `Segment ${i + 1} (ID: ${s.id}): ${s.text}`)
+        .join("\n");
+
       if (scheme.assets?.length) {
-        const res = await gemini.generateProductVideoPrompts(
-          scheme.assets.map((a: any) => a.url),
+        const pacingInstruction = productPrompts.getProductVideoPacingInstruction();
+        const schemaContext = productPrompts.buildProductVideoSchemaContext(
+          segmentsText,
+          pacingInstruction,
           scheme.product?.name,
           scheme.product?.description,
-          generatedSchema as Schema,
           scheme.visuals.style,
+        );
+        const prompt = buildVideoGenerationPrompt(
+          productPrompts.buildProductContextBlock(scheme.product?.name, scheme.product?.description),
+          schemaContext,
+          "",
+          scheme.visuals.style,
+        );
+
+        const res = await gemini.generateProductVideoPrompts(
+          scheme.assets.map((a: any) => a.url),
+          prompt,
+          generatedSchema as Schema,
         );
         videoPrompts = res.prompts;
         price = res.price;
       } else {
-        const res = await gemini.generateStandardVideoPrompts(
-          generatedSchema as Schema,
+        const pacingInstruction = narrativePrompts.getNarrativeVideoPacingInstruction();
+        const prompt = narrativePrompts.buildNarrativeVideoPrompt(
+          segmentsText,
+          pacingInstruction,
+          generatedSchema.topic?.name,
+          generatedSchema.description,
           scheme.visuals.style,
+        );
+
+        const res = await gemini.generateStandardVideoPrompts(
+          prompt,
+          generatedSchema as Schema,
         );
         videoPrompts = res.prompts;
         price = res.price;
@@ -67,16 +122,40 @@ export const generateStandardPrompts = async (
   } else {
     // Standard video
     if (scheme?.visuals?.type === VideoType.AI_IMAGES) {
-      const { prompts: schemaPrompts, price } = await gemini.generateStandardImagePrompts(
-        generatedSchema as Schema,
+      const segmentsText = (generatedSchema.segments || [])
+        .map((s: any, i: number) => `Segment ${i + 1} (ID: ${s.id}): ${s.text}`)
+        .join("\n");
+      const pacingInstruction = narrativePrompts.getNarrativeImagePacingInstruction();
+      const prompt = narrativePrompts.buildNarrativeImagePrompt(
+        segmentsText,
+        pacingInstruction,
+        generatedSchema.topic?.name,
+        generatedSchema.description,
         scheme.visuals.style,
+      );
+
+      const { prompts: schemaPrompts, price } = await gemini.generateStandardImagePrompts(
+        prompt,
+        generatedSchema as Schema,
       );
       prePrice = price;
       generatedPrompts = schemaPrompts as any;
     } else if (scheme?.visuals?.type === VideoType.AI_VIDEOS) {
-      const { prompts: videoPrompts, price } = await gemini.generateStandardVideoPrompts(
-        generatedSchema as Schema,
+      const segmentsText = (generatedSchema.segments || [])
+        .map((s: any, i: number) => `Segment ${i + 1} (ID: ${s.id}): ${s.text}`)
+        .join("\n");
+      const pacingInstruction = narrativePrompts.getNarrativeVideoPacingInstruction();
+      const prompt = narrativePrompts.buildNarrativeVideoPrompt(
+        segmentsText,
+        pacingInstruction,
+        generatedSchema.topic?.name,
+        generatedSchema.description,
         scheme.visuals.style,
+      );
+
+      const { prompts: videoPrompts, price } = await gemini.generateStandardVideoPrompts(
+        prompt,
+        generatedSchema as Schema,
       );
       prePrice = price;
       generatedPrompts = videoPrompts as any;
@@ -99,16 +178,33 @@ export const generateStandardBRolls = async (
     scheme.avatar?.url &&
     (scheme?.visuals?.type === VideoType.AI_IMAGES || scheme?.visuals?.type === VideoType.AI_VIDEOS)
   ) {
-    const bRollsPrompts = await gemini.generateProductAdBrolls(
-      generatedSchema as Schema,
-      generatedPrompts.map((p: any) => ({
-        segmentId: p.segmentId,
-        shots: p.shots,
-      })),
-      scheme.avatar!.url,
+    const segmentsTextForBrolls = (generatedSchema.segments || [])
+      .map((s: any, i: number) => {
+        let text = `Segment ${i + 1} (ID: ${s.id}):\nText: ${s.text}\n`;
+        const segmentShots = generatedPrompts.find((gs: any) => gs.segmentId === s.id)?.shots || [];
+        if (segmentShots.length > 0) {
+          text += `Planned Shots for this segment (Narrator should usually YIELD to these if they are product-focused):\n`;
+          segmentShots.forEach((shot: any, idx: number) => {
+            text += `  - Shot ${idx + 1} (type: ${shot.type})\n`;
+          });
+        }
+        return text;
+      })
+      .join("\n\n");
+
+    const brollPrompt = productPrompts.buildProductAdBrollInteractionPrompt(
+      segmentsTextForBrolls,
+      generatedSchema.topic?.name,
+      generatedSchema.description,
       scheme.product?.name,
       scheme.product?.description,
       scheme.visuals.style,
+    );
+
+    const bRollsPrompts = await gemini.generateProductAdBrolls(
+      generatedSchema as Schema,
+      brollPrompt,
+      scheme.avatar!.url,
     );
 
     if (bRollsPrompts && bRollsPrompts.length > 0) {

@@ -1,5 +1,8 @@
 import type { Schema } from "@/lib/schema-generator/types";
 
+export const SCHEMA_OUTPUT_INSTRUCTIONS = `Return a JSON array of objects with "segmentId" and "shots" (array) keys.
+"shots" contains objects with "type", "words", "firstFramePrompt", "videoPrompt", and "scenePrompt".`;
+
 const BASE_SYSTEM_INSTRUCTIONS = `You are a professional video editor and script analyst. You will be provided with a video script, containing scenes with narration text and visual descriptions.
 
 Your task is to ENHANCE this script into a coherent video schema. 
@@ -168,4 +171,59 @@ export function buildVideoSchemaUserPrompt(input: Schema): string {
     default:
       return buildGenericUserPrompt(input);
   }
+}
+
+export function buildVideoSchemaContext(
+  segmentsText: string,
+  pacingInstruction: string,
+  topicName?: string,
+  topicDescription?: string,
+): string {
+  return `**VIDEO SCHEMA CONTEXT:**
+The subject will be featured in a video with the following segments and narration script:
+${segmentsText}
+
+**TOPIC CONTEXT:**
+- Video Topic: ${topicName || "Not provided"}
+- Video Description: ${topicDescription || "Not provided"}
+
+**CRITICAL TAILORED INSTRUCTION (SEGMENT ANALYSIS):**
+For EACH segment listed above, you MUST perform a word-by-word analysis. 
+Your goal is to provide a nested sequence of visual shots that cover the ENTIRE narration text.
+
+1. **GROUP BY SEGMENT**: You MUST return an array of objects, one for each segment ID.
+2. **EXHAUSTIVE COVERAGE**: Within each segment, every single word MUST be assigned to exactly one shot. 
+3. **VERBATIM RECONSTRUCTION**: If you join the "words" of all shots in a segment, it MUST exactly match the original narration.
+4. **EXACT ID MATCHING**: You MUST return the \`segmentId\` for each segment EXACTLY as provided.
+5. **NO TEXT OR LABELS**: Visual prompts MUST NEVER contain or mention text, letters, numbers, or typography.
+6. **DENSITY**: ${pacingInstruction}
+
+**SHOT STRUCTURE:**
+Each shot must contain:
+- **type**: logical category (lifestyle, generic, etc.)
+- **firstFramePrompt**: detailed description of the starting frame.
+- **videoPrompt**: description of action or movement.
+- **scenePrompt**: general environment and aesthetic.
+- **words**: portion of the narration text.`;
+}
+
+export function buildVideoPrompt(
+  contextBlock: string,
+  schemaContext: string,
+  outputInstructions: string,
+  styleDna?: string,
+): string {
+  const styleContext = styleDna
+    ? `**VISUAL STYLE DNA (APPLY TO ALL PROMPTS):**\n${styleDna}\nYour descriptions MUST reflect this aesthetic.`
+    : "";
+
+  return `You are a Professional Video Director. Use the following context and rules:
+
+${styleContext}
+
+${contextBlock}
+
+${schemaContext}
+
+${outputInstructions}`;
 }

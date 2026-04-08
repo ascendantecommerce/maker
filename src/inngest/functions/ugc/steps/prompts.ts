@@ -1,5 +1,6 @@
 import { UgcServices } from "../services";
 import * as ugcServices from "../services/prompts";
+import { buildUgcUnifiedPrompt } from "../prompts";
 
 export const generateUgcShots = async (
   scheme: any,
@@ -31,12 +32,29 @@ export const generateUgcUnifiedPrompts = async (
   step: any,
 ) => {
   return step.run("generate-ugc-unified-prompts-service", async () => {
-    return services.gemini.generateUGCUnifiedPrompts(
-      scheme,
-      scheme.assets || [],
-      scheme.avatar?.url,
+    const segmentsText = (scheme.segments || [])
+      .map((s: any, i: number) => `Segment ${i + 1} (ID: ${s.id}): ${s.text}`)
+      .join("\n");
+
+    const assetLabels = (scheme.assets || [])
+      .map((a: any, i: number) => `Image ${i + 1} Label: ${a.label || "n/a"}`)
+      .join("\n");
+
+    const prompt = buildUgcUnifiedPrompt(
+      segmentsText,
+      scheme.topic?.name,
+      scheme.topic?.description,
       scheme.product?.name,
       scheme.product?.description,
+      scheme.visuals?.style,
+      assetLabels,
+    );
+
+    return services.gemini.generateUGCUnifiedPrompts(
+      scheme,
+      prompt,
+      scheme.assets || [],
+      scheme.avatar?.url,
     );
   });
 };

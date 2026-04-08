@@ -9,25 +9,9 @@ import { calculateGeminiCost } from "@/inngest/utils/pricing";
 import { PriceItem } from "@/inngest/utils/types";
 import {
   VIDEO_ANALYSIS_PROMPT,
-  buildVideoSchemaContext,
-  buildStandardSchemaPrompt,
-  buildStandardVideoPrompt,
-  buildVideoPrompt,
   AUDIO_RATING_PROMPT,
   VIDEO_SFX_ANALYSIS_PROMPT,
-  getStandardImagePacingInstruction,
-  getStandardVideoPacingInstruction,
-  buildProductContextBlock,
-  buildProductImagePrompt,
-  getProductImagePacingInstruction,
   SCHEMA_OUTPUT_INSTRUCTIONS,
-  buildProductVideoSchemaContext,
-  getProductVideoPacingInstruction,
-  buildProductAdBrollInteractionPrompt,
-  buildUgcShotPrompt,
-  buildUgcBrollPrompt,
-  buildUgcUnifiedPrompt,
-  buildFakeUgcUnifiedPrompt,
 } from "../prompts";
 import { 
   ASSISTANT_SCRIPT_SYSTEM_PROMPT, 
@@ -277,11 +261,8 @@ Apply these rules for the Character-Driven Ad blocks:
 
   async generateProductImagePrompts(
     imageUrls: string[],
-    productName?: string,
-    productDescription?: string,
+    prompt: string,
     schema?: Schema,
-    pacing?: string,
-    styleDna?: string,
   ): Promise<{ prompts: VisualPrompt[]; price: PriceItem }> {
     try {
       const imagesData = await Promise.all(
@@ -294,31 +275,6 @@ Apply these rules for the Character-Driven Ad blocks:
         }),
       );
 
-      if (!schema?.segments?.length) {
-        throw new Error("Schema with segments is required");
-      }
-
-      const contextBlock = buildProductContextBlock(productName, productDescription);
-
-      const segmentsText = schema.segments
-        .map((s, i) => `Segment ${i + 1} (ID: ${s.id}): ${s.text}`)
-        .join("\n");
-
-      const pacingInstruction = getProductImagePacingInstruction(pacing);
-
-      const schemaContext = buildVideoSchemaContext(
-        segmentsText,
-        pacingInstruction,
-        schema.topic?.name,
-        schema.description,
-      );
-
-      const prompt = buildProductImagePrompt(
-        contextBlock,
-        schemaContext,
-        SCHEMA_OUTPUT_INSTRUCTIONS,
-        styleDna,
-      );
 
       const response = await this.gemini.models.generateContent({
         model: this.model,
@@ -347,11 +303,8 @@ Apply these rules for the Character-Driven Ad blocks:
 
   async generateProductAdBrolls(
     schema: Schema,
-    generatedShots: { segmentId: string; shots: VisualShot[] }[],
+    prompt: string,
     avatarUrl?: string,
-    productName?: string,
-    productDescription?: string,
-    styleDna?: string,
   ): Promise<
     {
       segmentId: string;
@@ -369,20 +322,6 @@ Apply these rules for the Character-Driven Ad blocks:
         throw new Error("Schema with segments is required");
       }
 
-      const segmentsText = schema.segments
-        .map((s, i) => {
-          let text = `Segment ${i + 1} (ID: ${s.id}):\nText: ${s.text}\n`;
-          const segmentShots = generatedShots.find((gs) => gs.segmentId === s.id)?.shots || [];
-          if (segmentShots.length > 0) {
-            text += `Planned Shots for this segment (Narrator should usually YIELD to these if they are product-focused):\n`;
-            segmentShots.forEach((shot, idx) => {
-              text += `  - Shot ${idx + 1} (type: ${shot.type})\n`;
-            });
-          }
-          return text;
-        })
-        .join("\n\n");
-
       let mediaData: any[] = [];
 
       // Add avatar image for consistency
@@ -398,14 +337,6 @@ Apply these rules for the Character-Driven Ad blocks:
         }
       }
 
-      const prompt = buildProductAdBrollInteractionPrompt(
-        segmentsText,
-        schema.topic?.name,
-        schema.description,
-        productName,
-        productDescription,
-        styleDna,
-      );
       const response = await this.gemini.models.generateContent({
         model: this.model,
         contents: [{ text: prompt }, ...mediaData],
@@ -437,20 +368,14 @@ Apply these rules for the Character-Driven Ad blocks:
 
   async generateUGCPrompts(
     schema: Schema,
+    prompt: string,
     assets: { url: string; label?: string }[] = [],
     avatarUrl?: string,
-    productName?: string,
-    productDescription?: string,
-    styleDna?: string,
   ): Promise<{ prompts: VisualPrompt[]; price: PriceItem }> {
     try {
       if (!schema || !schema.segments || schema.segments.length === 0) {
         throw new Error("Schema with segments is required");
       }
-
-      const segmentsText = schema.segments
-        .map((s, i) => `Segment ${i + 1} (ID: ${s.id}): ${s.text}`)
-        .join("\n");
 
       let mediaData: any[] = [];
 
@@ -481,20 +406,6 @@ Apply these rules for the Character-Driven Ad blocks:
         }
       }
 
-      const assetLabels = assets
-        .map((a, i) => `Image ${i + 1} Label: ${a.label || "n/a"}`)
-        .join("\n");
-
-      const prompt = buildUgcShotPrompt(
-        segmentsText,
-        schema.topic?.name,
-        schema.description,
-        productName,
-        productDescription,
-        styleDna,
-        assetLabels,
-      );
-
       const contents = [{ text: prompt }, ...mediaData];
 
       const response = await this.gemini.models.generateContent({
@@ -524,31 +435,14 @@ Apply these rules for the Character-Driven Ad blocks:
 
   async generateUGCBrolls(
     schema: Schema,
+    prompt: string,
     assets: { url: string; label?: string }[],
-    generatedShots: { segmentId: string; shots: VisualShot[] }[],
     avatarUrl?: string,
-    productName?: string,
-    productDescription?: string,
-    styleDna?: string,
   ): Promise<{ segmentId: string; bRolls: VisualBroll[] }[]> {
     try {
       if (!schema || !schema.segments || schema.segments.length === 0) {
         throw new Error("Schema with segments is required");
       }
-
-      const segmentsText = schema.segments
-        .map((s, i) => {
-          let text = `Segment ${i + 1} (ID: ${s.id}):\nText: ${s.text}\n`;
-          const segmentShots = generatedShots.find((gs) => gs.segmentId === s.id)?.shots || [];
-          if (segmentShots.length > 0) {
-            text += `A-Roll (Avatar) Shots for this segment:\n`;
-            segmentShots.forEach((shot, idx) => {
-              text += `  - Shot ${idx + 1} (type: ${shot.type}): ${shot.videoPrompt}\n`;
-            });
-          }
-          return text;
-        })
-        .join("\n\n");
 
       let mediaData: any[] = [];
       if (assets.length > 0) {
@@ -575,20 +469,6 @@ Apply these rules for the Character-Driven Ad blocks:
           console.error("Failed to include avatar image in bRoll prompt generation:", e);
         }
       }
-
-      const assetLabels = assets
-        .map((a, i) => `Image ${i + 1} Label: ${a.label || "n/a"}`)
-        .join("\n");
-
-      const prompt = buildUgcBrollPrompt(
-        segmentsText,
-        schema.topic?.name,
-        schema.description,
-        productName,
-        productDescription,
-        styleDna,
-        assetLabels,
-      );
 
       const contents = [{ text: prompt }, ...mediaData];
 
@@ -623,11 +503,9 @@ Apply these rules for the Character-Driven Ad blocks:
 
   async generateUGCUnifiedPrompts(
     schema: Schema,
+    prompt: string,
     assets: { url: string; label?: string }[] = [],
     avatarUrl?: string,
-    productName?: string,
-    productDescription?: string,
-    styleDna?: string,
   ): Promise<{
     prompts: {
       segmentId: string;
@@ -640,10 +518,6 @@ Apply these rules for the Character-Driven Ad blocks:
       if (!schema || !schema.segments || schema.segments.length === 0) {
         throw new Error("Schema with segments is required");
       }
-
-      const segmentsText = schema.segments
-        .map((s, i) => `Segment ${i + 1} (ID: ${s.id}): ${s.text}`)
-        .join("\n");
 
       let mediaData: any[] = [];
 
@@ -673,20 +547,6 @@ Apply these rules for the Character-Driven Ad blocks:
           console.error("Failed to include avatar image in unified prompt generation:", e);
         }
       }
-
-      const assetLabels = assets
-        .map((a, i) => `Image ${i + 1} Label: ${a.label || "n/a"}`)
-        .join("\n");
-
-      const prompt = buildUgcUnifiedPrompt(
-        segmentsText,
-        schema.topic?.name,
-        schema.description,
-        productName,
-        productDescription,
-        styleDna,
-        assetLabels,
-      );
 
       const contents = [{ text: prompt }, ...mediaData];
 
@@ -796,27 +656,10 @@ Apply these rules for the Character-Driven Ad blocks:
    * without product context. Focuses on thematic B-roll and conceptual imagery.
    */
   async generateStandardImagePrompts(
-    schema: Schema,
-    styleDna?: string,
+    prompt: string,
+    schema?: Schema,
   ): Promise<{ prompts: VisualPrompt[]; price: PriceItem }> {
     try {
-      if (!schema || !schema.segments || schema.segments.length === 0) {
-        throw new Error("Schema with segments is required");
-      }
-
-      const segmentsText = schema.segments
-        .map((s, i) => `Segment ${i + 1} (ID: ${s.id}): ${s.text}`)
-        .join("\n");
-
-      const pacingInstruction = getStandardImagePacingInstruction(schema.pacing);
-
-      const prompt = buildStandardSchemaPrompt(
-        segmentsText,
-        pacingInstruction,
-        schema.topic?.name,
-        schema.description,
-        styleDna,
-      );
       console.log("prompt", prompt);
 
       const response = await this.gemini.models.generateContent({
@@ -849,27 +692,10 @@ Apply these rules for the Character-Driven Ad blocks:
    * Returns prompts for: firstFrame, video, image.
    */
   async generateStandardVideoPrompts(
-    schema: Schema,
-    styleDna?: string,
+    prompt: string,
+    schema?: Schema,
   ): Promise<{ prompts: VisualPrompt[]; price: PriceItem }> {
     try {
-      if (!schema || !schema.segments || schema.segments.length === 0) {
-        throw new Error("Schema with segments is required");
-      }
-
-      const segmentsText = schema.segments
-        .map((s, i) => `Segment ${i + 1} (ID: ${s.id}): ${s.text}`)
-        .join("\n");
-
-      const pacingInstruction = getStandardVideoPacingInstruction(schema.pacing);
-
-      const prompt = buildStandardVideoPrompt(
-        segmentsText,
-        pacingInstruction,
-        schema.topic?.name,
-        schema.description,
-        styleDna,
-      );
 
       const response = await this.gemini.models.generateContent({
         model: this.model,
@@ -902,10 +728,8 @@ Apply these rules for the Character-Driven Ad blocks:
    */
   async generateProductVideoPrompts(
     imageUrls: string[],
-    productName?: string,
-    productDescription?: string,
+    prompt: string,
     schema?: Schema,
-    styleDna?: string,
   ): Promise<{ prompts: VisualPrompt[]; price: PriceItem }> {
     console.log("generateVideoPrompts");
     try {
@@ -919,27 +743,6 @@ Apply these rules for the Character-Driven Ad blocks:
         }),
       );
 
-      if (!schema?.segments?.length) {
-        throw new Error("Schema with segments is required");
-      }
-
-      const contextBlock = buildProductContextBlock(productName, productDescription);
-
-      const segmentsText = schema.segments
-        .map((s, i) => `Segment ${i + 1} (ID: ${s.id}): ${s.text}`)
-        .join("\n");
-
-      const pacingInstruction = getProductVideoPacingInstruction(schema.pacing);
-
-      const schemaContext = buildProductVideoSchemaContext(
-        segmentsText,
-        pacingInstruction,
-        productName,
-        productDescription,
-        styleDna,
-      );
-
-      const prompt = buildVideoPrompt(contextBlock, schemaContext, "", styleDna);
 
       const response = await this.gemini.models.generateContent({
         model: this.model,

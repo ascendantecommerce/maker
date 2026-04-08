@@ -34,11 +34,11 @@ const DEFAULT_TITLE = "Character-Driven Ad";
 /** Appended to firstFramePrompt to prevent AI image layout artifacts */
 const SINGLE_FRAME_SUFFIX = "single cinematic frame, NO TEXT, no letters, no words, no labels, no split screen, no panels, no collage, no before-and-after, no multiple views, no text overlays, no watermarks, no borders";
 
-const DEFAULT_HERO_VISUAL = "Cute 3D character, highly expressive facial features, premium realistic PBR materials (matte plastic, smooth vinyl, or soft felt depending on the object), ultra-clean, brightly lit, high-end Pixar animation style";
-const DEFAULT_VILLAIN_VISUAL = "Mischievous 3D character or anthropomorphized object representing the problem, highly expressive facial features, premium solid materials, high-end Pixar animation style";
-const DEFAULT_HUMAN_VISUAL = "blurred cinematic human subject in background, reacting with emotional frustration or stress, out of focus (bokeh)";
-const DEFAULT_SCENE_VISUAL = "Clean, bright, modern premium Pixar 3D interior, cinematic lighting, volumetric light rays, glossy reflections";
-const DEFAULT_MOTION_VISUAL = "Energetic, expressive, and playful 3D character animation, highly dynamic movements reacting to the product";
+const DEFAULT_HERO_VISUAL = (style: string) => `Cute character, highly expressive facial features, premium realistic materials, ultra-clean, brightly lit, ${style}`;
+const DEFAULT_VILLAIN_VISUAL = (style: string) => `Mischievous character or anthropomorphized object representing the problem, highly expressive facial features, premium solid materials, ${style}`;
+const DEFAULT_HUMAN_VISUAL = (style: string) => `blurred cinematic human subject in background, reacting with emotional frustration or stress, out of focus (bokeh), ${style}`;
+const DEFAULT_SCENE_VISUAL = (style: string) => `Clean, bright, modern premium interior, cinematic lighting, volumetric light rays, glossy reflections, ${style}`;
+const DEFAULT_MOTION_VISUAL = "Energetic, expressive, and playful character animation, highly dynamic movements reacting to the product";
 
 const calculateEstimatedDuration = (text: string): number => {
   if (!text) return 4;
@@ -112,15 +112,16 @@ function buildMappedSegment(
 
   // Stage 1: firstFramePrompt (Persona + Ambient)
   const isContentShot = interaction.includes("product_content");
-  const visualQuality = "cinematic lighting, ultra-detailed textures, Pixar style";
+  const visualQuality = `cinematic lighting, ultra-detailed textures, ${globalStyle}`;
   const packagingAccuracy = "The product packaging in the scene must be reproduced with exact colors, exact branding text, and exact label details from the reference image — do not stylize, recolor, or alter the product packaging in any way, photorealistic product, faithful brand reproduction";
   const contentAccuracy = "Focus heavily on the texture, material, and visual characteristics of the internal product content (the substance) as shown in the reference images — maintain high visual fidelity to its shape and appearance.";
   const productAccuracy = isContentShot ? contentAccuracy : packagingAccuracy;
+  const sceneVisual = data.sceneDescription || DEFAULT_SCENE_VISUAL(globalStyle);
 
   const firstFramePrompt = [
     globalStyle,
     characterVisual,
-    data.sceneDescription || DEFAULT_SCENE_VISUAL,
+    sceneVisual,
     visualQuality,
     isProductShot ? productAccuracy : "",
     SINGLE_FRAME_SUFFIX,
@@ -130,7 +131,7 @@ function buildMappedSegment(
   const finalVideoPrompt = [
     promptPrefix,
     characterVisual,
-    data.sceneDescription || DEFAULT_SCENE_VISUAL,
+    sceneVisual,
     data.videoDescription || DEFAULT_MOTION_VISUAL,
     "the character has NO TEXT, NO LETTERS, AND NO WORDS on them.",
     SINGLE_FRAME_SUFFIX,
@@ -145,7 +146,7 @@ function buildMappedSegment(
     character: { ...character, emotion: data.emotion },
     emotion: data.emotion,
     tags: [character.name, character.role, data.emotion || ""],
-    prompt_preview: `${promptPrefix}, ${character.visualDescription} in ${data.sceneDescription || DEFAULT_SCENE_VISUAL}`,
+    prompt_preview: `${promptPrefix}, ${character.visualDescription} in ${sceneVisual}`,
     shots: [
       {
         type: isProductShot ? "product" : "generic",
@@ -200,10 +201,10 @@ export function mapInputToSchema(input: GenerateCharacterVideoInput): VideoSchem
       if (!characterMap.has(name)) {
         let finalVisualDescription = visualDescription;
         if (!finalVisualDescription) {
-          if (role === "hero") finalVisualDescription = DEFAULT_HERO_VISUAL;
-          else if (role === "villain") finalVisualDescription = DEFAULT_VILLAIN_VISUAL;
-          else if (role === "human") finalVisualDescription = DEFAULT_HUMAN_VISUAL;
-          else finalVisualDescription = DEFAULT_SCENE_VISUAL;
+          if (role === "hero") finalVisualDescription = DEFAULT_HERO_VISUAL(globalStyle);
+          else if (role === "villain") finalVisualDescription = DEFAULT_VILLAIN_VISUAL(globalStyle);
+          else if (role === "human") finalVisualDescription = DEFAULT_HUMAN_VISUAL(globalStyle);
+          else finalVisualDescription = DEFAULT_SCENE_VISUAL(globalStyle);
         }
         characterMap.set(name, {
           id: `char-${nanoid(4)}`,
@@ -221,10 +222,10 @@ export function mapInputToSchema(input: GenerateCharacterVideoInput): VideoSchem
       if (!characterMap.has(block.characterName)) {
         let visualDescription = block.characterDescription;
         if (!visualDescription) {
-          if (block.characterRole === "hero") visualDescription = DEFAULT_HERO_VISUAL;
-          else if (block.characterRole === "villain") visualDescription = DEFAULT_VILLAIN_VISUAL;
-          else if (block.characterRole === "human") visualDescription = DEFAULT_HUMAN_VISUAL;
-          else visualDescription = DEFAULT_SCENE_VISUAL;
+          if (block.characterRole === "hero") visualDescription = DEFAULT_HERO_VISUAL(globalStyle);
+          else if (block.characterRole === "villain") visualDescription = DEFAULT_VILLAIN_VISUAL(globalStyle);
+          else if (block.characterRole === "human") visualDescription = DEFAULT_HUMAN_VISUAL(globalStyle);
+          else visualDescription = DEFAULT_SCENE_VISUAL(globalStyle);
         }
         characterMap.set(block.characterName, {
           id: `char-${nanoid(4)}`,

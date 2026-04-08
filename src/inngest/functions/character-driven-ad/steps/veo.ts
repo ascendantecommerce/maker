@@ -7,7 +7,7 @@ import { db } from "@/lib/database";
 import { fileUrlToBuffer } from "../../common/utils/common";
 import { generateId } from "@/utils/id";
 import { getVideoDuration } from "../../../services/ffmpeg";
-import { buildCharacterAdNegativePrompt } from "@/lib/prompts";
+import { buildCharacterAdNegativePrompt } from "../prompts";
 
 /**
  * Stage 2: Generate natively lip-synced video clips from Veo 3.1 Fast.

@@ -4,7 +4,7 @@ import { ResolverStatus } from "@/utils/enum";
 import { getInngestApp } from "../../index";
 import { workflowChannel } from "../../utils/common";
 import { ToastType } from "../../utils/types";
-import { CHARACTER_AD_SYSTEM_PROMPT, CHARACTER_AD_SCRIPT_OUTPUT_SCHEMA } from "@/lib/prompts/assistant-script";
+import { getCharacterAdSystemPrompt, CHARACTER_AD_SCRIPT_OUTPUT_SCHEMA, buildCharacterAdNegativePrompt } from "./prompts";
 
 const inngest = getInngestApp();
 
@@ -59,16 +59,12 @@ CRITICAL LIPSYNC & BRANDING RULES:
 3. NO TEXT: Do not describe any text, letters, words, logos, or labels on the character itself.
 
 OUTPUT FORMAT — SEGMENTS WITH CHARACTER:
-- Output \`segments\` (NOT \`blocks\`). Each segment represents one scene.
+- Output \`segments\` (NOT \`blocks\`). Each scene represents one segment.
 - DIALOGUE PATTERN: EVERY segment's dialogue MUST start with: "Hi, I’m [Character Name]." or "Hi, I’m a [Character Name]..."
 - Each segment MUST have a \`character\` object with: name, role, visualDescription, voiceDescription.
-- \`character.visualDescription\` MUST be a LITERAL physical description of the 3D object/mascot (e.g., "A smug anthropomorphic brown plastic self-tanner bottle with arms, legs, and a mischievous Pixar face"). NEVER use metaphorical descriptions.
+- \`character.visualDescription\` MUST be a LITERAL physical description of the 3D object/mascot. NEVER use metaphorical descriptions.
 - Characters with the same name share the same visual — re-use the same \`name\` for recurring characters.
-- \`sceneDescription\` MUST always be a cleanly lit, premium, modern Pixar 3D interior. NEVER dark, gloomy, or abstract.`;
-
-      const styleInstruction = visualStyle 
-        ? `\n\nUSER SELECTED VISUAL STYLE: "${visualStyle}"\nCRITICAL MANDATE: Ensure ALL character.visualDescription and sceneDescription fields perfectly match this chosen aesthetic.${strictCharacterInstruction}`
-        : `\n\nCRITICAL MANDATE: Ensure ALL character.visualDescription and sceneDescription fields strictly follow a High-end 3D Pixar/Illumination animation style.${strictCharacterInstruction}`;
+- \`sceneDescription\` MUST always be a cleanly lit, premium, modern interior. NEVER dark, gloomy, or abstract.`;
 
       return await gemini.generateScriptAssistant({
         message,
@@ -76,7 +72,7 @@ OUTPUT FORMAT — SEGMENTS WITH CHARACTER:
         schema: previousSchema,
         productName,
         productDescription,
-        systemPrompt: CHARACTER_AD_SYSTEM_PROMPT + styleInstruction,
+        systemPrompt: getCharacterAdSystemPrompt(visualStyle) + `\n\n${strictCharacterInstruction}`,
         outputSchema: CHARACTER_AD_SCRIPT_OUTPUT_SCHEMA,
       });
     });

@@ -5,7 +5,7 @@
 //
 //   1. VIDEO ANALYSIS       → VIDEO_ANALYSIS_PROMPT
 //   2. AUDIO RATING         → AUDIO_RATING_PROMPT
-//   3. PRODUCT IMAGE SHOTS  → buildVideoSchemaContext / buildVideoPrompt
+//   3. PRODUCT IMAGE SHOTS  → buildVideoGenerationSchemaContext / buildVideoGenerationPrompt
 // ─────────────────────────────────────────────────────────────────────────────
 
 import {
@@ -13,7 +13,7 @@ import {
   PRODUCT_IMAGE_ANALYSIS_STEP,
   PRODUCT_SHOT_RULES,
   GENERIC_SHOT_RULES,
-} from "./product-image-prompts";
+} from "../../inngest/functions/product/prompts";
 
 export const VIDEO_SFX_ANALYSIS_PROMPT = `You are a cinematic sound designer. Analyze this video and identify key actions, movements, or transitions that should have a sound effect (SFX) to enhance the viewer's experience.
 
@@ -138,7 +138,7 @@ You MUST return a JSON array of Segment Objects.`;
 
 // ─── Schema Context Builder ────────────────────────────────────────────────────
 
-export function buildVideoSchemaContext(
+export function buildVideoGenerationSchemaContext(
   segmentsText: string,
   pacingInstruction: string,
   topicName?: string,
@@ -165,7 +165,7 @@ ${PRODUCT_IMAGE_SHOT_GUIDANCE}`;
 // ─── Final Prompt Wrapper ──────────────────────────────────────────────────────
 // Shared structure with buildProductImagePrompt — reuses the same imported pieces.
 
-export function buildVideoPrompt(
+export function buildVideoGenerationPrompt(
   contextBlock: string,
   schemaContext: string,
   outputInstructions: string,

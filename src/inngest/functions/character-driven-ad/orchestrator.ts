@@ -13,7 +13,7 @@ import { ResolverStatus } from "@/utils/enum";
 import { ToastType, VideoSchema } from "../../utils/types";
 import { workflowChannel } from "../../utils/common";
 import { GeminiService } from "@/lib/gemini/generator";
-import { CHARACTER_AD_PARSER_SYSTEM_PROMPT, CHARACTER_AD_SCRIPT_OUTPUT_SCHEMA } from "@/lib/prompts/assistant-script";
+import { getCharacterAdParserSystemPrompt, CHARACTER_AD_SCRIPT_OUTPUT_SCHEMA } from "./prompts";
 
 const inngest = getInngestApp();
 
@@ -45,11 +45,12 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
             if (!apiKey) throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set");
 
             const gemini = new GeminiService(apiKey, "gemini-2.5-flash-lite");
+            const systemPrompt = getCharacterAdParserSystemPrompt(scheme.visuals?.style);
             const result = await gemini.generateScriptAssistant({
               message: `Parse this script into structured segments: \n\n${scheme.script}`,
               productName: scheme.product?.name,
               productDescription: scheme.product?.description,
-              systemPrompt: CHARACTER_AD_PARSER_SYSTEM_PROMPT,
+              systemPrompt,
               outputSchema: CHARACTER_AD_SCRIPT_OUTPUT_SCHEMA,
             });
 
