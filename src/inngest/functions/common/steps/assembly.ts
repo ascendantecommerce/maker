@@ -45,8 +45,8 @@ export const assembleFinalVideo = async (
                 to: matchingTiming.display.to,
               }
             : {
-                from: totalDuration + (b.time || 0),
-                to: totalDuration + (b.time || 0) + (b.duration || 0),
+                from: (b.time || 0),
+                to: (b.time || 0) + (b.duration || 0),
               },
         };
       });
@@ -89,7 +89,7 @@ export const assembleFinalVideo = async (
                 return acc + c.duration + pause;
               }, 0);
 
-            from = totalDuration + previousClipsDuration;
+            from = previousClipsDuration;
             const clipStartPause = shotIdx === 0 ? clip.startPause || 0 : 0;
             to = from + (clip.duration + clipStartPause);
           }
@@ -121,14 +121,14 @@ export const assembleFinalVideo = async (
       // Add display info to textToSpeech/speechToText
       if (scheme.segments[i].textToSpeech) {
         scheme.segments[i].textToSpeech!.display = {
-          from: totalDuration + startPauseMs,
-          to: totalDuration + startPauseMs + originalAudioDuration,
+          from: startPauseMs,
+          to: startPauseMs + originalAudioDuration,
         };
       }
       if (scheme.segments[i].speechToText) {
         scheme.segments[i].speechToText!.display = {
-          from: totalDuration + startPauseMs,
-          to: totalDuration + startPauseMs + originalAudioDuration,
+          from: startPauseMs,
+          to: startPauseMs + originalAudioDuration,
         };
       }
 
