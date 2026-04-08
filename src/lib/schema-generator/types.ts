@@ -225,6 +225,7 @@ export interface Schema {
   characters?: CharacterConfig[];
   script?: string;
   blocks?: UserScriptBlock[];
+  scriptTone?: string;
   pacing?: "fast" | "slow" | "regular" | "dynamic" | "relaxed";
   // Additional configuration for generic video generation
   quality?: "regular" | "high";

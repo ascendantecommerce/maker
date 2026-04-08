@@ -16,6 +16,8 @@ interface VisualsConfigProps {
   onStyleChange: (style: string) => void;
   selectedStyleId: FrameStyle;
   onStyleIdChange: (styleId: FrameStyle) => void;
+  scriptTone: string;
+  onScriptToneChange: (tone: string) => void;
 }
 
 export function VisualsConfig({
@@ -25,6 +27,8 @@ export function VisualsConfig({
   onStyleChange,
   selectedStyleId,
   onStyleIdChange,
+  scriptTone,
+  onScriptToneChange,
 }: VisualsConfigProps) {
   const [localVisualType, setLocalVisualType] = useState<VideoType>(selectedVisualType);
   const [localStyleId, setLocalStyleId] = useState<FrameStyle>(
@@ -56,20 +60,19 @@ export function VisualsConfig({
 
   const handleStyleChange = useCallback(
     (style: string) => {
-      // Update local state immediately for instant UI feedback
-      // Convert string to FrameStyle enum value
       const frameStyle = style === "none" ? FrameStyle.Realism : (style as FrameStyle);
       setLocalStyleId(frameStyle);
 
-      // Get default description for the selected style
-      const defaultDescription = VIDEO_STYLES.find((s) => s.id === frameStyle)?.description || "";
+      const matched = VIDEO_STYLES.find((s) => s.id === frameStyle);
+      const defaultDescription = matched?.description || "";
+      const defaultTone = matched?.scriptTonePreset || "";
 
-      // Update parent state
       onStyleIdChange(frameStyle);
       onStyleChange(defaultDescription);
+      onScriptToneChange(defaultTone);
       setIsModalOpen(false);
     },
-    [onStyleIdChange, onStyleChange],
+    [onStyleIdChange, onStyleChange, onScriptToneChange],
   );
 
   return (
@@ -204,19 +207,36 @@ export function VisualsConfig({
         </div>
 
         {localStyleId && (
-          <div className="space-y-2.5 pt-2">
-            <div className="space-y-1 px-1">
-              <div className="text-sm font-medium text-foreground">Style Description</div>
-              <div className="text-xs text-muted-foreground">
-                Describe the visual style for better generation
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2.5">
+              <div className="space-y-1 px-1">
+                <div className="text-sm font-medium text-foreground">Style Description</div>
+                <div className="text-xs text-muted-foreground">
+                  Describe the visual style for better generation
+                </div>
               </div>
+              <Textarea
+                value={selectedStyle}
+                onChange={(e) => onStyleChange(e.target.value)}
+                placeholder="Describe the visual style..."
+                className="min-h-20 text-sm bg-background border-border focus-visible:ring-primary/20 transition-all resize-none rounded-md shadow-none font-medium"
+              />
             </div>
-            <Textarea
-              value={selectedStyle}
-              onChange={(e) => onStyleChange(e.target.value)}
-              placeholder="Describe the visual style..."
-              className="min-h-20 text-sm bg-background border-border focus-visible:ring-primary/20 transition-all resize-none rounded-md shadow-none font-medium"
-            />
+
+            <div className="space-y-2.5">
+              <div className="space-y-1 px-1">
+                <div className="text-sm font-medium text-foreground">Script Tone</div>
+                <div className="text-xs text-muted-foreground">
+                  Describe the narrative voice and dialogue style for the script writer
+                </div>
+              </div>
+              <Textarea
+                value={scriptTone}
+                onChange={(e) => onScriptToneChange(e.target.value)}
+                placeholder="e.g. Warm and playful, lean into comedic timing. Villains are lovably mischievous..."
+                className="min-h-24 text-sm bg-background border-border focus-visible:ring-primary/20 transition-all resize-none rounded-md shadow-none font-medium"
+              />
+            </div>
           </div>
         )}
       </div>

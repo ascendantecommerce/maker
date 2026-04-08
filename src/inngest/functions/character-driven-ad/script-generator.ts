@@ -20,7 +20,7 @@ export const generateCharacterAdScript = inngest.createFunction(
   { id: "character-ad-script-generator", concurrency: 5 },
   { event: "character-ad/script.request" },
   async ({ event, step, publish }) => {
-    const { message, imageUrls, schemaId, previousSchema, productName, productDescription, visualStyle } = event.data;
+    const { message, imageUrls, schemaId, previousSchema, productName, productDescription, visualStyle, scriptTone } = event.data;
     const channel = workflowChannel(schemaId);
 
     // 1. Initial Status Update
@@ -72,7 +72,7 @@ OUTPUT FORMAT — SEGMENTS WITH CHARACTER:
         schema: previousSchema,
         productName,
         productDescription,
-        systemPrompt: getCharacterAdSystemPrompt(visualStyle) + `\n\n${strictCharacterInstruction}`,
+        systemPrompt: getCharacterAdSystemPrompt(visualStyle, scriptTone) + `\n\n${strictCharacterInstruction}`,
         outputSchema: CHARACTER_AD_SCRIPT_OUTPUT_SCHEMA,
       });
     });
