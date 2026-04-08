@@ -5,6 +5,7 @@ import {
   generateCharacterSeedImages,
   generateSegmentVideo,
   refineCharacterClips,
+  generateCharacterSoundEffects,
 } from "./steps";
 import { mapInputToSchema } from "./utils/mapping";
 import { saveSchema } from "../common/steps";
@@ -219,16 +220,63 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
         };
       });
 
+      // 5. Stage 4: Generate Sound Effects
+      await step.run("publish-sfx-start-toast", async () => {
+        await publish({
+          channel,
+          topic: "steps",
+          data: {
+            type: ToastType.STEP_START,
+            step: "Generating Foley & SFX",
+            stepIndex: 4,
+            message: `Creating AI sound effects for ${refinedVideoResults.clips.length} videos...`,
+          },
+        });
+      });
+
+      const sfxResults = await step.run("generate-sound-effects", async () => {
+        const finalClips = await generateCharacterSoundEffects(
+          schemeId,
+          refinedVideoResults.clips,
+          services,
+          runToken,
+        );
+
+        return {
+          clips: finalClips,
+          successCount: finalClips.length,
+        };
+      });
+
       // Update scheme metadata with refined URLs
-      scheme.segments = scheme.segments.map((seg) => ({
-        ...seg,
-        shots: (seg.shots || []).map((shot) => {
-          const refined = refinedVideoResults.clips.find((c) => c.id === seg.id);
-          return refined
-            ? { ...shot, videoUrl: refined.url, effects: refined.effects }
-            : shot;
-        }),
-      }));
+      scheme.segments = scheme.segments.map((seg) => {
+        const finalClip = sfxResults.clips.find((c) => c.id === seg.id);
+        return {
+          ...seg,
+          ...(finalClip?.soundEffects ? { soundEffects: finalClip.soundEffects } : {}),
+          shots: (seg.shots || []).map((shot) => {
+            return finalClip
+              ? { ...shot, videoUrl: finalClip.url, effects: finalClip.effects }
+              : shot;
+          }),
+        };
+      });
+
+      // Synchronize the fully refined segments back into the segments database table
+      await step.run("sync-segments-table", async () => {
+        await Promise.all(
+          scheme.segments.map(async (segmentData) => {
+            await db
+              .updateTable("segments")
+              .set({
+                segment_data: segmentData,
+                updated_at: new Date(),
+              })
+              .where("id", "=", segmentData.id)
+              .execute();
+          })
+        );
+      });
 
       // 5. Final Status Update
       await step.run("mark-orchestration-complete", async () => {

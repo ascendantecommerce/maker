@@ -300,7 +300,7 @@ export class TtsService {
 
   async generateSfx(text: string, durationSeconds?: number): Promise<Buffer> {
     try {
-      const response = await fetch(`${this.baseUrl}/v1/sound-effects`, {
+      const response = await fetch(`${this.baseUrl}/v1/sound-generation`, {
         method: "POST",
         headers: {
           "xi-api-key": this.apiKey,

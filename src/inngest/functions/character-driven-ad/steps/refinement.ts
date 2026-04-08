@@ -15,6 +15,7 @@ interface Clip {
   id: string;
   url: string;
   effects?: { prompt: string; start: number; end: number }[];
+  soundEffects?: { start: number; url: string; duration?: number }[];
 }
 
 /**
@@ -37,10 +38,9 @@ export async function refineCharacterClips(
 
     const inputVideoPath = path.join(tempDir, `input-${clip.id}.mp4`);
     const inputAudioPath = path.join(tempDir, `input-${clip.id}.mp3`);
+    const paddedAudioPath = path.join(tempDir, `padded-${clip.id}.mp3`);
     const cleanAudioPath = path.join(tempDir, `clean-${clip.id}.mp3`);
-    const sfxAudioPaths: string[] = [];
     const outputVideoPath = path.join(tempDir, `output-${clip.id}.mp4`);
-    const finalVideoPath = path.join(tempDir, `final-${clip.id}.mp4`);
 
     try {
       // 1. Download original video
@@ -52,17 +52,46 @@ export async function refineCharacterClips(
       await new Promise<void>((resolve, reject) => {
         ffmpeg(inputVideoPath)
           .toFormat("mp3")
-          .on("error", (err) => reject(new Error(`Failed to extract audio: ${err.message}`)))
+          .on("error", (err) =>
+            reject(new Error(`Failed to extract audio: ${err.message}`)),
+          )
           .on("end", () => resolve())
           .save(inputAudioPath);
       });
 
-      // 3. Isolate audio using ElevenLabs
-      const audioBuffer = fs.readFileSync(inputAudioPath);
+      // 3. Check duration and pad if less than 5 seconds because isolateAudio requires >= 5s
+      let durationMs = 10000;
+      try {
+        durationMs = await new Promise<number>((resolve, reject) => {
+          ffmpeg.ffprobe(inputAudioPath, (err, metadata) => {
+            if (err) reject(err);
+            else resolve((metadata.format?.duration || 0) * 1000);
+          });
+        });
+      } catch (e) {
+        console.warn("[Refinement] ffprobe failed to get duration, proceeding without padding check");
+      }
+
+      let audioToIsolatePath = inputAudioPath;
+      
+      if (durationMs > 0 && durationMs < 5000) {
+        await new Promise<void>((resolve, reject) => {
+          ffmpeg(inputAudioPath)
+            .addOutputOption("-af", "apad,atrim=0:5") // Pad with silence up to 5s exactly
+            .toFormat("mp3")
+            .on("end", () => resolve())
+            .on("error", (err) => reject(new Error(`Failed to pad audio: ${err.message}`)))
+            .save(paddedAudioPath);
+        });
+        audioToIsolatePath = paddedAudioPath;
+      }
+
+      // 4. Isolate audio using ElevenLabs
+      const audioBuffer = fs.readFileSync(audioToIsolatePath);
       const cleanAudioBuffer = await services.tts.isolateAudio(audioBuffer);
       fs.writeFileSync(cleanAudioPath, cleanAudioBuffer);
 
-      // 4. Temporarily merge clean audio to analyze synced visuals
+      // 5. Merge clean audio to synced visuals
       await new Promise<void>((resolve, reject) => {
         ffmpeg()
           .input(inputVideoPath)
@@ -74,81 +103,25 @@ export async function refineCharacterClips(
             "-c:a aac",
             "-shortest",
           ])
-          .on("error", (err) => reject(new Error(`Failed to merge clean audio: ${err.message}`)))
+          .on("error", (err) =>
+            reject(new Error(`Failed to merge clean audio: ${err.message}`)),
+          )
           .on("end", () => resolve())
           .save(outputVideoPath);
       });
 
-      // 5. Analyze refined video for sound effects using Gemini 3.1 Flash
-      const refinedVideoBuffer = fs.readFileSync(outputVideoPath);
-      const { effects } = await services.gemini.analyzeVideoForSfx(refinedVideoBuffer, "video/mp4");
-
-      // 6. Generate Sound Effects using ElevenLabs
-      if (effects && effects.length > 0) {
-        await Promise.all(
-          effects.map(async (effect, index) => {
-            const durationMs = effect.end - effect.start;
-            const durationSeconds = Math.max(0.5, durationMs / 1000);
-            
-            const sfxBuffer = await services.tts.generateSfx(effect.prompt, durationSeconds);
-            const sfxPath = path.join(tempDir, `sfx-${clip.id}-${index}.mp3`);
-            fs.writeFileSync(sfxPath, sfxBuffer);
-            sfxAudioPaths.push(sfxPath);
-          })
-        );
-
-        // 7. Mix Clean Voice + All SFX back into video
-        await new Promise<void>((resolve, reject) => {
-          const command = ffmpeg().input(inputVideoPath).input(cleanAudioPath);
-          
-          // Add all SFX as inputs
-          sfxAudioPaths.forEach((path) => command.input(path));
-
-          // Build complex filter for mixing
-          const filterParts: string[] = [];
-          // Input 0: Original Video (ignore original audio)
-          // Input 1: Clean Voice
-          // Inputs 2 to N: SFX
-          
-          // Delay each SFX input
-          sfxAudioPaths.forEach((_, i) => {
-            const effect = effects[i];
-            const delay = effect.start; // in ms
-            // Index is i + 2 because 0 is video, 1 is clean voice
-            filterParts.push(`[${i + 2}:a]adelay=${delay}|${delay}[sfx${i}]`);
-          });
-
-          // Mix clean voice [1:a] with all delayed SFX [sfx0], [sfx1]...
-          const mixInputs = [`[1:a]`, ...sfxAudioPaths.map((_, i) => `[sfx${i}]`)];
-          filterParts.push(`${mixInputs.join("")}amix=inputs=${mixInputs.length}:dropout_transition=0[aout]`);
-
-          command
-            .complexFilter(filterParts)
-            .outputOptions([
-              "-map 0:v:0",   // Use original video
-              "-map [aout]",  // Use mixed audio
-              "-c:v copy",    // Fast copy video
-              "-c:a aac",     // Encode audio to AAC
-              "-shortest",    // Handle duration mismatches
-            ])
-            .on("error", (err) => reject(new Error(`Failed to mix SFX: ${err.message}`)))
-            .on("end", () => resolve())
-            .save(finalVideoPath);
-        });
-      } else {
-        // No SFX detected, just use the clean audio version
-        fs.renameSync(outputVideoPath, finalVideoPath);
-      }
-
-      // 8. Upload finalized video to R2
-      const finalVideoBuffer = fs.readFileSync(finalVideoPath);
+      // 6. Upload finalized video to R2 (no SFX included here)
+      const finalVideoBuffer = fs.readFileSync(outputVideoPath);
       const fileName = `character-ads/${schemeId}/final-${clip.id}-${runToken}.mp4`;
-      const finalUrl = await services.r2.uploadData(fileName, finalVideoBuffer, "video/mp4");
+      const finalUrl = await services.r2.uploadData(
+        fileName,
+        finalVideoBuffer,
+        "video/mp4",
+      );
 
       refinedClips.push({
-        id: clip.id,
+        ...clip,
         url: finalUrl,
-        effects,
       });
     } catch (error) {
       console.error(`[Refinement/SFX Error] Clip ${clip.id}:`, error);
@@ -157,7 +130,13 @@ export async function refineCharacterClips(
     } finally {
       // Cleanup temp files
       try {
-        [inputVideoPath, inputAudioPath, cleanAudioPath, outputVideoPath, finalVideoPath, ...sfxAudioPaths].forEach((p) => {
+        [
+          inputVideoPath,
+          inputAudioPath,
+          paddedAudioPath,
+          cleanAudioPath,
+          outputVideoPath,
+        ].forEach((p) => {
           if (fs.existsSync(p)) fs.unlinkSync(p);
         });
       } catch (cleanupErr) {

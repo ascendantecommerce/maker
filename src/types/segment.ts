@@ -97,7 +97,7 @@ export interface Segment {
   action?: string;
   isReframing?: boolean;
   isTranscribing?: boolean;
-  soundEffects?: { time: number; url: string }[];
+  soundEffects?: { start: number; url: string; duration?: number }[];
   bRolls?: VisualBroll[];
   assets?: SegmentAsset[]; // from Inngest utils
   status?: "trimming" | "reframing" | "transcribing" | "generating_sounds" | "editing" | "ready";

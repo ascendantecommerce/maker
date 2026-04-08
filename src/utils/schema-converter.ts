@@ -399,6 +399,7 @@ export const convertSchemaToDesign = async (
   const captionClipIds: string[] = [];
   const bRollClipIds: string[] = [];
   const musicClipIds: string[] = [];
+  const sfxTracks: { id: string; name: string; clipIds: string[]; endTimeUs: number }[] = [];
 
   let totalVideoDurationUs = 0;
   let currentSegmentOffsetUs = 0;
@@ -1007,6 +1008,75 @@ export const convertSchemaToDesign = async (
         }
       }
 
+      // Process sound effects
+      if (segment.soundEffects && Array.isArray(segment.soundEffects)) {
+        // Sort chronologically for greedy tracking optimal assignment
+        const sortedSfx = [...segment.soundEffects].sort((a, b) => (a.start ?? 0) - (b.start ?? 0));
+
+        for (const sfx of sortedSfx) {
+          if (sfx.url) {
+            const clipId = generateClipId("sfx");
+            
+            const fromUs = currentSegmentOffsetUs + (sfx.start ?? 0) * 1000;
+            // duration is now in ms, so multiply by 1000 for us
+            const durationUs = (sfx.duration ?? 1000) * 1000;
+            const toUs = fromUs + durationUs;
+
+            if (toUs > totalVideoDurationUs) {
+              totalVideoDurationUs = toUs;
+            }
+
+            // Assign clipping safely without overlapping logic
+            let assigned = false;
+            for (let i = 0; i < sfxTracks.length; i++) {
+              if (fromUs >= sfxTracks[i].endTimeUs) {
+                sfxTracks[i].clipIds.push(clipId);
+                sfxTracks[i].endTimeUs = toUs;
+                assigned = true;
+                break;
+              }
+            }
+
+            if (!assigned) {
+              sfxTracks.push({
+                id: generateTrackId("sfx"),
+                name: `SFX Track ${sfxTracks.length + 1}`,
+                clipIds: [clipId],
+                endTimeUs: toUs,
+              });
+            }
+
+            clips.push({
+              type: "Audio",
+              src: sfx.url,
+              display: {
+                from: fromUs,
+                to: toUs,
+              },
+              playbackRate: 1,
+              duration: durationUs,
+              left: 0,
+              top: 0,
+              width: 0,
+              height: 0,
+              angle: 0,
+              zIndex: 35,
+              opacity: 1,
+              flip: null,
+              style: {},
+              trim: {
+                from: 0,
+                to: durationUs,
+              },
+              loop: false,
+              id: clipId,
+              volume: 1,
+              name: "SFX",
+            });
+          }
+        }
+      }
+
       // Update segment offset for the next iteration
       currentSegmentOffsetUs = totalVideoDurationUs;
     }
@@ -1086,6 +1156,16 @@ export const convertSchemaToDesign = async (
       name: "Audio Track",
       type: "Audio",
       clipIds: audioClipIds,
+    });
+  }
+
+  // Audio Tracks (SFX)
+  for (const track of sfxTracks) {
+    tracks.push({
+      id: track.id,
+      name: track.name,
+      type: "Audio",
+      clipIds: track.clipIds,
     });
   }
 
