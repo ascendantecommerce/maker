@@ -45,7 +45,7 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
             const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
             if (!apiKey) throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set");
 
-            const gemini = new GeminiService(apiKey, "gemini-2.5-flash-lite");
+            const gemini = new GeminiService(apiKey, "gemini-3.1-flash-lite-preview");
             const systemPrompt = getCharacterAdParserSystemPrompt(scheme.visuals?.style);
             const result = await gemini.generateScriptAssistant({
               message: `Parse this script into structured segments: \n\n${scheme.script}`,
@@ -235,9 +235,19 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
       });
 
       const sfxResults = await step.run("generate-sound-effects", async () => {
+        // Merge the original Veo URL into each refined clip so the SFX step
+        // can analyze the untouched native audio for cloning.
+        const clipsWithOriginal = refinedVideoResults.clips.map((refined) => {
+          const original = videoResults.clips.find((o) => o.id === refined.id);
+          return {
+            ...refined,
+            originalUrl: original?.url,
+          };
+        });
+
         const finalClips = await generateCharacterSoundEffects(
           schemeId,
-          refinedVideoResults.clips,
+          clipsWithOriginal,
           services,
           runToken,
         );

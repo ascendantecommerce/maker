@@ -90,6 +90,7 @@ export class VeoProvider implements Generator {
     }
 
     const payload: any = {
+      // model: "veo-3.1-fast-generate-preview",
       model: "veo-3.1-fast-generate-preview",
       prompt: finalPromptToUse,
       ...(finalImagePart ? { image: finalImagePart } : {}),

@@ -191,6 +191,7 @@ export interface Segment {
   audioDuration?: number;
   audioBlob?: Blob;
   media?: MediaAsset[];
+  soundEffects?: { start: number; url: string; duration?: number; volume?: number }[];
 }
 
 export interface Schema {

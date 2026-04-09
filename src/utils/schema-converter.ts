@@ -1070,7 +1070,7 @@ export const convertSchemaToDesign = async (
               },
               loop: false,
               id: clipId,
-              volume: 1,
+              volume: sfx.volume ?? 0.5,
               name: "SFX",
             });
           }

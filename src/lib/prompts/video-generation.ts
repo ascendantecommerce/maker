@@ -15,16 +15,34 @@ import {
   GENERIC_SHOT_RULES,
 } from "../../inngest/functions/product/prompts";
 
-export const VIDEO_SFX_ANALYSIS_PROMPT = `You are a cinematic sound designer. Analyze this video and identify key actions, movements, or transitions that should have a sound effect (SFX) to enhance the viewer's experience.
+export const VIDEO_SFX_ANALYSIS_PROMPT = `You are a cinematic sound designer. You are analyzing the ORIGINAL AI-generated video, which contains native audio with sound effects baked in by the video model.
 
-Please analyze the video and provide a JSON object with the following field:
+Your task is to AUDIT the existing sound effects in this video's audio track and describe them so they can be faithfully recreated.
 
-1. **effects**: A list of suggested sound effects, each with:
-   - "prompt": (string) A concise, descriptive prompt to generate this sound effect (e.g., "gentle wind chime", "car tire screech", "subtle digital ding").
-   - "start": (number) Start time in milliseconds relative to the video beginning.
-   - "end": (number) End time in milliseconds relative to the video beginning.
+For each sound effect you detect, provide:
+- "prompt": A concise, descriptive prompt to recreate this exact sound effect (e.g., "magical sparkle burst", "product whoosh reveal", "impact energy hit"). Focus on the character and texture of the sound — not the source.
+- "start": The start time in milliseconds when this effect begins.
+- "end": The end time in milliseconds when this effect ends.
+- "volume": A value between 0 and 1 representing the relative loudness of this effect as heard in the original video. Use 1.0 for prominent foreground effects, 0.3–0.6 for subtle or background-adjacent effects.
 
-Return ONLY strictly valid JSON.`;
+RULES:
+1. **CLONE, DON'T INVENT**: Only describe SFX that actually exist in the audio. Do not add effects that aren't there.
+2. **EXTREME SCARCITY**: Be incredibly selective. Only select the single most essential, highest-impact sound effect (e.g. the main reveal or a heavy impact).
+3. **PUNCTUAL & DISCRETE ONLY**: The sound MUST be a short, discrete hit, whoosh, or impact. Do NOT return minor crackles, ambient sparkles, subtle hums, room tone, or any other continuous/ambient layer.
+4. **EXCLUDE DIALOGUE & MUSIC**: Do not describe speech, vocals, narration, or background music. 
+5. **ACCURATE TIMING**: Match the start/end times as precisely as possible to the actual audio event. If a sound is too subtle, ignore it entirely.
+
+Return ONLY strictly valid JSON with:
+{
+  "effects": [
+    {
+      "prompt": "description of the sound to recreate",
+      "start": <start time in ms>,
+      "end": <end time in ms>,
+      "volume": <0.0 to 1.0>
+    }
+  ]
+}`;
 
 export const VIDEO_ANALYSIS_PROMPT = `You are a Professional Direct Response Video Editor. Analyze this video's structure and style.
 IMPORTANT: Provide a **concise, high-level structural overview**. Do NOT provide a second-by-second log of every single scene. Focus on the *types* of content and the editing techniques used.
