@@ -59,14 +59,8 @@ export async function generateCharacterSoundEffects(
       const generatedSoundEffects: { start: number; url: string; duration?: number, volume?: number }[] = [];
 
       if (effects && effects.length > 0) {
-        // Enforce extreme scarcity natively: take at most 2 largest/loudest effects
-        const topEffects = [...effects]
-          .sort((a, b) => (b.volume ?? 0.5) - (a.volume ?? 0.5)) // loudest first
-          .slice(0, 2) // max 2
-          .sort((a, b) => a.start - b.start); // chronological order
-
-        for (let index = 0; index < topEffects.length; index++) {
-          const effect = topEffects[index];
+        for (let index = 0; index < effects.length; index++) {
+          const effect = effects[index];
           const durationMs = effect.end - effect.start;
           const durationSeconds = Math.max(0.5, durationMs / 1000);
 
