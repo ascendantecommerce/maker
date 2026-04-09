@@ -392,15 +392,15 @@ function applyOptimizationRules(
 ): { clips: ClipTiming[]; bRolls: BRollTiming[] } {
   const segmentEnd = globalOffset + segmentDurationMs;
 
-  // 1. Convert to global timeline
+  // 1. Keep relative timeline (removed globalOffset addition)
   let clipTimings = initialResult.clipTimings.map((c) => ({
-    display: { from: c.display.from + globalOffset, to: c.display.to + globalOffset },
+    display: { from: c.display.from, to: c.display.to },
     duration: c.duration,
   }));
   let bRollTimings = initialResult.bRollTimings.map((b) => ({
-    display: { from: b.display.from + globalOffset, to: b.display.to + globalOffset },
+    display: { from: b.display.from, to: b.display.to },
     duration: b.duration,
-    time: b.time + globalOffset,
+    time: b.time,
     originalBRollIndex: b.originalBRollIndex,
   }));
 
@@ -534,7 +534,7 @@ export const calculateSegmentTimings = async (
     }
 
     // 4. Final Rule Pass
-    const optimized = applyOptimizationRules(initialResult, globalTotalDuration, segmentDurationMs);
+    const optimized = applyOptimizationRules(initialResult, 0, segmentDurationMs);
     timings.push({ id: seg.id, ...optimized });
     globalTotalDuration += segmentDurationMs;
   }
@@ -585,12 +585,12 @@ export const calculateSegmentTimingsManual = async (
           // Ensure we don't drift due to rounding
           clipDurationMs = Math.round(clipDurationMs);
 
-          const from = globalTotalDuration + currentPos;
-          let to = globalTotalDuration + currentPos + clipDurationMs;
+          const from = currentPos;
+          let to = currentPos + clipDurationMs;
 
           // Final clip must exactly hit the segment end
           if (idx === seg.shots.length - 1) {
-            to = globalTotalDuration + segmentDurationMs;
+            to = segmentDurationMs;
             clipDurationMs = to - from;
           }
 
@@ -598,7 +598,7 @@ export const calculateSegmentTimingsManual = async (
           currentPos += clipDurationMs;
         }
         durationAllClipsForGlobal = segmentDurationMs;
-        const segmentEnd = globalTotalDuration + segmentDurationMs;
+        const segmentEnd = segmentDurationMs;
 
         // 2. Calculate B-Rolls (Ideal word timings)
         let bRollTimings: BRollTiming[] = [];
@@ -609,14 +609,12 @@ export const calculateSegmentTimingsManual = async (
             const dataTime = await getBRollDisplayTime(bRoll.words, captionUrl, 0);
             if (!dataTime) continue;
             let { from, to } = dataTime.display;
-            from += globalTotalDuration;
-            to += globalTotalDuration;
 
             // Cap at segment end and preserve duration
             if (to > segmentEnd) {
               const diff = to - segmentEnd;
               to = segmentEnd;
-              from = Math.max(globalTotalDuration, from - diff);
+              from = Math.max(0, from - diff);
             }
 
             bRollTimings.push({
@@ -643,7 +641,7 @@ export const calculateSegmentTimingsManual = async (
           isStart: boolean,
         ) => {
           if (boundaryIdx === 0 || boundaryIdx === boundaries.length + 1) return Infinity;
-          let testBoundaries = [globalTotalDuration, ...boundaries, segmentEnd];
+          let testBoundaries = [0, ...boundaries, segmentEnd];
           let diff = targetTime - testBoundaries[boundaryIdx];
 
           // RULE 6: No Chain Reaction. We ONLY allow moving ONE boundary.
@@ -665,7 +663,7 @@ export const calculateSegmentTimingsManual = async (
           return Math.abs(diff);
         };
 
-        const snapPoints = [globalTotalDuration, ...currentBoundaries, segmentEnd];
+        const snapPoints = [0, ...currentBoundaries, segmentEnd];
         for (let i = 0; i < bRollTimings.length; i++) {
           const br = bRollTimings[i];
           for (let j = 0; j < snapPoints.length; j++) {
@@ -720,7 +718,7 @@ export const calculateSegmentTimingsManual = async (
           }
         }
         // 4. Final Finalize Clips
-        const finalizedBoundaries = [globalTotalDuration, ...currentBoundaries, segmentEnd];
+        const finalizedBoundaries = [0, ...currentBoundaries, segmentEnd];
         // Enforce basic sequentiality and 0ms avoidance (safety only)
         for (let i = 1; i < finalizedBoundaries.length - 1; i++) {
           finalizedBoundaries[i] = Math.max(finalizedBoundaries[i - 1] + 1, finalizedBoundaries[i]);
@@ -813,23 +811,22 @@ export const calculateSegmentTimingsAI = async (
           // Use Gemini extracted timings
           for (let idx = 0; idx < seg.shots.length; idx++) {
             const geminiShot = segmentGemini.shots[idx];
-            let from = globalTotalDuration + currentPos;
+            let from = currentPos;
             let to =
-              globalTotalDuration +
               convertSecondsToMs(geminiShot.end) +
               (idx === seg.shots.length - 1 ? endPause : 0);
 
             // First clip includes startPause
-            if (idx === 0) from = globalTotalDuration;
+            if (idx === 0) from = 0;
 
             let durationMs = Math.round(to - from);
             if (idx === seg.shots.length - 1) {
-              to = globalTotalDuration + segmentDurationMs;
+              to = segmentDurationMs;
               durationMs = to - from;
             }
 
             clipTimings.push({ display: { from, to }, duration: durationMs });
-            currentPos = to - globalTotalDuration;
+            currentPos = to;
           }
         } else {
           // Fallback to manual parsing
@@ -842,10 +839,10 @@ export const calculateSegmentTimingsAI = async (
             if (idx === seg.shots.length - 1) clipDurationMs += endPause;
             clipDurationMs = Math.round(clipDurationMs);
 
-            const from = globalTotalDuration + currentPos;
-            let to = globalTotalDuration + currentPos + clipDurationMs;
+            const from = currentPos;
+            let to = currentPos + clipDurationMs;
             if (idx === seg.shots.length - 1) {
-              to = globalTotalDuration + segmentDurationMs;
+              to = segmentDurationMs;
               clipDurationMs = to - from;
             }
             clipTimings.push({ display: { from, to }, duration: clipDurationMs });
@@ -854,7 +851,7 @@ export const calculateSegmentTimingsAI = async (
         }
 
         durationAllClipsForGlobal = segmentDurationMs;
-        const segmentEnd = globalTotalDuration + segmentDurationMs;
+        const segmentEnd = segmentDurationMs;
         console.log(`[TIMINGS] Initial clips for segment ${seg.id}:`, clipTimings);
 
         // 3. Calculate B-Rolls
@@ -867,21 +864,21 @@ export const calculateSegmentTimingsAI = async (
 
             const geminiBRoll = segmentGemini?.bRolls.find((br) => br.originalIndex === i);
             if (geminiBRoll) {
-              from = globalTotalDuration + convertSecondsToMs(geminiBRoll.start);
-              to = globalTotalDuration + convertSecondsToMs(geminiBRoll.end);
+              from = convertSecondsToMs(geminiBRoll.start);
+              to = convertSecondsToMs(geminiBRoll.end);
             } else {
               // Fallback
               const dataTime = await getBRollDisplayTime(bRoll.words || "", captionUrl, startPause);
               if (!dataTime) continue;
-              from = dataTime.display.from + globalTotalDuration;
-              to = dataTime.display.to + globalTotalDuration;
+              from = dataTime.display.from;
+              to = dataTime.display.to;
             }
 
             // Cap at segment end and preserve duration
             if (to > segmentEnd) {
               const diff = to - segmentEnd;
               to = segmentEnd;
-              from = Math.max(globalTotalDuration, from - diff);
+              from = Math.max(0, from - diff);
             }
 
             bRollTimings.push({
@@ -908,7 +905,7 @@ export const calculateSegmentTimingsAI = async (
           isStart: boolean,
         ) => {
           if (boundaryIdx === 0 || boundaryIdx === boundaries.length + 1) return Infinity;
-          let testBoundaries = [globalTotalDuration, ...boundaries, segmentEnd];
+          let testBoundaries = [0, ...boundaries, segmentEnd];
           let diff = targetTime - testBoundaries[boundaryIdx];
 
           // RULE 6: No Chain Reaction. We ONLY allow moving ONE boundary.
@@ -930,7 +927,7 @@ export const calculateSegmentTimingsAI = async (
           return Math.abs(diff);
         };
 
-        const snapPoints = [globalTotalDuration, ...currentBoundaries, segmentEnd];
+        const snapPoints = [0, ...currentBoundaries, segmentEnd];
         for (let i = 0; i < bRollTimings.length; i++) {
           const br = bRollTimings[i];
           for (let j = 0; j < snapPoints.length; j++) {
@@ -985,7 +982,7 @@ export const calculateSegmentTimingsAI = async (
           }
         }
         // 4. Final Finalize Clips
-        const finalizedBoundaries = [globalTotalDuration, ...currentBoundaries, segmentEnd];
+        const finalizedBoundaries = [0, ...currentBoundaries, segmentEnd];
         // Enforce basic sequentiality and 0ms avoidance (safety only)
         for (let i = 1; i < finalizedBoundaries.length - 1; i++) {
           finalizedBoundaries[i] = Math.max(finalizedBoundaries[i - 1] + 1, finalizedBoundaries[i]);
