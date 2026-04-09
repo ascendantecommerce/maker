@@ -226,7 +226,7 @@ Apply these rules for the Character-Driven Ad blocks:
   async analyzeVideoForSfx(
     videoBuffer: Buffer,
     contentType: string,
-  ): Promise<{ effects: { prompt: string; start: number; end: number }[] }> {
+  ): Promise<{ effects: { prompt: string; start: number; end: number, volume?: number }[] }> {
     try {
       const base64Video = videoBuffer.toString("base64");
 

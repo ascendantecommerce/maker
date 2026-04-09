@@ -54,6 +54,9 @@ export function VideoCustomization({
   const [selectedDescription, setSelectedDescription] = useState<string>(
     VIDEO_STYLES.find((s) => s.id === selectedStyleId)?.description || "",
   );
+  const [selectedScriptTone, setSelectedScriptTone] = useState<string>(
+    generationParams.scriptTone || "",
+  );
   const [pacing, setPacing] = useState<"fast" | "regular" | "relaxed">(
     (generationParams.pacing as "fast" | "regular" | "relaxed") || "regular",
   );
@@ -161,6 +164,7 @@ export function VideoCustomization({
     if (generationParams.product) setProduct(generationParams.product);
     if (generationParams.avatar) setAvatar(generationParams.avatar);
     if (generationParams.pacing) setPacing(generationParams.pacing as any);
+    if (generationParams.scriptTone !== undefined) setSelectedScriptTone(generationParams.scriptTone);
   }, [generationParams]);
 
   // Update generation params when local state changes
@@ -172,6 +176,7 @@ export function VideoCustomization({
       aspectRatio !== generationParams.aspectRatio ||
       selectedVisualType !== generationParams.visuals?.type ||
       selectedDescription !== generationParams.visuals?.style ||
+      selectedScriptTone !== generationParams.scriptTone ||
       JSON.stringify(caption) !== JSON.stringify(generationParams.caption) ||
       JSON.stringify(assets) !== JSON.stringify(generationParams.assets) ||
       JSON.stringify(product) !== JSON.stringify(generationParams.product) ||
@@ -185,6 +190,7 @@ export function VideoCustomization({
         ...prev,
         aspectRatio,
         visuals: { type: selectedVisualType, style: selectedDescription },
+        scriptTone: selectedScriptTone,
         caption,
         assets,
         product: product?.name || product?.description ? product : undefined,
@@ -201,6 +207,7 @@ export function VideoCustomization({
     aspectRatio,
     selectedVisualType,
     selectedDescription,
+    selectedScriptTone,
     caption,
     assets,
     product,
@@ -299,6 +306,8 @@ export function VideoCustomization({
                   onStyleChange={setSelectedDescription}
                   selectedStyleId={selectedStyleId}
                   onStyleIdChange={setSelectedStyleId}
+                  scriptTone={selectedScriptTone}
+                  onScriptToneChange={setSelectedScriptTone}
                 />
                 <Separator />
               </>

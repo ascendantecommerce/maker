@@ -21,6 +21,7 @@ export async function POST(req: Request) {
     productName, 
     productDescription,
     visualStyle,
+    scriptTone,
     mode = "character-driven-ad" 
   } = body;
 
@@ -85,6 +86,7 @@ export async function POST(req: Request) {
       productName,
       productDescription,
       visualStyle,
+      scriptTone,
     },
   });
 

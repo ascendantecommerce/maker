@@ -175,6 +175,7 @@ export const Assistant = () => {
           productName: params.product?.name,
           productDescription: params.product?.description,
           visualStyle: params.visuals?.style || schema?.visuals?.style,
+          scriptTone: schema?.scriptTone,
           mode: schema?.type || params.type || "character-driven-ad",
         }),
       });
