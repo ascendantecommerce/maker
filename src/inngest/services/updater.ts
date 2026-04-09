@@ -62,28 +62,59 @@ export class SegmentUpdater {
     const progress = Math.min(Math.max(previousProgress, nextProgress), maxProgress);
 
     // 1. Update the generation (for global progress and legacy support)
-    const output = (scheme.output as VideoSegment[]) || [];
-    const updatedOutput = [...output.filter((s) => s.id !== result.id), result];
+    let outputUpdated = false;
+    let updatedOutput: any = scheme.output;
 
-    await withDbRetry(() =>
-      db
-        .updateTable("generations")
-        .set({ output: JSON.stringify(updatedOutput), progress })
-        .where("id", "=", this.schemeId)
-        .execute(),
-    );
+    if (Array.isArray(scheme.output)) {
+      const output = scheme.output || [];
+      updatedOutput = [...output.filter((s: any) => s.id !== result.id), result];
+      outputUpdated = true;
+    }
+
+    if (outputUpdated) {
+      await withDbRetry(() =>
+        db
+          .updateTable("generations")
+          .set({ output: JSON.stringify(updatedOutput), progress })
+          .where("id", "=", this.schemeId)
+          .execute(),
+      );
+    } else {
+      await withDbRetry(() =>
+        db
+          .updateTable("generations")
+          .set({ progress })
+          .where("id", "=", this.schemeId)
+          .execute(),
+      );
+    }
 
     // 2. Update the segments table (for Storyboard UI and new architecture)
     // In standard video generation, the segment table 'id' matches the JSON 'id'
+    const existingSegment = await withDbRetry(() =>
+      db
+        .selectFrom("segments")
+        .select("segment_data")
+        .where("id", "=", result.id)
+        .executeTakeFirst()
+    );
+
+    let segmentData: any = result;
+    if (existingSegment && existingSegment.segment_data) {
+      const parsedData = typeof existingSegment.segment_data === "string" 
+        ? JSON.parse(existingSegment.segment_data) 
+        : existingSegment.segment_data;
+      segmentData = { ...parsedData, ...result };
+    }
+
     await withDbRetry(() =>
       db
         .updateTable("segments")
         .set({
-          segment_data: JSON.stringify(result),
+          segment_data: JSON.stringify(segmentData),
           updated_at: new Date(),
         })
         .where("id", "=", result.id)
-        .where("schema_id", "=", this.schemeId)
         .execute(),
     );
 

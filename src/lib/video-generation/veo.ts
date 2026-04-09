@@ -13,9 +13,12 @@ export class VeoProvider implements Generator {
   private geminiApiKey: string;
   private readonly MAX_POLL_ATTEMPTS = 100;
 
-  constructor(config: { geminiApiKey: string; resolution?: string }) {
+  private model?: string;
+
+  constructor(config: { geminiApiKey: string; resolution?: string; model?: string }) {
     this.gemini = new GoogleGenAI({ apiKey: config.geminiApiKey });
     this.geminiApiKey = config.geminiApiKey;
+    this.model = config.model;
   }
 
   async create(params: VideoParams): Promise<string> {
@@ -90,8 +93,7 @@ export class VeoProvider implements Generator {
     }
 
     const payload: any = {
-      // model: "veo-3.1-fast-generate-preview",
-      model: "veo-3.1-fast-generate-preview",
+      model: this.model || "veo-3.1-fast-generate-preview",
       prompt: finalPromptToUse,
       ...(finalImagePart ? { image: finalImagePart } : {}),
       config: {

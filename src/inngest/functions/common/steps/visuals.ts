@@ -329,21 +329,23 @@ const processAIImageSegment = async (
     const clipDuration = shotDurations[i].duration;
     const shotType = seg.shots[i].type;
 
-    const { imageUrl: img, price: imgPrice } = await generateImage(
-      context,
-      seg,
-      isProduct,
-      currentPrompt,
-      shotType,
-    );
-    seg.shots[i].imageUrl = img;
-    const { buffer, extension } = await fileUrlToBuffer(img);
+    let imgPrice;
+    imagePath = seg.shots[i].imageUrl || "";
+    
+    if (!imagePath) {
+      throw new Error(`First frame missing for shot ${i} in segment ${seg.id}. Ensure Stage 6 (First Frames) has run.`);
+    }
 
-    imagePath = path.join(tmpDir, `IMAGE/${generateId()}.${extension}`);
-    await fs.promises.mkdir(path.dirname(imagePath), { recursive: true });
-    await fs.promises.writeFile(imagePath, buffer);
+    // Since Stage 6 generated the image but it's likely a URL, we need to ensure it's in tmpDir for assembly
+    if (imagePath.startsWith("http")) {
+      const { buffer, extension } = await fileUrlToBuffer(imagePath);
+      const localPath = path.join(tmpDir, `IMAGE/${generateId()}.${extension}`);
+      await fs.promises.mkdir(path.dirname(localPath), { recursive: true });
+      await fs.promises.writeFile(localPath, buffer);
+      imagePath = localPath;
+    }
 
-    prices.push(imgPrice);
+    if (imgPrice) prices.push(imgPrice);
 
     assets.push({
       id: generateId(),
@@ -421,119 +423,25 @@ const processAIVideoSegment = async (
       const bestFit = clipSizes.find((size) => size >= clipDurationSec);
       requestedDuration = bestFit || clipSizes[clipSizes.length - 1];
 
-      let assetImg: SegmentAsset = {
-        id: generateId(),
-        type: "image",
-        status: "generating",
-        prompt: shot.firstFramePrompt || "",
-      };
-      const { imageUrl: img, price: imgPrice } = await generateImage(
-        context,
-        seg,
-        isProductShot,
-        shot.firstFramePrompt || "",
-        shot.type,
-      );
-      const { buffer, extension } = await fileUrlToBuffer(img);
-      const filePath = `VIDEOS/${schemeId}/${seg.id}/IMAGE/${generateId()}.${extension}`;
-      const currentFrame = await services.storage.uploadData(filePath, buffer);
+      let currentFrame = shot.imageUrl;
 
-      assetImg = { ...assetImg, url: currentFrame, status: "completed" };
-      prices.push(imgPrice);
-      shot.imageUrl = currentFrame;
+      if (!currentFrame) {
+        throw new Error(`First frame missing for shot ${idx} in segment ${seg.id}. Ensure Stage 6 (First Frames) has run.`);
+      }
+
+      // Ensure local copy for video generation / assembly
+      if (currentFrame.startsWith("http")) {
+        const { buffer, extension } = await fileUrlToBuffer(currentFrame);
+        const filePath = path.join(tmpDir, `IMAGE/${generateId()}.${extension}`);
+        await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+        await fs.promises.writeFile(filePath, buffer);
+        currentFrame = filePath;
+      }
 
       const combinedVideoPrompt =
         `${shot.videoPrompt || ""}. ${shot.scenePrompt || ""}`.trim() || shot.words || "";
-      let assetVid: SegmentAsset = {
-        id: generateId(),
-        type: "video",
-        status: "generating",
-        prompt: combinedVideoPrompt,
-      };
-      const { videoPath, price } = await generateVideoClip(context, {
-        seg,
-        imageUrl: currentFrame,
-        duration: requestedDuration,
-        tmpDir,
-        promptOverride: combinedVideoPrompt,
-        isProduct: isProductShot,
-      });
-      shot.videoUrl = videoPath;
 
-      assetVid = { ...assetVid, url: videoPath, status: "completed" };
-      generatedMediaResult.push({
-        type: "video",
-        src: "",
-        filePath: videoPath,
-        preview: currentFrame,
-        duration: clipDurationMs,
-        startPause: idx === 0 ? startPause : 0,
-      });
-      prices.push(price);
-
-      totalDurationMs -= clipDurationMs;
-      assets.push(assetImg, assetVid);
-
-      if (totalDurationMs >= 0 && !seg.shots[idx + 1]) {
-        let assetImg: SegmentAsset = {
-          id: generateId(),
-          type: "image",
-          status: "generating",
-          prompt: shot.firstFramePrompt || "",
-        };
-        const { imageUrl: img, price: imgPrice } = await generateImage(
-          context,
-          seg,
-          isProductShot,
-          shot.firstFramePrompt || "",
-          shot.type,
-        );
-        const { buffer, extension } = await fileUrlToBuffer(img);
-        const filePath = `VIDEOS/${schemeId}/${seg.id}/IMAGE/${generateId()}.${extension}`;
-        const currentFrame = await services.storage.uploadData(filePath, buffer);
-
-        const localPath = path.join(tmpDir, `IMAGE/${generateId()}.png`);
-        await fs.promises.mkdir(path.dirname(localPath), { recursive: true });
-        await fs.promises.writeFile(localPath, buffer);
-
-        assetImg = { ...assetImg, url: localPath, status: "completed" };
-        assets.push(assetImg);
-
-        generatedMediaResult.push({
-          type: "image",
-          src: "",
-          filePath: localPath,
-          preview: currentFrame,
-          duration: totalDurationMs,
-          startPause: 0,
-        });
-        prices.push(imgPrice);
-      }
-    } else {
-      let assetImg: SegmentAsset = {
-        id: generateId(),
-        type: "image",
-        status: "generating",
-        prompt: shot.firstFramePrompt || "",
-      };
-      const { imageUrl: img, price: imgPrice } = await generateImage(
-        context,
-        seg,
-        isProductShot,
-        shot.firstFramePrompt || "",
-        shot.type,
-      );
-      const { buffer, extension } = await fileUrlToBuffer(img);
-      const fileName = `VIDEOS/${schemeId}/${seg.id}/IMAGE/${generateId()}.${extension}`;
-      const currentFrame = await services.storage.uploadData(fileName, buffer);
-
-      assetImg = { ...assetImg, url: currentFrame, status: "completed" };
-      prices.push(imgPrice);
-      shot.imageUrl = currentFrame;
-
-      try {
-        const combinedVideoPrompt =
-          `${shot.videoPrompt || ""}. ${shot.scenePrompt || ""}`.trim() || shot.words || "";
+      if (context.scheme.visuals.type === VideoType.AI_VIDEOS) {
         let assetVid: SegmentAsset = {
           id: generateId(),
           type: "video",
@@ -543,7 +451,7 @@ const processAIVideoSegment = async (
         const { videoPath, price } = await generateVideoClip(context, {
           seg,
           imageUrl: currentFrame,
-          duration: Math.max(5, clipDurationSec),
+          duration: requestedDuration,
           tmpDir,
           promptOverride: combinedVideoPrompt,
           isProduct: isProductShot,
@@ -551,25 +459,93 @@ const processAIVideoSegment = async (
         shot.videoUrl = videoPath;
 
         assetVid = { ...assetVid, url: videoPath, status: "completed" };
-
         generatedMediaResult.push({
           type: "video",
           src: "",
           filePath: videoPath,
           preview: currentFrame,
-          duration: seg.shots[idx + 1] ? clipDurationMs : totalDurationMs,
+          duration: clipDurationMs,
           startPause: idx === 0 ? startPause : 0,
         });
         prices.push(price);
-        assets.push(assetImg, assetVid);
-      } catch (error) {
-        const localPath = path.join(tmpDir, `IMAGE/${generateId()}.png`);
-        await fs.promises.mkdir(path.dirname(localPath), { recursive: true });
-        await fs.promises.writeFile(localPath, buffer);
+        assets.push(assetVid);
+      } else {
+        // AI_IMAGES or fallback: emit an image clip for this duration
         generatedMediaResult.push({
           type: "image",
           src: "",
-          filePath: localPath,
+          filePath: currentFrame,
+          preview: currentFrame,
+          duration: clipDurationMs,
+          startPause: idx === 0 ? startPause : 0,
+        });
+      }
+
+      totalDurationMs -= clipDurationMs;
+
+      if (totalDurationMs >= 0 && !seg.shots[idx + 1]) {
+        generatedMediaResult.push({
+          type: "image",
+          src: "",
+          filePath: currentFrame,
+          preview: currentFrame,
+          duration: totalDurationMs,
+          startPause: 0,
+        });
+      }
+
+      if (context.scheme.visuals.type === VideoType.AI_VIDEOS) {
+        try {
+          const combinedVideoPrompt =
+            `${shot.videoPrompt || ""}. ${shot.scenePrompt || ""}`.trim() || shot.words || "";
+          let assetVid: SegmentAsset = {
+            id: generateId(),
+            type: "video",
+            status: "generating",
+            prompt: combinedVideoPrompt,
+          };
+          const { videoPath, price } = await generateVideoClip(context, {
+            seg,
+            imageUrl: currentFrame,
+            duration: Math.max(5, clipDurationSec),
+            tmpDir,
+            promptOverride: combinedVideoPrompt,
+            isProduct: isProductShot,
+          });
+          shot.videoUrl = videoPath;
+
+          assetVid = { ...assetVid, url: videoPath, status: "completed" };
+
+          generatedMediaResult.push({
+            type: "video",
+            src: "",
+            filePath: videoPath,
+            preview: currentFrame,
+            duration: seg.shots[idx + 1] ? clipDurationMs : totalDurationMs,
+            startPause: idx === 0 ? startPause : 0,
+          });
+          prices.push(price);
+          assets.push(assetVid);
+        } catch (error) {
+          const { buffer: fallbackBuffer } = await fileUrlToBuffer(currentFrame!);
+          const localPath = path.join(tmpDir, `IMAGE/${generateId()}.png`);
+          await fs.promises.mkdir(path.dirname(localPath), { recursive: true });
+          await fs.promises.writeFile(localPath, fallbackBuffer);
+          generatedMediaResult.push({
+            type: "image",
+            src: "",
+            filePath: localPath,
+            preview: currentFrame,
+            duration: seg.shots[idx + 1] ? clipDurationMs : totalDurationMs,
+            startPause: idx === 0 ? startPause : 0,
+          });
+        }
+      } else {
+        // Fallback for non-AI_VIDEOS
+        generatedMediaResult.push({
+          type: "image",
+          src: "",
+          filePath: currentFrame,
           preview: currentFrame,
           duration: seg.shots[idx + 1] ? clipDurationMs : totalDurationMs,
           startPause: idx === 0 ? startPause : 0,
@@ -593,67 +569,6 @@ const processAIVideoSegment = async (
   };
 };
 
-const processSegment = async (
-  context: StepContext,
-  seg: Segment,
-  withVisuals: boolean,
-  tmpDir: string,
-  mediaMetadata: Record<string, MediaMetadata>,
-  segmentTiming: SegmentTiming,
-  usedVideoIds: number[],
-  prevFrame?: string,
-  firstFrames?: Record<string, string>,
-) => {
-  const data = mediaMetadata[seg.id];
-  if (!data) throw new Error(`Segment data missing for ID: ${seg.id}`);
-
-  const { audioUrl, captionUrl, duration, originalDuration, startPause, endPause } = data;
-
-  switch (context.scheme.visuals.type) {
-    case VideoType.STOCK_VIDEOS:
-      return processStockVideoSegment(
-        context,
-        seg,
-        audioUrl,
-        captionUrl,
-        duration,
-        originalDuration,
-        tmpDir,
-        usedVideoIds,
-        startPause,
-      );
-    case VideoType.AI_IMAGES:
-      return processAIImageSegment(
-        context,
-        seg,
-        audioUrl,
-        captionUrl,
-        duration,
-        originalDuration,
-        segmentTiming,
-        tmpDir,
-        startPause,
-      );
-    case VideoType.AI_VIDEOS:
-    default:
-      return processAIVideoSegment(
-        context,
-        seg,
-        audioUrl,
-        captionUrl,
-        duration,
-        originalDuration,
-        segmentTiming,
-        withVisuals,
-        tmpDir,
-        startPause,
-        endPause,
-        prevFrame,
-        firstFrames,
-      );
-  }
-};
-
 const groupByScenes = (segments: Segment[]): Segment[][] => {
   const groups: Segment[][] = [];
   let current: Segment[] = [];
@@ -669,13 +584,20 @@ const groupByScenes = (segments: Segment[]): Segment[][] => {
   return groups;
 };
 
-export const processVisualScenes = async (
+const internalProcessScenes = async (
   context: StepContext,
   mediaMetadata: Record<string, MediaMetadata>,
   segmentTimings: SegmentTiming[],
   usedVideoIds: number[],
   userId: string | null,
   projectId: string | null,
+  sceneProcessor: (
+    seg: Segment,
+    tmpDir: string,
+    withVisuals: boolean,
+    prevFrame?: string,
+    firstFrames?: Record<string, string>,
+  ) => Promise<any>,
 ): Promise<{
   segResults: VideoSegment[];
   prices: PriceItem[];
@@ -695,7 +617,6 @@ export const processVisualScenes = async (
   const prices: PriceItem[] = [];
   const segmentAssets: Record<string, SegmentAsset[]> = {};
   const errors: string[] = [];
-
   const firstFrames: Record<string, string> = {};
 
   const scenePromises = sceneGroups.map(async (scene) => {
@@ -708,39 +629,24 @@ export const processVisualScenes = async (
       const withVisuals = i === 0;
 
       if (!mediaMetadata[seg.id]) {
-        console.warn(`[VISUALS] Skipping segment ${seg.id} - Missing from mediaMetadata`);
+        console.warn(`[VISUALS] Skipping segment ${seg.id} - Missing mediaMetadata`);
         continue;
       }
 
-      console.log(`[VISUALS] Processing segment ${seg.id} (Scene group size: ${scene.length})`);
-
       try {
-        const visualResult = await processSegment(
-          context,
+        const visualResult = await sceneProcessor(
           seg,
-          withVisuals,
           tmpDir,
-          mediaMetadata,
-          segmentTimings.find((t) => t.id === seg.id)!,
-          usedVideoIds,
+          withVisuals,
           prevFrame,
           firstFrames,
         );
-        console.log(`[VISUALS] Produced result for segment ${seg.id}:`, {
-          generatedMediaCount: visualResult.generatedMedia.length,
-          assetCount: visualResult.assets.length
-        });
 
-        for (let idx = 0; idx < visualResult.generatedMedia.length; idx++) {
+        for (let idx = 0; idx < (visualResult.generatedMedia || []).length; idx++) {
           try {
             const clip = visualResult.generatedMedia[idx];
-            console.log(`[VISUALS] Processing clip ${idx} for segment ${seg.id}:`, {
-              filePath: clip.filePath,
-              type: clip.type
-            });
             const buffer = fs.readFileSync(clip.filePath!);
-
-            const asset = visualResult.assets.find((a) => a.url === clip.filePath);
+            const asset = visualResult.assets?.find((a: any) => a.url === clip.filePath);
 
             const extension = path.extname(clip.filePath!).toLowerCase();
             const r2Path = `VIDEOS/${schemeId}/${visualResult.id}/VIDEOS/${generateId()}${extension}`;
@@ -757,9 +663,17 @@ export const processVisualScenes = async (
             });
 
             visualResult.generatedMedia[idx].src = uploaded;
-            console.log(`[VISUALS] Successfully uploaded clip ${idx} to R2:`, uploaded);
+
+            if (seg.shots && seg.shots[idx]) {
+              if (visualResult.generatedMedia[idx].type === "image") {
+                seg.shots[idx].imageUrl = uploaded;
+              } else {
+                seg.shots[idx].videoUrl = uploaded;
+                seg.shots[idx].imageUrl = visualResult.generatedMedia[idx].preview || uploaded;
+              }
+            }
           } catch (err) {
-            console.error(`[VISUALS] Upload/persistence failed for clip ${idx} in segment ${visualResult.id}:`, err);
+            console.error(`[VISUALS] Upload failed for clip ${idx}:`, err);
           }
         }
 
@@ -772,67 +686,104 @@ export const processVisualScenes = async (
           audioUrl: visualResult.audio,
           duration: visualResult.duration,
           originalDuration: visualResult.originalDuration,
-          startPause: mediaMetadata[visualResult.id].startPause, // milliseconds
-          endPause: mediaMetadata[visualResult.id].endPause, // milliseconds
+          startPause: mediaMetadata[visualResult.id].startPause,
+          endPause: mediaMetadata[visualResult.id].endPause,
           assets: visualResult.assets,
+          shots: seg.shots,
         };
 
         await segmentUpdater.updateSegment(segmentResult);
-
         segPrice.push(...visualResult.prices);
-        segmentAssets[seg.id] = visualResult.assets;
+        segmentAssets[seg.id] = visualResult.assets || [];
 
         if (segmentResult.generatedMedia?.length && scene[i + 1]) {
           const lastClip = segmentResult.generatedMedia[segmentResult.generatedMedia.length - 1];
           const lastVideoPath = lastClip.filePath!;
           const lastFrameBuffer = await getLastFrameFromVideo(lastVideoPath, tmpDir);
-          if (!lastFrameBuffer) throw new Error("Failed to generate last frame");
-          const framePath = `VIDEOS/${schemeId}/${segmentResult.id}/IMAGE/${generateId()}.png`;
-          prevFrame = await services.storage.uploadData(framePath, lastFrameBuffer);
-
-          await persistAsset(userId, projectId, schemeId, framePath, prevFrame, {
-            sourceType: "ai_generated",
-            assetType: "image",
-            originalFilename: `frame_${segmentResult.id}.png`,
-          });
+          if (lastFrameBuffer) {
+            const framePath = `VIDEOS/${schemeId}/${segmentResult.id}/IMAGE/${generateId()}.png`;
+            prevFrame = await services.storage.uploadData(framePath, lastFrameBuffer);
+            await persistAsset(userId, projectId, schemeId, framePath, prevFrame, {
+              sourceType: "ai_generated",
+              assetType: "image",
+              originalFilename: `frame_${segmentResult.id}.png`,
+            });
+          }
         }
-
         sceneResults.push(segmentResult);
       } catch (err: any) {
-        const errorMsg = `Segment ${seg.id} failed: ${err.message}`;
-        console.error(`[VISUALS] ${errorMsg}`);
-        errors.push(errorMsg);
-
-        // Fail immediately if it's a quota/limit error
+        errors.push(`Segment ${seg.id} failed: ${err.message}`);
         if (err.message.includes("limit of the free trial usage")) {
-          throw new Error(`CRITICAL: External provider limit reached. ${err.message}`);
+          throw new Error(`CRITICAL: Provider limit reached. ${err.message}`);
         }
       }
     }
-
     return { sceneResults, prices: segPrice };
   });
 
   const allSceneResults = await Promise.all(scenePromises);
-
-  for (const { sceneResults, prices: p } of allSceneResults) {
+  allSceneResults.forEach(({ sceneResults, prices: p }) => {
     segResults.push(...sceneResults);
     prices.push(...p);
-  }
-
-  segResults.sort((a, b) => {
-    const indexA = segmentIndexMap.get(a.id) ?? Infinity;
-    const indexB = segmentIndexMap.get(b.id) ?? Infinity;
-    return indexA - indexB;
   });
 
+  segResults.sort((a, b) => (segmentIndexMap.get(a.id) ?? 0) - (segmentIndexMap.get(b.id) ?? 0));
   await segmentUpdater.finalize();
 
   if (segResults.length === 0 && segments.length > 0) {
-    throw new Error(
-      `Failed to generate any visual clips. Errors: ${errors.join(" | ")}`
-    );
+    throw new Error(`Failed to generate visual clips. Errors: ${errors.join(" | ")}`);
   }
 
   return { segResults, prices, usedVideoIds: [...new Set(usedVideoIds)], segmentAssets };
 };
+
+export const processAIImageScenes = (
+  context: StepContext,
+  mediaMetadata: Record<string, MediaMetadata>,
+  segmentTimings: SegmentTiming[],
+  userId: string | null,
+  projectId: string | null,
+) => internalProcessScenes(context, mediaMetadata, segmentTimings, [], userId, projectId, 
+  async (seg, tmpDir) => {
+    const data = mediaMetadata[seg.id];
+    return processAIImageSegment(
+      context, seg, data.audioUrl, data.captionUrl, data.duration, data.originalDuration,
+      segmentTimings.find(t => t.id === seg.id)!, tmpDir, data.startPause
+    );
+  }
+);
+
+export const processAIVideoScenes = (
+  context: StepContext,
+  mediaMetadata: Record<string, MediaMetadata>,
+  segmentTimings: SegmentTiming[],
+  usedVideoIds: number[],
+  userId: string | null,
+  projectId: string | null,
+) => internalProcessScenes(context, mediaMetadata, segmentTimings, usedVideoIds, userId, projectId,
+  async (seg, tmpDir, withVisuals, prevFrame, firstFrames) => {
+    const data = mediaMetadata[seg.id];
+    return processAIVideoSegment(
+      context, seg, data.audioUrl, data.captionUrl, data.duration, data.originalDuration,
+      segmentTimings.find(t => t.id === seg.id)!, withVisuals, tmpDir, data.startPause,
+      data.endPause, prevFrame, firstFrames
+    );
+  }
+);
+
+export const processStockVideoScenes = (
+  context: StepContext,
+  mediaMetadata: Record<string, MediaMetadata>,
+  segmentTimings: SegmentTiming[],
+  usedVideoIds: number[],
+  userId: string | null,
+  projectId: string | null,
+) => internalProcessScenes(context, mediaMetadata, segmentTimings, usedVideoIds, userId, projectId,
+  async (seg, tmpDir, withVisuals, prevFrame) => {
+    const data = mediaMetadata[seg.id];
+    return processStockVideoSegment(
+      context, seg, data.audioUrl, data.captionUrl, data.duration, data.originalDuration,
+      tmpDir, usedVideoIds, data.startPause
+    );
+  }
+);

@@ -206,6 +206,12 @@ export async function extractTimingsManual(
       clipDurationMs = to - from;
     }
     clipTimings.push({ display: { from, to }, duration: clipDurationMs });
+    
+    if (seg.shots && seg.shots[idx]) {
+      seg.shots[idx].display = { from, to };
+      seg.shots[idx].duration = clipDurationMs;
+    }
+    
     currentPos += clipDurationMs;
   }
 
@@ -224,6 +230,11 @@ export async function extractTimingsManual(
         to = segmentDurationMs;
         from = Math.max(0, from - diff);
       }
+      if (seg.bRolls[i]) {
+        seg.bRolls[i].display = { from, to };
+        seg.bRolls[i].duration = to - from;
+      }
+      
       bRollTimings.push({
         display: { from, to },
         duration: to - from,
@@ -231,6 +242,20 @@ export async function extractTimingsManual(
         originalBRollIndex: i,
       });
     }
+  }
+
+  if (seg.textToSpeech) {
+    seg.textToSpeech.display = {
+      from: startPause,
+      to: segmentDurationMs - endPause,
+    };
+  }
+
+  if (seg.speechToText) {
+    seg.speechToText.display = {
+      from: startPause,
+      to: segmentDurationMs - endPause,
+    };
   }
 
   return { clipTimings, bRollTimings };
@@ -259,6 +284,12 @@ export function extractTimingsAI(
 
     const durationMs = Math.round(to - from);
     clipTimings.push({ display: { from, to }, duration: durationMs });
+    
+    if (seg.shots && seg.shots[idx]) {
+      seg.shots[idx].display = { from, to };
+      seg.shots[idx].duration = durationMs;
+    }
+    
     currentPos = to;
   }
 
@@ -274,6 +305,11 @@ export function extractTimingsAI(
           to = segmentDurationMs;
           from = Math.max(0, from - diff);
         }
+        if (seg.bRolls[i]) {
+          seg.bRolls[i].display = { from, to };
+          seg.bRolls[i].duration = to - from;
+        }
+
         bRollTimings.push({
           display: { from, to },
           duration: to - from,
@@ -282,6 +318,22 @@ export function extractTimingsAI(
         });
       }
     }
+  }
+
+  const { startPause = 0, endPause = 0 } = data;
+
+  if (seg.textToSpeech) {
+    seg.textToSpeech.display = {
+      from: startPause,
+      to: segmentDurationMs - endPause,
+    };
+  }
+
+  if (seg.speechToText) {
+    seg.speechToText.display = {
+      from: startPause,
+      to: segmentDurationMs - endPause,
+    };
   }
 
   return { clipTimings, bRollTimings };
@@ -730,6 +782,35 @@ export const calculateSegmentTimingsManual = async (
           const from = finalizedBoundaries[i],
             to = finalizedBoundaries[i + 1];
           finalClips.push({ display: { from, to }, duration: to - from });
+
+          if (seg.shots && seg.shots[i]) {
+            seg.shots[i].display = { from, to };
+            seg.shots[i].duration = to - from;
+          }
+        }
+        
+        if (seg.textToSpeech) {
+          seg.textToSpeech.display = {
+            from: startPause,
+            to: segmentDurationMs - endPause,
+          };
+        }
+        
+        if (seg.speechToText) {
+          seg.speechToText.display = {
+            from: startPause,
+            to: segmentDurationMs - endPause,
+          };
+        }
+
+        if (seg.bRolls) {
+          for (let i = 0; i < bRollTimings.length; i++) {
+             const brTiming = bRollTimings[i];
+             if (seg.bRolls[brTiming.originalBRollIndex]) {
+                seg.bRolls[brTiming.originalBRollIndex].display = { ...brTiming.display };
+                seg.bRolls[brTiming.originalBRollIndex].duration = brTiming.duration;
+             }
+          }
         }
 
         timings.push({ id: seg.id, clips: finalClips, bRolls: bRollTimings });

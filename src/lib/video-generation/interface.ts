@@ -27,5 +27,5 @@ export type GeneratorConfig =
     }
   | {
       provider: "veo";
-      params: { geminiApiKey: string; resolution?: string };
+      params: { geminiApiKey: string; resolution?: string; model?: string };
     };
