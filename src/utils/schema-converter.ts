@@ -401,7 +401,6 @@ export const convertSchemaToDesign = async (
   const musicClipIds: string[] = [];
   const sfxTracks: { id: string; name: string; clipIds: string[]; endTimeUs: number }[] = [];
 
-  let totalVideoDurationUs = 0;
   let currentSegmentOffsetUs = 0;
   let lastOutPreset = "";
 
@@ -514,11 +513,6 @@ export const convertSchemaToDesign = async (
                 (shot.display?.from ?? 0) + (shot.duration ?? 0)) * 1000;
             const durationUs = toUs - fromUs;
 
-            // Track total duration
-            if (toUs > totalVideoDurationUs) {
-              totalVideoDurationUs = toUs;
-            }
-
             let videoWidth = width;
             let videoHeight = height;
             let videoLeft = 0;
@@ -579,10 +573,6 @@ export const convertSchemaToDesign = async (
               (shot.display?.to ??
                 (shot.display?.from ?? 0) + (shot.duration ?? 0)) * 1000;
             const durationUs = toUs - fromUs;
-
-            if (toUs > totalVideoDurationUs) {
-              totalVideoDurationUs = toUs;
-            }
 
             let imgWidth = width;
             let imgHeight = height;
@@ -685,10 +675,6 @@ export const convertSchemaToDesign = async (
 
             const absoluteFromUs = bRollFromUs;
             const absoluteToUs = bRollToUs;
-
-            if (absoluteToUs > totalVideoDurationUs) {
-              totalVideoDurationUs = absoluteToUs;
-            }
 
             // Determine if bRoll is image or video
             const isImage =
@@ -815,10 +801,6 @@ export const convertSchemaToDesign = async (
               (segment.textToSpeech.duration ?? 0)) * 1000;
         const durationUs = toUs - fromUs;
 
-        if (toUs > totalVideoDurationUs) {
-          totalVideoDurationUs = toUs;
-        }
-
         clips.push({
           type: "Audio",
           src: segment.textToSpeech.src,
@@ -905,10 +887,6 @@ export const convertSchemaToDesign = async (
               const fromUs = speechFromUs + chunkFromMs * 1000; // μs
               const toUs = speechFromUs + chunkToMs * 1000; // μs
               const durationUs = chunkDurationMs * 1000; // μs
-
-              if (toUs > totalVideoDurationUs) {
-                totalVideoDurationUs = toUs;
-              }
 
               // Use actual measured dimensions from chunk
               const captionWidth = Math.ceil(chunk.width);
@@ -1022,10 +1000,6 @@ export const convertSchemaToDesign = async (
             const durationUs = (sfx.duration ?? 1000) * 1000;
             const toUs = fromUs + durationUs;
 
-            if (toUs > totalVideoDurationUs) {
-              totalVideoDurationUs = toUs;
-            }
-
             // Assign clipping safely without overlapping logic
             let assigned = false;
             for (let i = 0; i < sfxTracks.length; i++) {
@@ -1078,7 +1052,9 @@ export const convertSchemaToDesign = async (
       }
 
       // Update segment offset for the next iteration
-      currentSegmentOffsetUs = totalVideoDurationUs;
+      if (segment.duration) {
+        currentSegmentOffsetUs += segment.duration * 1000;
+      }
     }
   }
 
@@ -1092,10 +1068,10 @@ export const convertSchemaToDesign = async (
       src: schemaJson.music.url,
       display: {
         from: 0,
-        to: totalVideoDurationUs,
+        to: currentSegmentOffsetUs,
       },
       playbackRate: 1,
-      duration: totalVideoDurationUs,
+      duration: currentSegmentOffsetUs,
       left: 0,
       top: 0,
       width: 0,
