@@ -30,6 +30,8 @@ export interface MediaMetadata {
   endPause: number; // pause after segment ends (in seconds)
   assets?: SegmentAsset[];
   shots?: VisualShot[];
+  textToSpeech?: any;
+  speechToText?: any;
 }
 
 export interface SegmentAsset {

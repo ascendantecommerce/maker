@@ -821,7 +821,7 @@ export const convertSchemaToDesign = async (
           style: {},
           trim: {
             from: 0,
-            to: 0,
+            to: durationUs,
           },
           loop: false,
           id: clipId,

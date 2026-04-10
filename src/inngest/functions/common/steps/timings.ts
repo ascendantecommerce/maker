@@ -2,6 +2,7 @@ import { Segment, MediaMetadata } from "@/inngest/utils/types";
 import { VisualShot } from "@/types/segment";
 import { convertMsToSeconds, convertSecondsToMs } from "@/inngest/utils/common";
 import { StepContext } from "./types";
+import { SegmentUpdater } from "@/inngest/services/updater";
 
 export interface ClipTiming {
   display: { from: number; to: number };
@@ -206,14 +207,9 @@ export async function extractTimingsManual(
       clipDurationMs = to - from;
     }
     clipTimings.push({ display: { from, to }, duration: clipDurationMs });
-    
-    if (seg.shots && seg.shots[idx]) {
-      seg.shots[idx].display = { from, to };
-      seg.shots[idx].duration = clipDurationMs;
-    }
-    
     currentPos += clipDurationMs;
   }
+
 
   // 2. B-Rolls
   const bRollTimings: BRollTiming[] = [];
@@ -230,11 +226,6 @@ export async function extractTimingsManual(
         to = segmentDurationMs;
         from = Math.max(0, from - diff);
       }
-      if (seg.bRolls[i]) {
-        seg.bRolls[i].display = { from, to };
-        seg.bRolls[i].duration = to - from;
-      }
-      
       bRollTimings.push({
         display: { from, to },
         duration: to - from,
@@ -242,20 +233,6 @@ export async function extractTimingsManual(
         originalBRollIndex: i,
       });
     }
-  }
-
-  if (seg.textToSpeech) {
-    seg.textToSpeech.display = {
-      from: startPause,
-      to: segmentDurationMs - endPause,
-    };
-  }
-
-  if (seg.speechToText) {
-    seg.speechToText.display = {
-      from: startPause,
-      to: segmentDurationMs - endPause,
-    };
   }
 
   return { clipTimings, bRollTimings };
@@ -277,19 +254,13 @@ export function extractTimingsAI(
   for (let idx = 0; idx < numShots; idx++) {
     const geminiShot = geminiResult.shots[idx];
     let from = currentPos;
-    let to = convertSecondsToMs(geminiShot.end);
+    let to = convertSecondsToMs(geminiShot.end) + data.startPause;
 
     if (idx === 0) from = 0;
     if (idx === numShots - 1) to = segmentDurationMs;
 
     const durationMs = Math.round(to - from);
     clipTimings.push({ display: { from, to }, duration: durationMs });
-    
-    if (seg.shots && seg.shots[idx]) {
-      seg.shots[idx].display = { from, to };
-      seg.shots[idx].duration = durationMs;
-    }
-    
     currentPos = to;
   }
 
@@ -298,16 +269,12 @@ export function extractTimingsAI(
     for (let i = 0; i < seg.bRolls.length; i++) {
       const geminiBRoll = geminiResult.bRolls.find((br: any) => br.originalIndex === i);
       if (geminiBRoll) {
-        let from = convertSecondsToMs(geminiBRoll.start);
-        let to = convertSecondsToMs(geminiBRoll.end);
+        let from = convertSecondsToMs(geminiBRoll.start) + data.startPause;
+        let to = convertSecondsToMs(geminiBRoll.end) + data.startPause;
         if (to > segmentDurationMs) {
           const diff = to - segmentDurationMs;
           to = segmentDurationMs;
           from = Math.max(0, from - diff);
-        }
-        if (seg.bRolls[i]) {
-          seg.bRolls[i].display = { from, to };
-          seg.bRolls[i].duration = to - from;
         }
 
         bRollTimings.push({
@@ -318,22 +285,6 @@ export function extractTimingsAI(
         });
       }
     }
-  }
-
-  const { startPause = 0, endPause = 0 } = data;
-
-  if (seg.textToSpeech) {
-    seg.textToSpeech.display = {
-      from: startPause,
-      to: segmentDurationMs - endPause,
-    };
-  }
-
-  if (seg.speechToText) {
-    seg.speechToText.display = {
-      from: startPause,
-      to: segmentDurationMs - endPause,
-    };
   }
 
   return { clipTimings, bRollTimings };
@@ -488,6 +439,11 @@ export const calculateSegmentTimings = async (
   const timings: SegmentTiming[] = [];
   let globalTotalDuration = 0;
 
+  const segmentUpdater = new SegmentUpdater(
+    context.schemeId,
+    segments.length,
+  );
+
   // 1. Pre-fetch transcripts and perform "Manual Probe"
   const segmentsWithData = await Promise.all(
     segments.map(async (seg) => {
@@ -588,8 +544,42 @@ export const calculateSegmentTimings = async (
     // 4. Final Rule Pass
     const optimized = applyOptimizationRules(initialResult, 0, segmentDurationMs);
     timings.push({ id: seg.id, ...optimized });
+
+    // 5. Schema Injection (Finalized values)
+    if (seg.shots) {
+      optimized.clips.forEach((clip, i) => {
+        if (seg.shots && seg.shots[i]) {
+          seg.shots[i].display = { ...clip.display };
+          seg.shots[i].duration = clip.duration;
+        }
+      });
+    }
+    if (seg.bRolls) {
+      optimized.bRolls.forEach((br) => {
+        if (seg.bRolls && seg.bRolls[br.originalBRollIndex]) {
+          seg.bRolls[br.originalBRollIndex].display = { ...br.display };
+          seg.bRolls[br.originalBRollIndex].duration = br.duration;
+        }
+      });
+    }
+    if (seg.textToSpeech) {
+      seg.textToSpeech.display = {
+        from: data.startPause,
+        to: segmentDurationMs - data.endPause,
+      };
+    }
+    if (seg.speechToText) {
+      seg.speechToText.display = {
+        from: data.startPause,
+        to: segmentDurationMs - data.endPause,
+      };
+    }
+    await segmentUpdater.updateSegment(seg as any);
+
     globalTotalDuration += segmentDurationMs;
   }
+
+  await segmentUpdater.finalize();
 
   return timings;
 };
@@ -603,6 +593,11 @@ export const calculateSegmentTimingsManual = async (
   const START_SNAP_THRESHOLD = 500; // 0.5s
   const END_SNAP_THRESHOLD = 1000; // 1s
   let globalTotalDuration = 0;
+
+  const segmentUpdater = new SegmentUpdater(
+    context.schemeId,
+    segments.length,
+  );
 
   for (const seg of segments) {
     let attempts = 0;
@@ -782,20 +777,31 @@ export const calculateSegmentTimingsManual = async (
           const from = finalizedBoundaries[i],
             to = finalizedBoundaries[i + 1];
           finalClips.push({ display: { from, to }, duration: to - from });
-
-          if (seg.shots && seg.shots[i]) {
-            seg.shots[i].display = { from, to };
-            seg.shots[i].duration = to - from;
-          }
         }
-        
+
+        // 5. Final Schema Injection
+        if (seg.shots) {
+          finalClips.forEach((clip, i) => {
+            if (seg.shots && seg.shots[i]) {
+              seg.shots[i].display = { ...clip.display };
+              seg.shots[i].duration = clip.duration;
+            }
+          });
+        }
+        if (seg.bRolls) {
+          bRollTimings.forEach((br) => {
+            if (seg.bRolls && seg.bRolls[br.originalBRollIndex]) {
+              seg.bRolls[br.originalBRollIndex].display = { ...br.display };
+              seg.bRolls[br.originalBRollIndex].duration = br.duration;
+            }
+          });
+        }
         if (seg.textToSpeech) {
           seg.textToSpeech.display = {
             from: startPause,
             to: segmentDurationMs - endPause,
           };
         }
-        
         if (seg.speechToText) {
           seg.speechToText.display = {
             from: startPause,
@@ -803,17 +809,15 @@ export const calculateSegmentTimingsManual = async (
           };
         }
 
-        if (seg.bRolls) {
-          for (let i = 0; i < bRollTimings.length; i++) {
-             const brTiming = bRollTimings[i];
-             if (seg.bRolls[brTiming.originalBRollIndex]) {
-                seg.bRolls[brTiming.originalBRollIndex].display = { ...brTiming.display };
-                seg.bRolls[brTiming.originalBRollIndex].duration = brTiming.duration;
-             }
-          }
-        }
+        timings.push({
+          id: seg.id,
+          clips: finalClips,
+          bRolls: bRollTimings,
+        });
+        globalTotalDuration += durationAllClipsForGlobal;
 
-        timings.push({ id: seg.id, clips: finalClips, bRolls: bRollTimings });
+        await segmentUpdater.updateSegment(seg as any);
+
         success = true;
       } catch (err) {
         attempts++;
@@ -824,8 +828,12 @@ export const calculateSegmentTimingsManual = async (
     }
 
     const lastSeg = timings[timings.length - 1];
-    globalTotalDuration += lastSeg.clips.reduce((sum, c) => sum + c.duration, 0);
+    if (lastSeg) {
+      globalTotalDuration += lastSeg.clips.reduce((sum, c) => sum + c.duration, 0);
+    }
   }
+
+  await segmentUpdater.finalize();
 
   return timings;
 };
