@@ -3,7 +3,7 @@ import { stripeClient } from "@better-auth/stripe/client";
 import { createAuthClient } from "better-auth/react";
 
 export const authClient = createAuthClient({
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000",
   plugins: [
     magicLinkClient(),
     emailOTPClient(),
@@ -12,3 +12,4 @@ export const authClient = createAuthClient({
     }),
   ],
 });
+
