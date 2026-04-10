@@ -42,7 +42,7 @@ export async function generateUGCVideo(params: VideoGenerationParams): Promise<s
   }
 
   // Use the generated frame as primary reference, and lastFrameUrl as end frame
-  const taskId = await videoGenerator.create({
+  const result = await videoGenerator.create({
     prompt: finalPrompt,
     negativePrompt: buildUgcNegativePrompt(),
     firstFrameUrl: firstFrameUrl || "",
@@ -51,5 +51,5 @@ export async function generateUGCVideo(params: VideoGenerationParams): Promise<s
     style: "Cinematic", // Default style for Veo
   });
 
-  return taskId;
+  return typeof result === "string" ? result : result.url;
 }

@@ -358,7 +358,7 @@ export const generateAndUploadVeo = async ({
       console.log({ finalPrompt });
 
       const negativePrompt = buildUgcNegativePrompt();
-      rawVideoUrl = await videoGenerator.create({
+      const generatorOutput = await videoGenerator.create({
         prompt: finalPrompt,
         negativePrompt,
         style: "Cinematic",
@@ -368,6 +368,7 @@ export const generateAndUploadVeo = async ({
         lastFrameUrl: firstFrameSource === "last_frame" ? avatarUrl : undefined,
         referenceImageUrls: referenceImageUrlsToUse,
       });
+      rawVideoUrl = typeof generatorOutput === "string" ? generatorOutput : generatorOutput.url;
     } catch (e: any) {
       retryCount++;
       console.error(

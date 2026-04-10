@@ -21,12 +21,13 @@ export class VeoProvider implements Generator {
     this.model = config.model;
   }
 
-  async create(params: VideoParams): Promise<string> {
-    const operationName = await this.submitVeoTask(params);
-    return this.pollVeoTask(operationName);
+  async create(params: VideoParams): Promise<{ url: string; duration: number }> {
+    const { operationName, duration } = await this.submitVeoTask(params);
+    const url = await this.pollVeoTask(operationName);
+    return { url, duration };
   }
 
-  private async submitVeoTask(params: VideoParams): Promise<string> {
+  private async submitVeoTask(params: VideoParams): Promise<{ operationName: string; duration: number }> {
     const aspectRatio = params.aspectRatio || aspectRatioType.NINE_SIXTEEN;
     let imagePart: Image | undefined = undefined;
 
@@ -128,7 +129,7 @@ export class VeoProvider implements Generator {
 
     const operation = await this.gemini.models.generateVideos(payload);
     if (!operation.name) throw new Error("Failed to get operation name from Gemini");
-    return operation.name;
+    return { operationName: operation.name, duration: snappedDuration };
   }
 
   async getStatus(operationName: string): Promise<VideoStatusResponse> {
@@ -173,6 +174,7 @@ export class VeoProvider implements Generator {
         id: operationName,
         status: "COMPLETED",
         videos: [`data:video/mp4;base64,${base64}`],
+        duration: NaN, // We'll rely on the snapped duration from creation for now
       };
     } catch (err: any) {
       console.error(`[VEO_ERROR] Failed to download or process generated video:`, err);

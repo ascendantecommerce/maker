@@ -118,7 +118,7 @@ export const generateVideoClip = async (
     promptOverride?: string;
     isProduct?: boolean;
   },
-): Promise<{ videoPath: string; price: PriceItem }> => {
+): Promise<{ videoPath: string; price: PriceItem; duration: number }> => {
   if (!params.promptOverride) {
     throw new Error(`Prompt is required for video generation in segment ${params.seg.id}`);
   }
@@ -135,6 +135,7 @@ export const generateVideoClip = async (
   };
 
   let videoUrl = "";
+  let actualDurationSeconds: number = params.duration;
   let generatorFn: any;
 
   if (params.isProduct) {
@@ -165,7 +166,13 @@ export const generateVideoClip = async (
     generatorFn = services.videoGenerator.create.bind(services.videoGenerator);
   }
 
-  videoUrl = await generatorFn(payload);
+  const result = await generatorFn(payload);
+  if (typeof result === "string") {
+    videoUrl = result;
+  } else {
+    videoUrl = result.url;
+    actualDurationSeconds = result.duration;
+  }
 
   let videoPath: string | undefined;
   const MAX_RETRIES = 3;
@@ -190,7 +197,7 @@ export const generateVideoClip = async (
     ? getVideoPricing(resolution, attempt, params.duration)
     : { service: "Veo-3.1", type: "video ad", price: ServicePricing.GENERATE_VEO_3_1_VIDEO };
 
-  return { videoPath, price: pricingEntry };
+  return { videoPath, price: pricingEntry, duration: actualDurationSeconds * 1000 };
 };
 
 const processStockVideoSegment = async (
@@ -443,7 +450,7 @@ const processAIVideoSegment = async (
         const requestedDuration = Math.max(4, clipDurationSec);
 
         console.log(`[VISUALS_TRACE] Calling generateVideoClip for shot ${idx} of segment ${seg.id}. Requested Duration: ${requestedDuration}s`);
-        const { videoPath, price } = await generateVideoClip(context, {
+        const { videoPath, price, duration: actualFileDuration } = await generateVideoClip(context, {
           seg,
           imageUrl: currentFrame,
           duration: requestedDuration,
@@ -452,7 +459,7 @@ const processAIVideoSegment = async (
           isProduct: isProductShot,
         });
 
-        console.log(`[VISUALS_TRACE] Generator returned local path: ${videoPath}`);
+        console.log(`[VISUALS_TRACE] Generator returned local path: ${videoPath}. Actual Duration: ${actualFileDuration}ms`);
         shot.videoUrl = videoPath;
         assetVid = { ...assetVid, url: videoPath, status: "completed" };
 
@@ -461,7 +468,7 @@ const processAIVideoSegment = async (
           src: "",
           filePath: videoPath,
           preview: currentFrame,
-          duration: clipDurationMs,
+          duration: actualFileDuration,
           startPause: idx === 0 ? startPause : 0,
         });
 
