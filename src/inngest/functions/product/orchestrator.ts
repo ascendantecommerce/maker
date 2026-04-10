@@ -304,9 +304,7 @@ export const productVideoOrchestrator = inngest.createFunction(
       // STAGE 7.1: AI VIDEOS
       // ========================================================================
       if (STAGE_7_AI_VIDEOS && scheme.visuals.type === VideoType.AI_VIDEOS) {
-        const { dbSegments } = (await step.run("fetch-stage-7-state", async () =>
-          fetchWorkflowState(schemeId),
-        )) as any;
+        const { dbSegments } = await fetchWorkflowState(schemeId);
         scheme.segments = dbSegments.map((s: any) => ({
           ...ensureObject(s.segment_data),
           id: s.id,
@@ -322,11 +320,10 @@ export const productVideoOrchestrator = inngest.createFunction(
         });
 
         visualResults = await step.run("Generating AI video clips", () =>
-          pipelineSteps.processAIVideoScenes(
+          productSteps.generateShotVideos(
             context,
             mediaMetadata,
             segmentTimings,
-            [],
             userId,
             projectId,
           ),
@@ -337,9 +334,7 @@ export const productVideoOrchestrator = inngest.createFunction(
       // STAGE 7.2: STOCK VIDEOS
       // ========================================================================
       if (STAGE_7_STOCK_VIDEOS && scheme.visuals.type === VideoType.STOCK_VIDEOS) {
-        const { dbSegments } = (await step.run("fetch-stage-7-2-state", async () =>
-          fetchWorkflowState(schemeId),
-        )) as any;
+        const { dbSegments } = await fetchWorkflowState(schemeId);
         scheme.segments = dbSegments.map((s: any) => ({
           ...ensureObject(s.segment_data),
           id: s.id,
@@ -393,6 +388,7 @@ export const productVideoOrchestrator = inngest.createFunction(
                 duration: seg.duration || 0,
                 originalDuration: (seg.textToSpeech as any)?.duration || 0,
                 assets: seg.assets || [],
+                shots: seg.shots || [],
               });
             }
           });
@@ -461,12 +457,15 @@ export const productVideoOrchestrator = inngest.createFunction(
 
         await step.run("update-segments-post-resolver", async () => {
           const { segmentQueries: sq } = await import("@/lib/database/segment-queries");
+          // Always fetch fresh state here to avoid stale caches from previous attempts/steps
           const { dbSegments, dbSchema, projectId: fetchedProjectId } = await fetchWorkflowState(schemeId);
           
           let finalScheme = {
             ...dbSchema,
-            segments: dbSegments.map((s: any) => ensureObject(s.segment_data)),
+            segments: dbSegments.sort((a, b) => a.order - b.order).map((s: any) => ensureObject(s.segment_data)),
           } as any;
+
+          console.log(`[PIPELINE] Stage 12 finalizing. Sample segment 0 shot 0 videoUrl: ${finalScheme.segments[0]?.shots?.[0]?.videoUrl || 'NONE'}`);
 
           // Aggregate total cost
           const allPrices = [

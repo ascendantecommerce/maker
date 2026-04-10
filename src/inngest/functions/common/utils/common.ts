@@ -6,6 +6,8 @@ import mime from "mime/lite";
 
 import { IPexelsVideo, IPexelsVideoFile } from "@/lib/stock/video";
 
+import { generateId } from "@/utils/id";
+
 const streamPipeline = promisify(pipeline);
 
 export function splitIntoOptimalClips(totalDuration: number, clipDuration = 6) {
@@ -140,10 +142,34 @@ export function splitIntoVideoClips(totalDuration: number, clipSizes: number[] =
  * Download a video from a URL and save to outputDir
  */
 export async function downloadVideo(url: string, outputDir: string): Promise<string> {
-  const filename = path.basename(new URL(url).pathname);
-  const outputPath = path.join(outputDir, filename);
+  // Handle Data URIs (base64)
+  if (url.startsWith("data:")) {
+    try {
+      const parts = url.split(",");
+      const match = parts[0].match(/^data:([^;]+);/);
+      const contentType = match ? match[1] : "video/mp4";
+      const buffer = Buffer.from(parts[1] || "", "base64");
+      
+      const extension = mime.getExtension(contentType) || "mp4";
+      const filename = `${generateId()}.${extension}`;
+      const outputPath = path.join(outputDir, filename);
+      
+      fs.mkdirSync(outputDir, { recursive: true });
+      fs.writeFileSync(outputPath, buffer);
+      
+      console.log(`[DOWNLOAD_VIDEO] Processed Data URI. Saved to: ${outputPath}`);
+      return outputPath;
+    } catch (err: any) {
+      console.error("[DOWNLOAD_VIDEO] Failed to process Data URI:", err);
+      throw new Error(`Failed to process base64 video data`);
+    }
+  }
 
+  // Handle standard URLs
   try {
+    const filename = path.basename(new URL(url).pathname);
+    const outputPath = path.join(outputDir, filename);
+
     fs.mkdirSync(outputDir, { recursive: true });
     const response: any = await fetch(url);
     if (!response.ok || !response.body) {
@@ -162,12 +188,14 @@ export async function downloadVideo(url: string, outputDir: string): Promise<str
       throw new Error("Downloaded video is incomplete");
     }
 
+    console.log(`[DOWNLOAD_VIDEO] Downloaded URL. Saved to: ${outputPath}`);
     return outputPath;
   } catch (err: any) {
     console.error("[DOWNLOAD_VIDEO] Failed to download video:", err);
     throw new Error(`Failed to download video`);
   }
 }
+
 
 export async function fileUrlToBuffer(
   fileUrl: string,
@@ -187,6 +215,16 @@ export async function fileUrlToBuffer(
       const extension = mime.getExtension(contentType) || defaultType;
       return { buffer, contentType, extension, numBytes: buffer.length };
     } else if (!fileUrl.startsWith("http://") && !fileUrl.startsWith("https://")) {
+      // Check if it's a local file path before assuming base64
+      if (fileUrl.startsWith("/") && fs.existsSync(fileUrl)) {
+        console.log(`[COMMON] Reading local file: ${fileUrl}`);
+        const buffer = fs.readFileSync(fileUrl);
+        const contentType = mime.getType(fileUrl) || (defaultType === "png" ? "image/png" : "image/jpeg");
+        const extension = mime.getExtension(contentType) || defaultType;
+        return { buffer, contentType, extension, numBytes: buffer.length };
+      }
+
+      // Fallback to base64 if not a file
       const buffer = Buffer.from(fileUrl, "base64");
       const contentType = defaultType === "png" ? "image/png" : "image/jpeg";
       const extension = defaultType;

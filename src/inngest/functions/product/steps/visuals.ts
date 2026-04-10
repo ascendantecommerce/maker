@@ -73,6 +73,9 @@ export async function generateShotFirstFrames(
 
       if (segmentUpdated) {
         segmentAssets[seg.id] = currentAssets;
+        // Correctly update the assets array on the segment object so it is persisted in the database blob
+        seg.assets = [...(seg.assets || []), ...currentAssets];
+        
         segmentUpdates.push({
           id: seg.id,
           segment_data: JSON.parse(JSON.stringify(ensureObject(seg))),
@@ -106,7 +109,7 @@ export async function generateShotVideos(
   segmentAssets: Record<string, SegmentAsset[]>;
 }> {
   // Use the robust common processAIVideoScenes logic
-  return processAIVideoScenes(
+  const result = await processAIVideoScenes(
     context,
     mediaMetadata,
     segmentTimings,
@@ -114,4 +117,23 @@ export async function generateShotVideos(
     userId,
     projectId,
   );
+
+  // similar how first frames are updating segment
+  const segmentUpdates: any[] = [];
+  result.segResults.forEach((seg) => {
+    console.log(`[PIPELINE] Preparing bulk update for segment ${seg.id}. Shots: ${seg.shots?.length || 0}. Sample shot 0 videoUrl: ${seg.shots?.[0]?.videoUrl || 'NONE'}`);
+    segmentUpdates.push({
+      id: seg.id,
+      segment_data: JSON.parse(JSON.stringify(ensureObject(seg))),
+    });
+  });
+
+  if (segmentUpdates.length > 0) {
+    console.log(`[PIPELINE] Bulk updating ${segmentUpdates.length} segments with video results.`);
+    await segmentQueries.bulkUpdateSegments(segmentUpdates);
+    console.log(`[PIPELINE] Bulk update successful for ${segmentUpdates.length} segments.`);
+  }
+
+  return result;
 }
+

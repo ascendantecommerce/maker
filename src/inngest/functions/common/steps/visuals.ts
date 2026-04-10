@@ -406,48 +406,43 @@ const processAIVideoSegment = async (
 
   for (let idx = 0; idx < seg.shots.length; idx++) {
     const shot = seg.shots[idx];
-
     let clipDurationMs = clips[idx].duration;
-
     let clipDurationSec = convertMsToSeconds(clipDurationMs);
     clipDurationSec = roundUp3(clipDurationSec);
 
     const isProductShot = shot.type === "product";
-    let requestedDuration: number;
 
-    if (clipDurationSec > VIDEO_THRESHOLD) {
-      let clipSizes = isProductShot ? [4, 6, 8] : [5, 8];
-      if (context.attempt > 1)
-        clipSizes = scheme.resolution === resolutionType.High ? [6] : [5, 10];
-      clipSizes.sort((a, b) => a - b);
-      const bestFit = clipSizes.find((size) => size >= clipDurationSec);
-      requestedDuration = bestFit || clipSizes[clipSizes.length - 1];
+    let currentFrame = shot.imageUrl;
+    if (!currentFrame) {
+      throw new Error(`First frame missing for shot ${idx} in segment ${seg.id}. Ensure Stage 6 (First Frames) has run.`);
+    }
 
-      let currentFrame = shot.imageUrl;
+    // Ensure local copy for video generation / assembly
+    if (currentFrame.startsWith("http")) {
+      const { buffer, extension } = await fileUrlToBuffer(currentFrame);
+      const filePath = path.join(tmpDir, `IMAGE/${generateId()}.${extension}`);
+      await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+      await fs.promises.writeFile(filePath, buffer);
+      currentFrame = filePath;
+    }
 
-      if (!currentFrame) {
-        throw new Error(`First frame missing for shot ${idx} in segment ${seg.id}. Ensure Stage 6 (First Frames) has run.`);
-      }
+    const combinedVideoPrompt =
+      `${shot.videoPrompt || ""}. ${shot.scenePrompt || ""}`.trim() || shot.words || "";
 
-      // Ensure local copy for video generation / assembly
-      if (currentFrame.startsWith("http")) {
-        const { buffer, extension } = await fileUrlToBuffer(currentFrame);
-        const filePath = path.join(tmpDir, `IMAGE/${generateId()}.${extension}`);
-        await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-        await fs.promises.writeFile(filePath, buffer);
-        currentFrame = filePath;
-      }
-
-      const combinedVideoPrompt =
-        `${shot.videoPrompt || ""}. ${shot.scenePrompt || ""}`.trim() || shot.words || "";
-
-      if (context.scheme.visuals.type === VideoType.AI_VIDEOS) {
+    if (context.scheme.visuals.type === VideoType.AI_VIDEOS) {
+      try {
         let assetVid: SegmentAsset = {
           id: generateId(),
           type: "video",
           status: "generating",
           prompt: combinedVideoPrompt,
         };
+
+        // Determine min duration based on shot duration. 
+        // User requested minimum 4s for Veo/Luma even for short shots.
+        const requestedDuration = Math.max(4, clipDurationSec);
+
+        console.log(`[VISUALS_TRACE] Calling generateVideoClip for shot ${idx} of segment ${seg.id}. Requested Duration: ${requestedDuration}s`);
         const { videoPath, price } = await generateVideoClip(context, {
           seg,
           imageUrl: currentFrame,
@@ -456,9 +451,11 @@ const processAIVideoSegment = async (
           promptOverride: combinedVideoPrompt,
           isProduct: isProductShot,
         });
-        shot.videoUrl = videoPath;
 
+        console.log(`[VISUALS_TRACE] Generator returned local path: ${videoPath}`);
+        shot.videoUrl = videoPath;
         assetVid = { ...assetVid, url: videoPath, status: "completed" };
+
         generatedMediaResult.push({
           type: "video",
           src: "",
@@ -467,10 +464,11 @@ const processAIVideoSegment = async (
           duration: clipDurationMs,
           startPause: idx === 0 ? startPause : 0,
         });
+
         prices.push(price);
         assets.push(assetVid);
-      } else {
-        // AI_IMAGES or fallback: emit an image clip for this duration
+      } catch (error: any) {
+        console.error(`[VISUALS_ERROR] Video generation failed for shot ${idx} of segment ${seg.id}. Falling back to image.`, error);
         generatedMediaResult.push({
           type: "image",
           src: "",
@@ -480,81 +478,33 @@ const processAIVideoSegment = async (
           startPause: idx === 0 ? startPause : 0,
         });
       }
+    } else {
+      // AI_IMAGES: emit an image clip for this duration
+      generatedMediaResult.push({
+        type: "image",
+        src: "",
+        filePath: currentFrame,
+        preview: currentFrame,
+        duration: clipDurationMs,
+        startPause: idx === 0 ? startPause : 0,
+      });
+    }
 
-      totalDurationMs -= clipDurationMs;
+    totalDurationMs -= clipDurationMs;
 
-      if (totalDurationMs >= 0 && !seg.shots[idx + 1]) {
-        generatedMediaResult.push({
-          type: "image",
-          src: "",
-          filePath: currentFrame,
-          preview: currentFrame,
-          duration: totalDurationMs,
-          startPause: 0,
-        });
-      }
-
-      if (context.scheme.visuals.type === VideoType.AI_VIDEOS) {
-        try {
-          const combinedVideoPrompt =
-            `${shot.videoPrompt || ""}. ${shot.scenePrompt || ""}`.trim() || shot.words || "";
-          let assetVid: SegmentAsset = {
-            id: generateId(),
-            type: "video",
-            status: "generating",
-            prompt: combinedVideoPrompt,
-          };
-          const { videoPath, price } = await generateVideoClip(context, {
-            seg,
-            imageUrl: currentFrame,
-            duration: Math.max(5, clipDurationSec),
-            tmpDir,
-            promptOverride: combinedVideoPrompt,
-            isProduct: isProductShot,
-          });
-          shot.videoUrl = videoPath;
-
-          assetVid = { ...assetVid, url: videoPath, status: "completed" };
-
-          generatedMediaResult.push({
-            type: "video",
-            src: "",
-            filePath: videoPath,
-            preview: currentFrame,
-            duration: seg.shots[idx + 1] ? clipDurationMs : totalDurationMs,
-            startPause: idx === 0 ? startPause : 0,
-          });
-          prices.push(price);
-          assets.push(assetVid);
-        } catch (error) {
-          const { buffer: fallbackBuffer } = await fileUrlToBuffer(currentFrame!);
-          const localPath = path.join(tmpDir, `IMAGE/${generateId()}.png`);
-          await fs.promises.mkdir(path.dirname(localPath), { recursive: true });
-          await fs.promises.writeFile(localPath, fallbackBuffer);
-          generatedMediaResult.push({
-            type: "image",
-            src: "",
-            filePath: localPath,
-            preview: currentFrame,
-            duration: seg.shots[idx + 1] ? clipDurationMs : totalDurationMs,
-            startPause: idx === 0 ? startPause : 0,
-          });
-        }
-      } else {
-        // Fallback for non-AI_VIDEOS
-        generatedMediaResult.push({
-          type: "image",
-          src: "",
-          filePath: currentFrame,
-          preview: currentFrame,
-          duration: seg.shots[idx + 1] ? clipDurationMs : totalDurationMs,
-          startPause: idx === 0 ? startPause : 0,
-        });
-      }
-
-      totalDurationMs -= clipDurationMs;
+    // Fill logic for the last shot to match perfect segment duration
+    if (totalDurationMs > 0 && !seg.shots[idx + 1]) {
+      generatedMediaResult.push({
+        type: "image",
+        src: "",
+        filePath: currentFrame,
+        preview: currentFrame,
+        duration: totalDurationMs,
+        startPause: 0,
+      });
     }
   }
+
 
   return {
     id: seg.id,
@@ -666,11 +616,15 @@ const internalProcessScenes = async (
 
             if (seg.shots && seg.shots[idx]) {
               if (visualResult.generatedMedia[idx].type === "image") {
+                console.log(`[VISUALS] Mapping imageUrl to shot ${idx} of segment ${seg.id}: ${uploaded}`);
                 seg.shots[idx].imageUrl = uploaded;
               } else {
+                console.log(`[VISUALS] Mapping videoUrl to shot ${idx} of segment ${seg.id}: ${uploaded}`);
                 seg.shots[idx].videoUrl = uploaded;
-                seg.shots[idx].imageUrl = visualResult.generatedMedia[idx].preview || uploaded;
               }
+              console.log(`[VISUALS] Shot ${idx} updated. Current videoUrl: ${seg.shots[idx].videoUrl || 'NONE'}`);
+            } else {
+              console.warn(`[VISUALS] No shot found at index ${idx} for segment ${seg.id}`);
             }
           } catch (err) {
             console.error(`[VISUALS] Upload failed for clip ${idx}:`, err);
@@ -692,6 +646,7 @@ const internalProcessScenes = async (
           shots: seg.shots,
         };
 
+        console.log(`[VISUALS] Passing segment ${segmentResult.id} to SegmentUpdater. Shots: ${segmentResult.shots?.length || 0}. Sample shot 0 videoUrl: ${segmentResult.shots?.[0]?.videoUrl || 'NONE'}`);
         await segmentUpdater.updateSegment(segmentResult);
         segPrice.push(...visualResult.prices);
         segmentAssets[seg.id] = visualResult.assets || [];
