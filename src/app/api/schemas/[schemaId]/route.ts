@@ -6,14 +6,11 @@ import { sceneQueries } from "@/lib/database/scene-queries";
 import { db } from "@/lib/database";
 
 export async function GET(req: Request, { params }: { params: Promise<{ schemaId: string }> }) {
+  // Session is optional — unauthenticated visitors can view public projects
   const session = await auth.api.getSession({
     headers: await headers(),
   });
   const userId = session?.user?.id || null;
-
-  if (!userId) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
   const { schemaId } = await params;
 
@@ -27,8 +24,16 @@ export async function GET(req: Request, { params }: { params: Promise<{ schemaId
   // 2. Fetch the project to verify access
   const project = await projectQueries.findById(schema.project_id);
 
-  if (!project || project.user_id !== userId) {
-    return Response.json({ error: "Project not found or access denied" }, { status: 404 });
+  if (!project) {
+    return Response.json({ error: "Project not found" }, { status: 404 });
+  }
+
+  // Allow access if:
+  //   a) The user is the owner, OR
+  //   b) The project is public (regardless of auth state)
+  const isOwner = !!userId && project.user_id === userId;
+  if (!isOwner && !project.public) {
+    return Response.json({ error: !userId ? "Unauthorized" : "Access denied" }, { status: !userId ? 401 : 403 });
   }
 
   // 3. Fetch related segments
@@ -71,5 +76,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ schemaId
     segments: segments,
     assets: assets,
     scene: existingScene || null,
+    isOwner,
+    isPublic: !!project.public,
   });
 }

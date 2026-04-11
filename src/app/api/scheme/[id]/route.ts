@@ -5,10 +5,8 @@ import { segmentQueries } from "@/lib/database/segment-queries";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    // Session is optional — unauthenticated visitors can still view public projects
     const session = await auth.api.getSession(req);
-    if (!session) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
 
     const { id: generationId } = await params;
     if (!generationId) {
@@ -21,9 +19,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return Response.json({ error: "Project not found" }, { status: 404 });
     }
 
-    // Verify ownership
-    if (project.user_id !== session.user.id) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
+    // Allow access if:
+    //   a) The user is the owner, OR
+    //   b) The project is public (regardless of auth state)
+    const isOwner = !!session && project.user_id === session.user.id;
+    if (!isOwner && !project.public) {
+      // Non-public and either not logged in or not the owner
+      return Response.json({ error: !session ? "Unauthorized" : "Forbidden" }, { status: !session ? 401 : 403 });
     }
 
     // 2. Find the schema using projectId
@@ -73,7 +75,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       }),
     };
 
-    return Response.json(finalSchema);
+    return Response.json({ ...finalSchema, isOwner, isPublic: !!project.public });
   } catch (error: any) {
     console.error("Failed to get scheme:", error);
     return Response.json(
@@ -118,7 +120,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return Response.json({ error: "Project not found" }, { status: 404 });
     }
 
-    if (project.user_id !== session.user.id) {
+    // Allow edits if user owns the project OR the project is public
+    const isOwner = project.user_id === session.user.id;
+    if (!isOwner && !project.public) {
       return Response.json({ error: "Forbidden" }, { status: 403 });
     }
 

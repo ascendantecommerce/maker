@@ -16,6 +16,8 @@ interface ProjectData {
   scene: Scene | null;
   schemas: any[];
   segments: any[];
+  isOwner: boolean;
+  isPublic: boolean;
 }
 
 export default function FolderPage({ params }: { params: Promise<{ schemaId: string }> }) {
@@ -26,6 +28,7 @@ export default function FolderPage({ params }: { params: Promise<{ schemaId: str
   const { studio } = useStudioStore();
   const [isConverting, setIsConverting] = useState(false);
   const [design, setDesign] = useState<Design | null>(null);
+  const [isOwner, setIsOwner] = useState(true);
   const posthog = usePostHog();
 
   useEffect(() => {
@@ -46,6 +49,7 @@ export default function FolderPage({ params }: { params: Promise<{ schemaId: str
       const data: ProjectData = await response.json();
       console.log({ data });
       setProjectData(data);
+      setIsOwner(data.isOwner ?? true);
     } catch (err) {
       console.error("Error fetching project:", err);
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -137,6 +141,7 @@ export default function FolderPage({ params }: { params: Promise<{ schemaId: str
       schemaId={schemaId}
       projectId={projectData?.project?.id}
       projectName={projectData?.project?.name}
+      isOwner={isOwner}
     />
   );
 }
