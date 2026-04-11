@@ -44,7 +44,6 @@ export class GeminiProvider implements Generator {
             }
 
             try {
-              console.log(`Converting ${contentType} to image/webp for Gemini compatibility...`);
               const convertedBuffer = await sharp(buffer).webp({ quality: 80 }).toBuffer();
               return {
                 base64Image: convertedBuffer.toString("base64"),

@@ -578,7 +578,7 @@ export const convertSchemaToDesign = async (
                 to: durationUs,
               },
               audio: true,
-              volume: 1,
+              volume: 0,
               id: clipId,
               effects: [],
             });

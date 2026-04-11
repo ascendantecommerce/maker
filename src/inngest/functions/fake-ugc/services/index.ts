@@ -32,10 +32,10 @@ export function initializeFakeUgcServices(): PipelineServices {
   });
 
   const videoGenerator = new VideoGenerator({
-    provider: "pixverse",
+    provider: "veo",
     params: {
-      url: config.freepik.url,
-      apiKey: config.freepik.key,
+     geminiApiKey: config.gemini.key,
+     model: "veo-3.1-lite-generate-preview",
     },
   });
 

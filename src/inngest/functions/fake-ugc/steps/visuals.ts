@@ -12,6 +12,25 @@ import { convertMsToSeconds, convertSecondsToMs } from "@/inngest/utils/common";
 import { VOICEOVER_PAUSE, VOICEOVER_INIT_PAUSE } from "@/inngest/utils/constant";
 
 /**
+ * Resilient async retry wrapper with exponential backoff for spotty APIs (like Gemini Image Gen)
+ */
+async function withRetry<T>(fn: (attempt: number) => Promise<T>, maxRetries = 3): Promise<T> {
+  let lastErr: any;
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn(i);
+    } catch (err: any) {
+      lastErr = err;
+      console.warn(`[RETRY] Task failed (attempt ${i + 1}/${maxRetries}):`, err.message);
+      if (i < maxRetries - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 2000 * (i + 1))); // Exponential backoff
+      }
+    }
+  }
+  throw lastErr;
+}
+
+/**
  * Modular Step 1: Generate Shot First Frames
  */
 export async function generateShotFirstFrames(
@@ -25,59 +44,73 @@ export async function generateShotFirstFrames(
   const segmentAssets: Record<string, SegmentAsset[]> = {};
   let previewUrl: string | undefined;
 
-  for (const seg of segments) {
-    if (!seg.shots?.length) continue;
+  const updates = await Promise.all(
+    segments.map(async (seg) => {
+      if (!seg.shots?.length) return null;
 
-    let segmentUpdated = false;
-    const currentAssets: SegmentAsset[] = [];
+      let segmentUpdated = false;
+      const currentAssets: SegmentAsset[] = [];
 
-    for (const shot of seg.shots) {
-      if (shot.imageUrl) continue;
+      await Promise.all(
+        seg.shots.map(async (shot, index) => {
+          if (shot.imageUrl) return;
 
-      const isProductShot = shot.type === "product";
-      const { imageUrl: img, price: imgPrice } = await generateImage(
-        context,
-        seg,
-        isProductShot,
-        shot.firstFramePrompt || "",
-        shot.type,
+          const isProductShot = shot.type === "product";
+          
+          await withRetry(async (attempt) => {
+            console.log("GENERATING IMAGE FOR SHOT",  seg.id, index );
+            const fallbackModel = attempt > 0 ? "gemini-3-flash-preview" : undefined;
+            const { imageUrl: img, price: imgPrice } = await generateImage(
+              context,
+              seg,
+              isProductShot,
+              shot.firstFramePrompt || "",
+              shot.type,
+              fallbackModel,
+            );
+
+            const { buffer, extension } = await fileUrlToBuffer(img);
+            const filePath = `VIDEOS/${schemeId}/${seg.id}/IMAGE/${generateId()}.${extension}`;
+            const currentFrame = await services.storage.uploadData(filePath, buffer);
+
+            shot.imageUrl = currentFrame;
+            prices.push(imgPrice);
+            segmentUpdated = true;
+
+            const asset: SegmentAsset = {
+              id: generateId(),
+              type: "image",
+              status: "completed",
+              url: currentFrame,
+              prompt: `${shot.type}-${shot.firstFramePrompt}`,
+            };
+            currentAssets.push(asset);
+
+            if (!previewUrl) previewUrl = currentFrame;
+
+            await persistAsset(userId, projectId, schemeId, filePath, currentFrame, {
+              sourceType: "ai_generated",
+              assetType: "image",
+              originalFilename: `shot_frame_${seg.id}_${generateId()}.${extension}`,
+            });
+          });
+        })
       );
 
-      const { buffer, extension } = await fileUrlToBuffer(img);
-      const filePath = `VIDEOS/${schemeId}/${seg.id}/IMAGE/${generateId()}.${extension}`;
-      const currentFrame = await services.storage.uploadData(filePath, buffer);
-
-      shot.imageUrl = currentFrame;
-      prices.push(imgPrice);
-      segmentUpdated = true;
-
-      const asset: SegmentAsset = {
-        id: generateId(),
-        type: "image",
-        status: "completed",
-        url: currentFrame,
-        prompt: `${shot.type}-${shot.firstFramePrompt}`,
-      };
-      currentAssets.push(asset);
-
-      if (!previewUrl) previewUrl = currentFrame;
-
-      await persistAsset(userId, projectId, schemeId, filePath, currentFrame, {
-        sourceType: "ai_generated",
-        assetType: "image",
-        originalFilename: `shot_frame_${seg.id}_${generateId()}.${extension}`,
-      });
-    }
-
-    if (segmentUpdated) {
-      segmentAssets[seg.id] = currentAssets;
-      await segmentQueries.bulkUpdateSegments([
-        {
+      if (segmentUpdated) {
+        segmentAssets[seg.id] = currentAssets;
+        return {
           id: seg.id,
           segment_data: JSON.parse(JSON.stringify(ensureObject(seg))),
-        },
-      ]);
-    }
+        };
+      }
+      return null;
+    })
+  );
+
+  const validUpdates = updates.filter((u): u is NonNullable<typeof u> => u !== null);
+  if (validUpdates.length > 0) {
+    await segmentQueries.bulkUpdateSegments(validUpdates);
   }
 
   return { prices, segmentAssets, previewUrl };
@@ -95,94 +128,96 @@ export async function generateShotTimings(
   const segments = scheme.segments;
   const prices: PriceItem[] = [];
 
-  let globalCurrentTimeMs = 0;
+  const updates = await Promise.all(
+    segments.map(async (seg, i) => {
+      // Get audio data directly from segment
+      const audioData = (seg.textToSpeech as any);
+      const captionUrl = (seg.speechToText as any)?.src;
+      const originalDurationMs = audioData?.duration;
 
-  for (let i = 0; i < segments.length; i++) {
-    const seg = segments[i];
-    
-    // Get audio data directly from segment
-    const audioData = (seg.textToSpeech as any);
-    const captionUrl = (seg.speechToText as any)?.src;
-    const originalDurationMs = audioData?.duration;
-
-    if (!originalDurationMs || !captionUrl) {
-      console.warn(`[TIMINGS] Skipping segment ${seg.id} - missing audio/caption metadata`);
-      continue;
-    }
-
-    const isFirstSegment = i === 0;
-    const startPause = isFirstSegment ? VOICEOVER_INIT_PAUSE : VOICEOVER_PAUSE / 2;
-    const endPause = VOICEOVER_PAUSE / 2;
-
-    const startPauseMs = convertSecondsToMs(startPause);
-    const endPauseMs = convertSecondsToMs(endPause);
-    const netDurationSec = convertMsToSeconds(originalDurationMs);
-
-    // 1. Calculate Shot Timings
-    if (seg.shots?.length) {
-      const shotDurationsSec = await getShotDurations(captionUrl, seg.shots, netDurationSec, 0);
-      let segmentPosMs = 0;
-
-      for (let j = 0; j < seg.shots.length; j++) {
-        const shot = seg.shots[j];
-        let shotDurationMs = convertSecondsToMs(shotDurationsSec[j]);
-
-        if (j === 0) shotDurationMs += startPauseMs;
-        if (j === seg.shots.length - 1) shotDurationMs += endPauseMs;
-
-        shotDurationMs = Math.round(shotDurationMs);
-
-        const from = segmentPosMs;
-        const to = from + shotDurationMs;
-
-        shot.display = { from, to };
-        shot.duration = shotDurationMs;
-
-        segmentPosMs += shotDurationMs;
+      if (!originalDurationMs || !captionUrl) {
+        console.warn(`[TIMINGS] Skipping segment ${seg.id} - missing audio/caption metadata`);
+        return null;
       }
-    }
 
-    // 2. Calculate B-Roll Timings
-    if (seg.bRolls?.length) {
-      for (const broll of seg.bRolls) {
-        if (broll.words) {
-          const dataTime = await getBRollDisplayTime(broll.words, captionUrl, startPauseMs);
-          if (dataTime) {
-            broll.display = {
-              from: dataTime.display.from,
-              to: dataTime.display.to,
-            };
-            broll.duration = dataTime.display.to - dataTime.display.from;
-          }
+      const isFirstSegment = i === 0;
+      const startPause = isFirstSegment ? VOICEOVER_INIT_PAUSE : VOICEOVER_PAUSE / 2;
+      const endPause = VOICEOVER_PAUSE / 2;
+
+      const startPauseMs = convertSecondsToMs(startPause);
+      const endPauseMs = convertSecondsToMs(endPause);
+      const netDurationSec = convertMsToSeconds(originalDurationMs);
+
+      // 1. Calculate Shot Timings
+      if (seg.shots?.length) {
+        const shotDurationsSec = await getShotDurations(captionUrl, seg.shots, netDurationSec, 0);
+        let segmentPosMs = 0;
+
+        for (let j = 0; j < seg.shots.length; j++) {
+          const shot = seg.shots[j];
+          let shotDurationMs = convertSecondsToMs(shotDurationsSec[j]);
+
+          if (j === 0) shotDurationMs += startPauseMs;
+          if (j === seg.shots.length - 1) shotDurationMs += endPauseMs;
+
+          shotDurationMs = Math.round(shotDurationMs);
+
+          const from = segmentPosMs;
+          const to = from + shotDurationMs;
+
+          shot.display = { from, to };
+          shot.duration = shotDurationMs;
+
+          segmentPosMs += shotDurationMs;
         }
       }
-    }
 
-    // 3. Set Relative Audio/Caption Display for converter
-    if (seg.textToSpeech) {
-      (seg.textToSpeech as any).display = {
-        from: startPauseMs,
-        to: startPauseMs + originalDurationMs,
-      };
-    }
-    if (seg.speechToText) {
-      (seg.speechToText as any).display = {
-        from: startPauseMs,
-        to: startPauseMs + originalDurationMs,
-      };
-    }
+      // 2. Calculate B-Roll Timings
+      if (seg.bRolls?.length) {
+        await Promise.all(
+          seg.bRolls.map(async (broll) => {
+            if (broll.words) {
+              const dataTime = await getBRollDisplayTime(broll.words, captionUrl, startPauseMs);
+              if (dataTime) {
+                broll.display = {
+                  from: dataTime.display.from,
+                  to: dataTime.display.to,
+                };
+                broll.duration = dataTime.display.to - dataTime.display.from;
+              }
+            }
+          })
+        );
+      }
 
-    // Total segment duration in the timeline
-    const totalSegmentDurationMs = originalDurationMs + startPauseMs + endPauseMs;
-    seg.duration = totalSegmentDurationMs;
-    globalCurrentTimeMs += totalSegmentDurationMs;
+      // 3. Set Relative Audio/Caption Display for converter
+      if (seg.textToSpeech) {
+        (seg.textToSpeech as any).display = {
+          from: startPauseMs,
+          to: startPauseMs + originalDurationMs,
+        };
+      }
+      if (seg.speechToText) {
+        (seg.speechToText as any).display = {
+          from: startPauseMs,
+          to: startPauseMs + originalDurationMs,
+        };
+      }
 
-    await segmentQueries.bulkUpdateSegments([
-      {
+      // Total segment duration in the timeline
+      const totalSegmentDurationMs = originalDurationMs + startPauseMs + endPauseMs;
+      seg.duration = totalSegmentDurationMs;
+
+      return {
         id: seg.id,
         segment_data: JSON.parse(JSON.stringify(ensureObject(seg))),
-      },
-    ]);
+      };
+    })
+  );
+
+  const validUpdates = updates.filter((u): u is NonNullable<typeof u> => u !== null);
+  if (validUpdates.length > 0) {
+    await segmentQueries.bulkUpdateSegments(validUpdates);
   }
 
   return { prices };
@@ -202,71 +237,81 @@ export async function generateShotVideos(
   const segmentAssets: Record<string, SegmentAsset[]> = {};
   const tmpDir = "/tmp";
 
-  for (const seg of segments) {
-    if (!seg.shots?.length) continue;
+  const updates = await Promise.all(
+    segments.map(async (seg) => {
+      if (!seg.shots?.length) return null;
 
-    let segmentUpdated = false;
-    const currentAssets: SegmentAsset[] = [];
+      let segmentUpdated = false;
+      const currentAssets: SegmentAsset[] = [];
 
-    for (let i = 0; i < seg.shots.length; i++) {
-      const shot = seg.shots[i];
+      await Promise.all(
+        seg.shots.map(async (shot, i) => {
+          if (!shot.videoUrl && shot.display) {
+            const isProductShot = shot.type === "product";
+            const combinedVideoPrompt =
+              `${shot.videoPrompt || ""}. ${shot.scenePrompt || ""}`.trim() || shot.words || "";
 
-      if (!shot.videoUrl && shot.display) {
-        const isProductShot = shot.type === "product";
-        const combinedVideoPrompt =
-          `${shot.videoPrompt || ""}. ${shot.scenePrompt || ""}`.trim() || shot.words || "";
+            const clipDurationSec = convertMsToSeconds(shot.duration || 5000);
 
-        const clipDurationSec = convertMsToSeconds(shot.duration || 5000);
+            try {
+              await withRetry(async (attempt) => {
+                const fallbackModel = attempt > 0 ? "veo-3.1-fast-generate-preview" : undefined;
+                const { videoPath, price } = await generateVideoClip(context, {
+                  seg,
+                  imageUrl: shot.imageUrl,
+                  duration: Math.max(5, clipDurationSec),
+                  tmpDir,
+                  promptOverride: combinedVideoPrompt,
+                  isProduct: isProductShot,
+                  fallbackModel,
+                });
 
-        try {
-          const { videoPath, price } = await generateVideoClip(context, {
-            seg,
-            imageUrl: shot.imageUrl,
-            duration: Math.max(5, clipDurationSec),
-            tmpDir,
-            promptOverride: combinedVideoPrompt,
-            isProduct: isProductShot,
-          });
+                prices.push(price);
 
-          prices.push(price);
+                const buffer = await fs.promises.readFile(videoPath);
+                const r2Path = `VIDEOS/${schemeId}/${seg.id}/VIDEOS/${generateId()}.mp4`;
+                const uploadedUrl = await context.services.storage.uploadData(r2Path, buffer);
 
-          const buffer = await fs.promises.readFile(videoPath);
-          const r2Path = `VIDEOS/${schemeId}/${seg.id}/VIDEOS/${generateId()}.mp4`;
-          const uploadedUrl = await context.services.storage.uploadData(r2Path, buffer);
+                shot.videoUrl = uploadedUrl;
 
-          shot.videoUrl = uploadedUrl;
+                const asset: SegmentAsset = {
+                  id: generateId(),
+                  type: "video",
+                  status: "completed",
+                  url: uploadedUrl,
+                  prompt: combinedVideoPrompt,
+                };
+                currentAssets.push(asset);
 
-          const asset: SegmentAsset = {
-            id: generateId(),
-            type: "video",
-            status: "completed",
-            url: uploadedUrl,
-            prompt: combinedVideoPrompt,
-          };
-          currentAssets.push(asset);
+                await persistAsset(userId, projectId, schemeId, r2Path, uploadedUrl, {
+                  sourceType: "ai_generated",
+                  assetType: "video",
+                  originalFilename: `shot_video_${seg.id}_${generateId()}.mp4`,
+                  duration: shot.duration,
+                });
+              });
+            } catch (err) {
+              console.error(`Failed to generate video for shot in segment ${seg.id}`, err);
+            }
+          }
+          segmentUpdated = true;
+        })
+      );
 
-          await persistAsset(userId, projectId, schemeId, r2Path, uploadedUrl, {
-            sourceType: "ai_generated",
-            assetType: "video",
-            originalFilename: `shot_video_${seg.id}_${generateId()}.mp4`,
-            duration: shot.duration,
-          });
-        } catch (err) {
-          console.error(`Failed to generate video for shot in segment ${seg.id}`, err);
-        }
-      }
-      segmentUpdated = true;
-    }
-
-    if (segmentUpdated) {
-      segmentAssets[seg.id] = currentAssets;
-      await segmentQueries.bulkUpdateSegments([
-        {
+      if (segmentUpdated) {
+        segmentAssets[seg.id] = currentAssets;
+        return {
           id: seg.id,
           segment_data: JSON.parse(JSON.stringify(ensureObject(seg))),
-        },
-      ]);
-    }
+        };
+      }
+      return null;
+    })
+  );
+
+  const validUpdates = updates.filter((u): u is NonNullable<typeof u> => u !== null);
+  if (validUpdates.length > 0) {
+    await segmentQueries.bulkUpdateSegments(validUpdates);
   }
 
   return { prices, segmentAssets };

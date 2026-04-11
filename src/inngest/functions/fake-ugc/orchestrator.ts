@@ -14,7 +14,7 @@ import { ResolverStatus, VideoType } from "@/utils/enum";
 import { workflowChannel } from "../../utils/common";
 import { ToastType } from "../../utils/types";
 import { advanceGenerationTask } from "../../utils/generation-progress";
-import { ensureObject, fetchWorkflowState, getMediaMetadata } from "../common/services/utils";
+import { ensureObject, fetchWorkflowState } from "../common/services/utils";
 import { FAKE_UGC_TASK_KEYS, FAKE_UGC_TASKS } from "./constants";
 import { applyLipsyncToScheme } from "../lipsync-resolver";
 
@@ -29,7 +29,6 @@ export const fakeUgcVideoOrchestrator = inngest.createFunction(
     const schemeId = scheme.id;
     const channel = workflowChannel(schemeId);
     const services = initializeFakeUgcServices();
-    let resultPreviewUrl: string | undefined = undefined;
     const defaultVisuals = {
       type: VideoType.AI_VIDEOS,
       style:
@@ -82,12 +81,7 @@ export const fakeUgcVideoOrchestrator = inngest.createFunction(
       let context: any = null;
       let userId: string | null = null;
       let projectId: string = "";
-      let segmentTimings: any = null;
       let previewData: any = null;
-      let baseBrollData: any = null;
-      let visualResults: any = null;
-      let segmentBrolls: any = null;
-      let finalResult: any = null;
       let result: any = null;
 
       // ========================================================================
