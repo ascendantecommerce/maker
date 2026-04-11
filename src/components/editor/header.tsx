@@ -35,9 +35,11 @@ import { toSlug } from "@/utils/format-title";
 export default function Header({
   projectId,
   projectName,
+  isOwner = true,
 }: {
   projectId?: string;
   projectName?: string;
+  isOwner?: boolean;
 }) {
   const { studio } = useStudioStore();
   const { toggleCopilot, isCopilotVisible } = usePanelStore();
@@ -377,7 +379,8 @@ export default function Header({
             value={title}
             onChange={handleTitleChange}
             width={200}
-            inputClassName="border-none outline-none px-1 text-sm font-medium"
+            inputClassName="border-none outline-none px-1 text-sm font-medium disabled:cursor-default disabled:opacity-70"
+            disabled={!isOwner}
           />
         </div>
       </div>

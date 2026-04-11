@@ -68,6 +68,7 @@ export default function StoryboardPage({ params }: StoryboardPageProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [schemaId, setSchemaId] = useState<string | null>(null);
+  const [isOwner, setIsOwner] = useState(true);
 
   const schemaData = useSchemaStore((state) => state.schema);
 
@@ -107,6 +108,8 @@ export default function StoryboardPage({ params }: StoryboardPageProps) {
           }
           setSchemaId(schema.schemaId ?? data.schemaId);
         }
+        // Track ownership from the API response
+        setIsOwner(data.isOwner ?? true);
 
         setIsLoading(false);
       } catch (err: any) {
@@ -220,6 +223,14 @@ export default function StoryboardPage({ params }: StoryboardPageProps) {
 
       {/* Inline generation progress strip — replaces the fullscreen overlay */}
       {isGenerating && <GenerationProgressBanner generationId={generationId} />}
+
+      {/* Shared-project banner for non-owners */}
+      {/* {!isOwner && !isGenerating && (
+        <div className="flex-none border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 flex items-center gap-2 text-amber-400 text-xs font-medium">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+          You&apos;re viewing a shared project — your edits will be saved to this project.
+        </div>
+      )} */}
 
       <div className="flex flex-row flex-1 min-h-0 overflow-hidden">
         <StoryboardEditor isGenerating={isGenerating} />

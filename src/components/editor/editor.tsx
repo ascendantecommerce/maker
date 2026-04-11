@@ -22,11 +22,13 @@ export default function Editor({
   schemaId,
   projectId,
   projectName,
+  isOwner = true,
 }: {
   design: Design | null;
   schemaId?: string;
   projectId?: string;
   projectName?: string;
+  isOwner?: boolean;
 }) {
   const {
     toolsPanel,
@@ -69,14 +71,16 @@ export default function Editor({
   // }, [studio]);
 
   useEffect(() => {
-    if (!studio) return;
-    if (design && studio) {
+    if (!studio || !design || !isReady) return;
+    try {
       studio.loadFromJSON(design);
+    } catch (error) {
+      console.error("Failed to load design:", error);
     }
-  }, [design, studio]);
+  }, [design, studio, isReady]);
 
   useEffect(() => {
-    if (!studio || !schemaId || !projectId) return;
+    if (!studio || !schemaId || !projectId || !isOwner) return;
     console.log(studio);
     const saveScene = debounce(async () => {
       try {
@@ -123,7 +127,7 @@ export default function Editor({
         studio.off(event, saveScene);
       });
     };
-  }, [studio, schemaId, projectId]);
+  }, [studio, schemaId, projectId, isOwner]);
 
   return (
     <div className="h-screen w-screen flex flex-col bg-background overflow-hidden">
@@ -132,7 +136,13 @@ export default function Editor({
           <Loading />
         </div>
       )}
-      <Header projectId={projectId} projectName={projectName} />
+      <Header projectId={projectId} projectName={projectName} isOwner={isOwner} />
+      {/* {!isOwner && (
+        <div className="flex-none border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 flex items-center gap-2 text-amber-400 text-xs font-medium">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+          You&apos;re editing a shared project — changes are not saved to the database.
+        </div>
+      )} */}
       <div className="flex-1 min-h-0 min-w-0">
         <ResizablePanelGroup direction="horizontal" className="h-full w-full gap-0">
           {/* Left Column: Media Panel */}
