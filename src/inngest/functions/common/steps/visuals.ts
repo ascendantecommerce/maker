@@ -34,8 +34,6 @@ import path from "path";
 import os from "os";
 import { convertMsToSeconds } from "@/inngest/utils/common";
 import { SegmentTiming } from "@/inngest/functions/common/steps/timings";
-import { config as appConfig } from "@/inngest/config";
-import { VideoGenerator } from "@/lib/video-generation";
 
 export const generateImage = async (
   context: StepContext,
@@ -126,47 +124,20 @@ export const generateVideoClip = async (
   const { scheme, attempt, services } = context;
   const { resolution } = scheme;
 
+  const snappedDuration = params.duration <= 4 ? 4 : params.duration <= 6 ? 6 : 8;
+
   const payload = {
     prompt: params.promptOverride,
     style: scheme.visuals.style,
     firstFrameUrl: params.imageUrl,
-    durationSeconds: params.duration,
+    durationSeconds: snappedDuration,
     aspectRatio: scheme.aspectRatio,
   };
 
   let videoUrl = "";
-  let actualDurationSeconds: number = params.duration;
-  let generatorFn: any;
+  let actualDurationSeconds: number = snappedDuration;
 
-  if (params.isProduct) {
-    generatorFn = services.videoGenerator.create.bind(services.videoGenerator);
-  } else if (attempt > 1) {
-    if (resolution === resolutionType.Low) {
-      const videoGenerator = new VideoGenerator({
-        provider: "wan",
-        params: {
-          apiKey: appConfig.freepik.url,
-          url: appConfig.freepik.url,
-          resolution: scheme.resolution,
-        },
-      });
-      generatorFn = videoGenerator.create.bind(videoGenerator);
-    } else {
-      const videoGenerator = new VideoGenerator({
-        provider: "hailuo",
-        params: {
-          apiKey: appConfig.freepik.key,
-          url: appConfig.freepik.url,
-          resolution: scheme.resolution,
-        },
-      });
-      generatorFn = videoGenerator.create.bind(videoGenerator);
-    }
-  } else {
-    generatorFn = services.videoGenerator.create.bind(services.videoGenerator);
-  }
-
-  const result = await generatorFn(payload);
+  const result = await services.videoGenerator.create(payload);
   if (typeof result === "string") {
     videoUrl = result;
   } else {

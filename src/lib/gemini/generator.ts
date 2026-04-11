@@ -826,22 +826,22 @@ Apply these rules for the Character-Driven Ad blocks:
         }),
       );
 
-      const selectionPrompt = `You are an expert audio analyst specialising in high-quality voice cloning.
+      const selectionPrompt = `You are an expert audio analyst tasked with selecting the best voice clone source from a set of User Generated Content (UGC) videos.
 You will be provided with ${candidates.length} video clips, labelled Video 0 through Video ${candidates.length - 1}.
 
-Analyze each video and select the single BEST source for high-fidelity voice cloning. Prioritize a "Studio Sound" quality.
+Analyze each video and select the single BEST source highly authentic, conversational voice cloning. Prioritize a GENUINE, REAL-WORLD sound over sterilized studio perfection.
 
 Strict Evaluation Criteria:
-- Naturalness (50%): Human-like prosody, intonation, and cadence. Must sound like a real person in a room, NOT robotic, monotone, or AI-generated.
-- Studio Quality & Clarity (30%): Clear, "dry" studio-like recording. Minimal background noise, but should have a natural, pleasant "ambient inside" warmth rather than clinical silence.
-- Zero Robotic Artifacts (20%): Immediate disqualification for any metallic "underwater" sounds, digital hissing, popping, or robotic stuttering.
+- Unpolished Authenticity (50%): Human-like prosody, engaging intonation, and casual cadence. Must sound like a genuine, relatable person talking directly to their phone. HEAVILY PENALIZE stiff, "announcer-like", or overly polished commercial reads.
+- Natural Environmental Acoustics (30%): The audio should be perfectly clear, but it MUST sound like a real room (e.g., natural breathing, slight realistic room reverb) rather than a dead, clinical, isolated sound booth.
+- Zero Digital Artifacts (20%): Immediate disqualification for any metallic "underwater" sounds, digital hissing, popping, or robotic AI stuttering.
 
-Select the candidate that sounds most like a professional voice-over recorded in a controlled environment.
+Select the candidate that sounds the most natively human, relatable, and authentic, as if randomly recorded by a creator in their home.
 
 Return ONLY a JSON object with exactly two fields:
 {
   "bestIndex": <zero-based integer of the best video>,
-  "reasoning": "<one brief sentence explaining specifically why this video has the best studio/natural quality>"
+  "reasoning": "<one brief sentence explaining specifically why this video has the best authentic/relatable UGC quality>"
 }`;
 
       // Build the content parts: prompt text followed by all video inline data

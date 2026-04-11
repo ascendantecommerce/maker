@@ -93,13 +93,6 @@ export class VeoProvider implements Generator {
       finalNegativePrompt = undefined;
     }
 
-    const supportedVeoDurations = [4, 6, 8];
-    const rawDuration = params.durationSeconds || 4;
-    const snappedDuration =
-      usesReferences || lastFramePart
-        ? 8
-        : supportedVeoDurations.find((d) => d >= rawDuration) || 8;
-
     const payload: any = {
       model: this.model || "veo-3.1-fast-generate-preview",
       prompt: finalPromptToUse,
@@ -108,13 +101,13 @@ export class VeoProvider implements Generator {
         aspectRatio: aspectRatio,
         negativePrompt: finalNegativePrompt,
         referenceImages: usesReferences ? finalCappedReferences : undefined,
-        durationSeconds: snappedDuration,
+        durationSeconds: usesReferences || lastFramePart ? 8 : params.durationSeconds,
         ...(lastFramePart ? { lastFrame: lastFramePart } : {}),
       },
     };
 
     console.log(
-      `[Veo] Submitting task (Duration: ${snappedDuration}s):`,
+      "Veo Payload:",
       JSON.stringify(
         payload,
         (key, value) => {
@@ -129,7 +122,7 @@ export class VeoProvider implements Generator {
 
     const operation = await this.gemini.models.generateVideos(payload);
     if (!operation.name) throw new Error("Failed to get operation name from Gemini");
-    return { operationName: operation.name, duration: snappedDuration };
+    return { operationName: operation.name, duration: usesReferences || lastFramePart ? 8 : (params.durationSeconds ?? 5) };
   }
 
   async getStatus(operationName: string): Promise<VideoStatusResponse> {
@@ -169,15 +162,12 @@ export class VeoProvider implements Generator {
       const videoBuffer = await fs.promises.readFile(downloadPath);
       const base64 = videoBuffer.toString("base64");
       await fs.promises.unlink(downloadPath).catch(() => {});
-      console.log(`[VEO_TRACE] Task ${operationName} completed and downloaded successfully. Base64 length: ${base64.length}`);
       return {
         id: operationName,
         status: "COMPLETED",
         videos: [`data:video/mp4;base64,${base64}`],
-        duration: NaN, // We'll rely on the snapped duration from creation for now
       };
     } catch (err: any) {
-      console.error(`[VEO_ERROR] Failed to download or process generated video:`, err);
       throw new Error(`Failed to download or process generated video: ${err.message}`);
     }
   }
@@ -190,13 +180,10 @@ export class VeoProvider implements Generator {
         const result = await this.getStatus(operationName);
         console.log(`⏳ [Veo] Attempt ${attempts} - Status: ${result.status}`);
         if (result.status === "COMPLETED") return result.videos[0];
-        if (result.status === "FAILED") {
-          console.error(`[VEO_ERROR] Task failed on attempt ${attempts}: ${result.error}`);
-          throw new Error(`Veo task failed: ${result.error}`);
-        }
+        if (result.status === "FAILED") throw new Error(`Veo task failed: ${result.error}`);
       } catch (error) {
         console.error(`⚠️ [Veo] getStatus failed (attempt ${attempts}):`, error);
-        if (attempts >= 4) throw new Error(`Veo polling failed: 4 consecutive errors: ${error instanceof Error ? error.message : String(error)}`);
+        if (attempts >= 4) throw new Error(`Veo polling failed: 4 consecutive errors`);
       }
       await new Promise((resolve) => setTimeout(resolve, 15000));
     }

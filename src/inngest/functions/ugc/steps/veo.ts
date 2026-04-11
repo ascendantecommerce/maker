@@ -264,6 +264,10 @@ export const generateAndUploadVeo = async ({
 
       let firstFrameUrlToUse: string | undefined = undefined;
       let referenceImageUrlsToUse: string[] | undefined = undefined;
+      let lastFrameUrlToUse: string | undefined = undefined;
+
+      // Track the initial duration to fallback properly if continuity fails
+      const initialDurationSeconds = durationSeconds;
 
       if (useFirstFrame) {
         if (firstFrameSource === "avatar") {
@@ -281,6 +285,8 @@ export const generateAndUploadVeo = async ({
               `[Veo] Continuity mode: using pre-extracted last frame for segment: ${segmentId}`,
             );
             firstFrameUrlToUse = preExtractedLastFrameUrl;
+            lastFrameUrlToUse = avatarUrl;
+            durationSeconds = 8; // Continuity interpolation forces 8s generation
 
             // Verify product visibility in the pre-extracted frame
             if (isProductShot) {
@@ -297,17 +303,22 @@ export const generateAndUploadVeo = async ({
                   `[Veo] Product NOT clearly visible in last frame (Confidence: ${visibility.confidence}). Applying fallback...`,
                 );
 
-                if (durationSeconds > 4) {
+                const originalEstimatedDuration = (segData as any).originalEstimatedDuration ?? estimatedDuration;
+
+                if (originalEstimatedDuration > 4.5) {
                   // Fallback to Reference Mode for longer product shots
                   console.log(`[Veo] Falling back to Reference Mode.`);
                   useFirstFrame = false;
                   useReferences = true;
                   firstFrameUrlToUse = undefined;
+                  lastFrameUrlToUse = undefined;
                   durationSeconds = 8;
                 } else {
                   // Transform short product shot to Generic talking head
                   console.log(`[Veo] Transforming short product shot to Generic talking head.`);
                   firstFrameUrlToUse = avatarUrl;
+                  lastFrameUrlToUse = undefined;
+                  durationSeconds = initialDurationSeconds;
                 }
               }
             }
@@ -316,6 +327,8 @@ export const generateAndUploadVeo = async ({
               `[Veo] Continuation expected but no pre-extracted frame found. Using avatar.`,
             );
             firstFrameUrlToUse = avatarUrl;
+            lastFrameUrlToUse = undefined;
+            durationSeconds = initialDurationSeconds;
           }
         } else {
           firstFrameUrlToUse = avatarUrl;
@@ -344,6 +357,7 @@ export const generateAndUploadVeo = async ({
 
       if (useReferences) {
         referenceImageUrlsToUse = [...(avatarUrl ? [avatarUrl] : []), ...productUrls];
+        durationSeconds = 8; // Reference injections also force 8s
       }
 
       console.log({
@@ -353,6 +367,7 @@ export const generateAndUploadVeo = async ({
         hasFirstFrame: !!firstFrameUrlToUse,
         hasReferences: !!referenceImageUrlsToUse,
         firstFrameUrlToUse,
+        lastFrameUrlToUse,
       });
 
       console.log({ finalPrompt });
@@ -365,7 +380,7 @@ export const generateAndUploadVeo = async ({
         aspectRatio: (schema as any).aspect_ratio ?? "9:16",
         durationSeconds,
         firstFrameUrl: firstFrameUrlToUse,
-        lastFrameUrl: firstFrameSource === "last_frame" ? avatarUrl : undefined,
+        lastFrameUrl: lastFrameUrlToUse,
         referenceImageUrls: referenceImageUrlsToUse,
       });
       rawVideoUrl = typeof generatorOutput === "string" ? generatorOutput : generatorOutput.url;
@@ -527,12 +542,14 @@ export async function generateUgcVideo({
   const estimatedDurationInit = segData.estimatedDuration ?? 5;
   const targetDuration = 7.5; // Max target duration
   
-  // Apply fillers if it's reference mode and shorter than 6.75s (meaning it needs at least 0.75s of padding)
+  // Apply fillers if it's reference mode OR continuity mode (last_frame interpolation) and shorter than 6.75s
   const isShortReferenceMode = mode === "reference to video" && estimatedDurationInit < 6.75;
+  const isShortContinuityMode = firstFrameSource === "last_frame" && estimatedDurationInit < 6.75;
+  const needsFiller = isShortReferenceMode || isShortContinuityMode;
 
   let localSegData = { ...segData };
 
-  if (isShortReferenceMode) {
+  if (needsFiller) {
     const timeToFillSeconds = Math.max(0, targetDuration - estimatedDurationInit);
     
     // Pick the closest filler phrase length (1 to 4 seconds)
@@ -557,13 +574,16 @@ export async function generateUgcVideo({
         break;
     }
 
-    console.log(`[Veo] Padding short reference video script [${estimatedDurationInit}s]. Adding ~${fillerSecondsNeeded}s filler to hit ~7.5s.`);
+    const modeName = isShortContinuityMode ? "continuity" : "reference";
+    console.log(`[Veo] Padding short ${modeName} video script [${estimatedDurationInit}s]. Adding ~${fillerSecondsNeeded}s filler to hit ~7.5s.`);
     
     const trimmedBase = localSegData.text?.trim() ?? "";
     const textWithDot = trimmedBase.endsWith(".") ? trimmedBase : `${trimmedBase}.`;
     localSegData.text = `${textWithDot} ${selectedFiller}`;
     localSegData.estimatedDuration = estimatedDurationInit + fillerSecondsNeeded; // Override so orchestration recognizes the bump
   }
+
+  (localSegData as any).originalEstimatedDuration = estimatedDurationInit;
 
   // 1. Generate the video
   const { rawR2Url } = await generateAndUploadVeo({
@@ -584,23 +604,25 @@ export async function generateUgcVideo({
     isFirstProductMention,
   });
 
-  // 2. Process: trim, extract last frame, and re-transcribe — all from the in-memory buffer
+  // 2. Isolate voice, trim, extract last frame, and re-transcribe
   const processedVideo = await transcribeAndTrimVeoVideo({
     rawR2Url,
     schemaId,
     segmentId,
     expectedText: segData.text,
+    tts: services.tts,
   });
 
   // lastFrameUrl is extracted inside transcribeAndTrimVeoVideo from the in-memory trimmed buffer,
   // avoiding a redundant network download.
-  const { finalR2Url, actualDuration, tsUrl, lastFrameUrl } = processedVideo;
+  const { finalR2Url, actualDuration, tsUrl, lastFrameUrl, isolatedVideoUrl } = processedVideo;
 
   // 3. Return everything needed
   return {
-    rawR2Url,
+    rawR2Url, // The original video without isolation
+    isolatedVideoUrl, // The raw untrimmed video with the isolated voice
     lastFrameUrl,
-    finalTrimmedUrl: finalR2Url,
+    finalTrimmedUrl: finalR2Url, // This applies the isolated audio video BUT correctly trimmed!
     actualDuration,
     tsUrl,
   };
