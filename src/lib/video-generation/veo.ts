@@ -13,17 +13,21 @@ export class VeoProvider implements Generator {
   private geminiApiKey: string;
   private readonly MAX_POLL_ATTEMPTS = 100;
 
-  constructor(config: { geminiApiKey: string; resolution?: string }) {
+  private model?: string;
+
+  constructor(config: { geminiApiKey: string; resolution?: string; model?: string }) {
     this.gemini = new GoogleGenAI({ apiKey: config.geminiApiKey });
     this.geminiApiKey = config.geminiApiKey;
+    this.model = config.model;
   }
 
-  async create(params: VideoParams): Promise<string> {
-    const operationName = await this.submitVeoTask(params);
-    return this.pollVeoTask(operationName);
+  async create(params: VideoParams): Promise<{ url: string; duration: number }> {
+    const { operationName, duration } = await this.submitVeoTask(params);
+    const url = await this.pollVeoTask(operationName);
+    return { url, duration };
   }
 
-  private async submitVeoTask(params: VideoParams): Promise<string> {
+  private async submitVeoTask(params: VideoParams): Promise<{ operationName: string; duration: number }> {
     const aspectRatio = params.aspectRatio || aspectRatioType.NINE_SIXTEEN;
     let imagePart: Image | undefined = undefined;
 
@@ -90,8 +94,7 @@ export class VeoProvider implements Generator {
     }
 
     const payload: any = {
-      // model: "veo-3.1-fast-generate-preview",
-      model: "veo-3.1-fast-generate-preview",
+      model: this.model || "veo-3.1-fast-generate-preview",
       prompt: finalPromptToUse,
       ...(finalImagePart ? { image: finalImagePart } : {}),
       config: {
@@ -116,9 +119,10 @@ export class VeoProvider implements Generator {
         2,
       ),
     );
+
     const operation = await this.gemini.models.generateVideos(payload);
     if (!operation.name) throw new Error("Failed to get operation name from Gemini");
-    return operation.name;
+    return { operationName: operation.name, duration: usesReferences || lastFramePart ? 8 : (params.durationSeconds ?? 5) };
   }
 
   async getStatus(operationName: string): Promise<VideoStatusResponse> {

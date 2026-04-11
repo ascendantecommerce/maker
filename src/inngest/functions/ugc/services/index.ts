@@ -4,6 +4,7 @@ import { VideoGenerator } from "@/lib/video-generation";
 import { ImageGenerator } from "@/lib/image-generation";
 import { R2StorageService } from "@/lib/r2-storage";
 import { SttService } from "@/lib/transcribe/deepgram";
+import { TtsService } from "@/lib/tts";
 import { config } from "../../../config";
 
 export interface UgcServices {
@@ -13,6 +14,7 @@ export interface UgcServices {
   imageGenerator: ImageGenerator;
   r2: R2StorageService;
   stt: SttService;
+  tts: TtsService;
 }
 
 export function initializeUgcServices(): UgcServices {
@@ -47,6 +49,8 @@ export function initializeUgcServices(): UgcServices {
 
   const stt = new SttService(config.deepgram.url, config.deepgram.key, config.deepgram.model);
 
+  const tts = new TtsService(config.elevenLabs.url, config.elevenLabs.key, config.elevenLabs.model);
+
   return {
     gemini,
     elevenlabs,
@@ -54,5 +58,6 @@ export function initializeUgcServices(): UgcServices {
     imageGenerator,
     r2,
     stt,
+    tts,
   };
 }

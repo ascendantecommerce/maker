@@ -2,7 +2,7 @@ import { resolutionType } from "@/utils/enum";
 import { VideoStatusResponse } from "./types";
 
 export interface Generator {
-  create(params: any): Promise<string>;
+  create(params: any): Promise<string | { url: string; duration: number }>;
   getStatus?(id: string): Promise<VideoStatusResponse>;
 }
 
@@ -27,5 +27,5 @@ export type GeneratorConfig =
     }
   | {
       provider: "veo";
-      params: { geminiApiKey: string; resolution?: string };
+      params: { geminiApiKey: string; resolution?: string; model?: string };
     };

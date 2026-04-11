@@ -34,5 +34,6 @@ export interface VideoStatusResponse {
   id: string;
   status: string; // 'CREATED' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED'
   videos: string[];
+  duration?: number; // Duration in seconds
   error?: string;
 }

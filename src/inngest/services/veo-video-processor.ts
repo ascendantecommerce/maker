@@ -1,12 +1,15 @@
 import { transcribe } from "@/lib/transcribe";
 import { R2StorageService } from "@/lib/r2-storage";
+import { TtsService } from "@/lib/tts";
 import { config } from "../config";
 import { generateId } from "@/utils/id";
 import { nanoid } from "nanoid";
 import * as os from "os";
 import * as path from "path";
 import * as fs from "fs";
-import { detectTrailingSilence, getVADSilenceUntil } from "./audio-utils";
+import { execSync } from "child_process";
+import { ffprobeStatic } from "@/utils/ffmpeg-config";
+import { detectTrailingSilence } from "./audio-utils";
 import { ffmpegAsync } from "./ffmpeg";
 import { getLastFrameFromVideo } from "./ffmpeg";
 
@@ -117,7 +120,7 @@ function cleanupTranscriptionWords(
   const leading = cleanupLeadingWords(words, expectedText);
   const trailing = cleanupTrailingWords(leading.words, expectedText);
   // Only expose firstWordStart when spurious leading words were actually found and removed.
-  // If no leading words were stripped, the silence before speech is natural and VAD already handles it.
+  // If no leading words were stripped, the silence before speech is natural.
   const firstWordStart = leading.trimmedCount > 0 ? leading.firstWordStart : null;
   return { words: trailing.words, firstWordStart };
 }
@@ -135,16 +138,12 @@ async function processTranscription(rawR2Url: string, expectedText?: string) {
   if (expectedText && words.length > 0) {
     const cleaned = cleanupTranscriptionWords(words, expectedText);
     words = cleaned.words;
-    // firstWordStart is non-null only when cleanupLeadingWords actually stripped spurious words
-    // from the front. No expectedText means we can't distinguish spurious from real words.
     firstWordStart = cleaned.firstWordStart;
   }
 
   if (words.length > 0) {
-    // Primary source: get the absolute last word timestamp from the transcription results
     lastWordEnd = Math.max(...words.map((w: any) => w.end as number));
   } else if (endOffsetSeconds > 0) {
-    // Fallback: use endOffsetSeconds if words are somehow missing but offset was provided
     lastWordEnd = endOffsetSeconds;
   }
 
@@ -168,7 +167,7 @@ async function applySilenceAndTrim(
   }
 
   if (lastWordEnd && lastWordEnd > 0) {
-    // Mute everything after the last word (+0.1s natural decay buffer) to create a perfectly clean pause
+    // Mute everything after the last word (+0.1s natural decay buffer)
     const muteStart = (lastWordEnd + 0.1).toFixed(3);
     audioFilters.push(`volume=enable='between(t,${muteStart},9999)':volume=0`);
   }
@@ -194,25 +193,42 @@ async function applySilenceAndTrim(
 }
 
 /**
+ * Gets audio duration in milliseconds from a local file using ffprobe.
+ */
+function getAudioDurationMs(filePath: string): number {
+  try {
+    const out = execSync(
+      `"${ffprobeStatic}" -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`,
+    ).toString();
+    return parseFloat(out.trim()) * 1000;
+  } catch {
+    return 0;
+  }
+}
+
+/**
  * Transcribes a Veo-generated video via Deepgram, calculates the actual
  * spoken duration from the last word timestamp, trims the video exactly to
  * that duration (lastWordEnd + 0.3 s padding), and returns the trimmed URL.
  *
- * No reference/estimated duration is used — the truth comes entirely from
- * the transcription.
+ * Audio is first isolated via ElevenLabs to remove Veo-generated background
+ * noise before transcription and trimming. VAD is no longer used.
  */
 export async function transcribeAndTrimVeoVideo({
   rawR2Url,
   schemaId,
   segmentId,
   expectedText,
+  tts,
 }: {
   rawR2Url: string;
   schemaId: string;
   segmentId: string;
   expectedText?: string;
+  tts: TtsService;
 }): Promise<{
   finalR2Url: string;
+  isolatedVideoUrl?: string;
   lastFrameUrl?: string;
   tsUrl?: string;
   actualDuration: number;
@@ -226,35 +242,108 @@ export async function transcribeAndTrimVeoVideo({
     cdn: config.r2.cdn,
   });
 
-  // 1. Transcribe raw video to get timings for cleanup and trim decisions
-  let transcription;
-  try {
-    transcription = await processTranscription(rawR2Url, expectedText);
-  } catch (e) {
-    console.error(`Transcription failed for ${segmentId}:`, e);
-  }
-
-  // 2. Validate transcription words found
-  if (!transcription || transcription.lastWordEnd === null) {
-    console.warn(`[veo-processor] No words found for ${segmentId}, keeping raw video untrimmed.`);
-    return {
-      finalR2Url: rawR2Url,
-      tsUrl: undefined,
-      actualDuration: 0,
-      comparison: { original: rawR2Url, updated: rawR2Url },
-    };
-  }
-
-  // 3. Download raw video locally for analysis
   const tempDir = os.tmpdir();
   const localRawPath = path.join(tempDir, `raw-${nanoid()}.mp4`);
+  const rawAudioPath = path.join(tempDir, `audio-${nanoid()}.mp3`);
+  const paddedAudioPath = path.join(tempDir, `padded-${nanoid()}.mp3`);
+  const cleanAudioPath = path.join(tempDir, `clean-${nanoid()}.mp3`);
+  const cleanVideoPath = path.join(tempDir, `clean-video-${nanoid()}.mp4`);
+
+  // Tracks whether ElevenLabs isolation succeeded, to decide intro offset strategy
+  let isolationSucceeded = false;
 
   try {
+    // 1. Download raw video
     const fetchRes = await fetch(rawR2Url);
     fs.writeFileSync(localRawPath, Buffer.from(await fetchRes.arrayBuffer()));
 
-    // 4. Calculate actual duration (adaptive silence gap)
-    const actualDuration = await detectTrailingSilence(localRawPath, transcription.lastWordEnd, {
+    // 2. Isolate voice via ElevenLabs and merge clean audio back into video
+    let localVideoPath = localRawPath;
+    let isolatedVideoUrl: string | undefined = undefined;
+    try {
+      // 2a. Extract audio track as mp3
+      await ffmpegAsync([
+        "-y", "-i", localRawPath,
+        "-vn", "-acodec", "libmp3lame", "-ab", "128k",
+        rawAudioPath,
+      ]);
+
+      // 2b. Pad to 5s minimum if needed (ElevenLabs audio isolation minimum)
+      const audioDurationMs = getAudioDurationMs(rawAudioPath);
+      let audioToIsolatePath = rawAudioPath;
+      if (audioDurationMs > 0 && audioDurationMs < 5000) {
+        await ffmpegAsync([
+          "-y", "-i", rawAudioPath,
+          "-af", "apad,atrim=0:5",
+          "-to", "5",
+          paddedAudioPath,
+        ]);
+        audioToIsolatePath = paddedAudioPath;
+        console.log(`[veo-processor] Audio padded to 5s for isolation (was ${(audioDurationMs / 1000).toFixed(2)}s) for ${segmentId}`);
+      }
+
+      // 2c. Isolate voice using ElevenLabs (removes background noise, music, SFX)
+      const rawAudioBuffer = fs.readFileSync(audioToIsolatePath);
+      const cleanAudioBuffer = await tts.isolateAudio(rawAudioBuffer);
+      fs.writeFileSync(cleanAudioPath, cleanAudioBuffer);
+      console.log(`[veo-processor] ElevenLabs isolation complete for ${segmentId}`);
+
+      // 2d. Merge isolated audio back into the original video
+      await ffmpegAsync([
+        "-y",
+        "-i", localRawPath,
+        "-i", cleanAudioPath,
+        "-map", "0:v:0",
+        "-map", "1:a:0",
+        "-c:v", "copy",
+        "-c:a", "aac",
+        "-shortest",
+        cleanVideoPath,
+      ]);
+
+      localVideoPath = cleanVideoPath;
+      isolationSucceeded = true;
+
+      // Upload the isolated video so we can transcribe the cleaned audio remotely
+      const cleanBuf = fs.readFileSync(cleanVideoPath);
+      isolatedVideoUrl = await r2.uploadData(
+        `ugc-videos/${schemaId}/${segmentId}/isolated-${nanoid()}.mp4`,
+        cleanBuf,
+        "video/mp4"
+      );
+    } catch (e) {
+      console.warn(`[veo-processor] Voice isolation failed for ${segmentId}, continuing with raw audio:`, e);
+    } finally {
+      [rawAudioPath, paddedAudioPath, cleanAudioPath].forEach((p) => {
+        if (fs.existsSync(p)) fs.unlinkSync(p);
+      });
+    }
+
+    // 3. Transcribe the (now clean) video
+    let transcription;
+    try {
+      const transcribeUrl = isolationSucceeded && isolatedVideoUrl ? isolatedVideoUrl : rawR2Url;
+      transcription = await processTranscription(transcribeUrl, expectedText);
+    } catch (e) {
+      console.error(`Transcription failed for ${segmentId}:`, e);
+    }
+
+    // 4. Validate transcription
+    if (!transcription || transcription.lastWordEnd === null) {
+      console.warn(`[veo-processor] No words found for ${segmentId}, keeping video untrimmed.`);
+      if (fs.existsSync(localRawPath)) fs.unlinkSync(localRawPath);
+      if (fs.existsSync(cleanVideoPath)) fs.unlinkSync(cleanVideoPath);
+      return {
+        finalR2Url: rawR2Url,
+        isolatedVideoUrl,
+        tsUrl: undefined,
+        actualDuration: 0,
+        comparison: { original: rawR2Url, updated: rawR2Url },
+      };
+    }
+
+    // 5. Calculate actual duration (adaptive silence gap from last spoken word)
+    const actualDuration = await detectTrailingSilence(localVideoPath, transcription.lastWordEnd, {
       minGap: 0.1,
       buffer: 0.1,
       aggressiveFallback: 0.1,
@@ -263,34 +352,33 @@ export async function transcribeAndTrimVeoVideo({
       `[veo-processor] Calculated actual duration ${actualDuration?.toFixed(3)}s for ${segmentId}`,
     );
 
-    // 5. Apply intro silence and end trim via FFMPEG
-    const vadOffset = await getVADSilenceUntil(rawR2Url);
-
-    // Pick the best intro-silence offset from 3 sources:
-    // - VAD (voice activity detection — most precise)
-    // - firstWordStart from transcription (reliable fallback if VAD misses leading noise words)
-    // - Deepgram offsetSeconds (least likely to be accurate but present as last resort)
-    // We take the MAX, because if the transcription first word starts late, the intro is at least that long.
+    // 6. Determine intro silence offset for trimming
+    // If isolation succeeded, ElevenLabs already removed the leading noise — no muting needed.
+    // If isolation failed, fall back to using transcription timestamps.
     const firstWordOffset = transcription.firstWordStart ?? 0;
     const deepgramOffset = transcription.offsetSeconds ?? 0;
-    const introSilenceOffset = Math.max(vadOffset ?? 0, firstWordOffset, deepgramOffset);
+    const introSilenceOffset = isolationSucceeded
+      ? 0
+      : Math.max(firstWordOffset, deepgramOffset);
+
     console.log(
-      `[veo-processor] Intro silence offset: ${introSilenceOffset.toFixed(3)}s (VAD: ${vadOffset?.toFixed(3) ?? "N/A"}, firstWord: ${firstWordOffset.toFixed(3)}s, Deepgram: ${deepgramOffset.toFixed(3)}s) for ${segmentId}`,
+      `[veo-processor] Intro offset: ${introSilenceOffset.toFixed(3)}s (isolation: ${isolationSucceeded}, firstWord: ${firstWordOffset.toFixed(3)}s, Deepgram: ${deepgramOffset.toFixed(3)}s) for ${segmentId}`,
     );
 
+    // 7. Apply end trim via ffmpeg
     const trimmedBuf = await applySilenceAndTrim(
-      localRawPath,
+      localVideoPath,
       introSilenceOffset,
       transcription.lastWordEnd,
       actualDuration!,
       tempDir,
     );
 
-    // 6. Upload cleanly trimmed video to R2
+    // 8. Upload trimmed video to R2
     const trimmedFileName = `ugc-videos/${schemaId}/${segmentId}/trimmed-${nanoid()}.mp4`;
     const finalVideoUrl = await r2.uploadData(trimmedFileName, trimmedBuf, "video/mp4");
 
-    // 7. Extract last frame from trimmed buffer (already in memory — no re-download needed)
+    // 9. Extract last frame from trimmed buffer
     let lastFrameUrl: string | undefined;
     try {
       const tempTrimmedPath = path.join(tempDir, `trimmed-frame-src-${nanoid()}.mp4`);
@@ -306,11 +394,11 @@ export async function transcribeAndTrimVeoVideo({
       console.warn(`[veo-processor] Last frame extraction failed for ${segmentId}:`, e);
     }
 
+    // 10. Cleanup local files
     if (fs.existsSync(localRawPath)) fs.unlinkSync(localRawPath);
+    if (fs.existsSync(cleanVideoPath)) fs.unlinkSync(cleanVideoPath);
 
-    // 8. Re-transcribe the trimmed video for accurate final timestamps
-    //    The raw transcription timestamps shift after intro silence removal and end-trim,
-    //    so we need a fresh transcription from the clean output.
+    // 11. Re-transcribe trimmed video for accurate final timestamps
     let finalTsUrl: string | undefined;
     try {
       const finalResult = await transcribe({ url: finalVideoUrl });
@@ -328,20 +416,25 @@ export async function transcribeAndTrimVeoVideo({
 
     return {
       finalR2Url: finalVideoUrl,
+      isolatedVideoUrl,
       lastFrameUrl,
       tsUrl: finalTsUrl,
       actualDuration: actualDuration!,
-      comparison: { original: rawR2Url, updated: finalVideoUrl },
+      comparison: { original: rawR2Url, updated: isolatedVideoUrl || finalVideoUrl },
     };
   } catch (err) {
-    console.error(`Failed to trim video for segment ${segmentId}:`, err);
-    if (fs.existsSync(localRawPath)) fs.unlinkSync(localRawPath);
+    console.error(`Failed to process video for segment ${segmentId}:`, err);
 
-    // Fall back to the raw video but still return duration estimate
+    // Cleanup any leftover temp files
+    [localRawPath, cleanVideoPath].forEach((p) => {
+      if (fs.existsSync(p)) fs.unlinkSync(p);
+    });
+
     return {
       finalR2Url: rawR2Url,
+      isolatedVideoUrl: undefined,
       tsUrl: undefined,
-      actualDuration: transcription.lastWordEnd + 0.3,
+      actualDuration: 0,
       comparison: { original: rawR2Url, updated: rawR2Url },
     };
   }

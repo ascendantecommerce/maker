@@ -20,6 +20,19 @@ export async function fileUrlToBuffer(
   fileUrl: string,
 ): Promise<{ buffer: Buffer; contentType: string }> {
   try {
+    // If it's a local file path (starts with / or is an absolute path on disk)
+    if (!fileUrl.startsWith("http") && !fileUrl.startsWith("data:")) {
+      const fs = await import("fs");
+      if (fs.existsSync(fileUrl)) {
+        console.log(`[DOWNLOAD] Reading local file: ${fileUrl}`);
+        const buffer = await fs.promises.readFile(fileUrl);
+        const mime = await import("mime/lite");
+        const contentType = mime.default.getType(fileUrl) || "application/octet-stream";
+        return { buffer, contentType };
+      }
+    }
+
+    console.log(`[DOWNLOAD] Fetching remote URL: ${fileUrl}`);
     // Fetch the file as an array buffer
     const response = await fetch(fileUrl);
     if (!response.ok) {
@@ -28,20 +41,25 @@ export async function fileUrlToBuffer(
 
     // Extract MIME type from the response headers
     let contentType = response.headers.get("content-type") || "application/octet-stream";
-    console.log("contentType", contentType);
+    
     // Fallback to URL extension if MIME is generic or bin
-    const urlObj = new URL(fileUrl);
-    const urlPath = urlObj.pathname.toLowerCase();
-    const urlExt = urlPath.split(".").pop()?.split(/[?#]/)[0];
+    const mime = await import("mime/lite");
+    try {
+      const urlObj = new URL(fileUrl);
+      const urlPath = urlObj.pathname.toLowerCase();
+      const urlExt = urlPath.split(".").pop()?.split(/[?#]/)[0];
 
-    const isGeneric =
-      contentType === "application/octet-stream" ||
-      contentType === "binary/octet-stream" ||
-      !contentType;
+      const isGeneric =
+        contentType === "application/octet-stream" ||
+        contentType === "binary/octet-stream" ||
+        !contentType;
 
-    if (isGeneric && urlExt) {
-      const inferredMime = mime.getType(urlExt);
-      if (inferredMime) contentType = inferredMime;
+      if (isGeneric && urlExt) {
+        const inferredMime = mime.default.getType(urlExt);
+        if (inferredMime) contentType = inferredMime;
+      }
+    } catch (e) {
+       // Ignore URL parsing errors for non-standard URLs
     }
 
     // Convert the array buffer to a Node.js buffer
@@ -55,3 +73,4 @@ export async function fileUrlToBuffer(
     throw error;
   }
 }
+

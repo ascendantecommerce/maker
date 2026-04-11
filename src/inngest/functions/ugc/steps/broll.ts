@@ -51,12 +51,14 @@ export const generateSegmentBRolls = async (
         const pixversePrompt =
           `${bRoll.videoPrompt || ""} Subtle handheld camera micro-tremors, natural lighting, organic feel.`.trim();
 
-        const bRollVideoUrl = await services.videoGenerator.create({
+        const bRollResult = await services.videoGenerator.create({
           prompt: pixversePrompt,
           style: schema.visuals?.style,
           firstFrameUrl: avatarImageUrl,
           durationSeconds: 5,
         });
+
+        const bRollVideoUrl = typeof bRollResult === "string" ? bRollResult : bRollResult.url;
 
         if (bRollVideoUrl) {
           const tmpDir = os.tmpdir();
@@ -163,13 +165,15 @@ export const generateUgcBrollVideo = async ({
     return null;
   }
 
-  const videoUrl = await videoGenerator.create({
+  const bRollResult = await videoGenerator.create({
     prompt: bRoll.videoPrompt || "",
     style: "Cinematic",
     aspectRatio: "9:16",
     durationSeconds: 5,
     firstFrameUrl: bRoll.firstFrame, // AI generated prompt or URL
   });
+
+  const videoUrl = typeof bRollResult === "string" ? bRollResult : bRollResult.url;
 
   if (videoUrl) {
     const tmpDir = os.tmpdir();

@@ -39,9 +39,9 @@ export const ugcVideoOrchestrator = inngest.createFunction(
       const STAGE_1_ANALYSIS_SCHEMA = true; // Phase 1: Script Analysis & Rendering Schema
       const STAGE_2_A_ROLL_VIDEO = true; // Phase 2: Generating main Avatar shots
       const STAGE_3_CUTAWAY_B_ROLL = false; // Phase 3: Generating full-screen B-roll clips
-      const STAGE_4_OVERLAY_IMAGE = true; // Phase 4: Generating demonstrative Image Overlays (nano-banana-2)
-      const STAGE_5_VOICE_ALIGNMENT = false; // Phase 5: Optional Voice Cloning & Alignment (STS)
-      const STAGE_6_AUDIO_ENHANCEMENT = true; // Phase 6: Phonos Refinement
+      const STAGE_4_OVERLAY_IMAGE = false; // Phase 4: Generating demonstrative Image Overlays (nano-banana-2)
+      const STAGE_5_VOICE_ALIGNMENT = true; // Phase 5: Optional Voice Cloning & Alignment (STS)
+      const STAGE_6_AUDIO_ENHANCEMENT = false; // Phase 6: Phonos Refinement
       // ========================================================================
 
       // --- PHASE 1: AI ANALYSIS & SCHEMA GENERATION ---
@@ -437,7 +437,10 @@ export const ugcVideoOrchestrator = inngest.createFunction(
         });
 
         const stsTasks = dbSegments.map(async (segment) => {
-          let currentUrl = (segment as any).videoUrl;
+          const sd = segment.segment_data as any;
+          const videoAsset = (sd.assets || sd.shots || []).find((a: any) => a.type === "video" && a.videoUrl && a.active !== false);
+          let currentUrl = videoAsset?.videoUrl || sd.shots?.[0]?.videoUrl;
+
           if (!currentUrl) return;
 
           const stsResult = await step.run(`process-sts-${segment.id}-${runToken}`, async () => {
@@ -471,7 +474,10 @@ export const ugcVideoOrchestrator = inngest.createFunction(
         );
 
         const enhanceTasks = dbSegments.map(async (segment) => {
-          let currentUrl = (segment as any).videoUrl;
+          const sd = segment.segment_data as any;
+          const videoAsset = (sd.assets || sd.shots || []).find((a: any) => a.type === "video" && a.videoUrl && a.active !== false);
+          let currentUrl = videoAsset?.videoUrl || sd.shots?.[0]?.videoUrl;
+          
           if (!currentUrl) return;
 
           const enhancedResult = await step.run(

@@ -1,23 +1,22 @@
 import { NonRetriableError } from "inngest";
 
 import { getInngestApp } from "../../index";
-
-import { initializeServices } from "../common/services";
-import * as pipelineSteps from "../common/steps";
-
-import * as productSteps from "./steps";
-import { applyLipsyncToScheme } from "../lipsync-resolver";
+import type { PriceItem, SegmentAsset, VideoSchema } from "../../utils/types";
 
 import { db } from "@/lib/database";
 import { withDbRetry } from "@/lib/database/retry";
+import { initializeServices } from "../common/services";
+import * as productSteps from "./steps/index";
+import * as productVisuals from "./steps/visuals";
+import * as pipelineSteps from "../common/steps";
 
-import { ResolverStatus } from "@/utils/enum";
+import { ResolverStatus, VideoType } from "@/utils/enum";
 import { workflowChannel } from "../../utils/common";
-import { ToastType, type PriceItem, type VideoSchema } from "../../utils/types";
+import { ToastType } from "../../utils/types";
 import { advanceGenerationTask } from "../../utils/generation-progress";
-
-import { ensureObject, fetchWorkflowState, getMediaMetadata } from "../common/services/utils";
+import { ensureObject, fetchWorkflowState } from "../common/services/utils";
 import { PRODUCT_TASK_KEYS, PRODUCT_TASKS } from "./constants";
+import { applyLipsyncToScheme } from "../lipsync-resolver";
 
 const inngest = getInngestApp();
 
@@ -30,15 +29,18 @@ export const productVideoOrchestrator = inngest.createFunction(
     const schemeId = scheme.id;
     const channel = workflowChannel(schemeId);
     const services = initializeServices();
+    let resultPreviewUrl: string | undefined = undefined;
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
       await step.run("publish-start-toast", async () => {
         await publish({
           channel,
           topic: "steps",
-          data: { type: ToastType.STEP_START, step: "AI Analysis", stepIndex: 1 },
+          data: {
+            type: ToastType.STEP_START,
+            step: "AI Analysis",
+            stepIndex: 1,
+          },
         });
       });
 
@@ -56,21 +58,22 @@ export const productVideoOrchestrator = inngest.createFunction(
       // ========================================================================
       const STAGE_1_SCHEMA_PROMPTS = true;
       const STAGE_2_AUDIO_CAPTIONS = true;
-      const STAGE_3_TIMINGS_MEDIA = true;
-      const STAGE_4_LIPSYNC = true;
-      const STAGE_5_FINALIZING = true;
+      const STAGE_3_FIRST_FRAMES = true;
+      const STAGE_4_TIMINGS = true;
+      const STAGE_5_VIDEOS = true;
+      const STAGE_6_LIPSYNC = true;
+      const STAGE_7_FINALIZING = true;
 
-      let prePrice: PriceItem | undefined = undefined;
+      let prePrice: PriceItem = {
+        price: 0,
+        service: "Gemini-2-V5",
+        type: "analysis_initial",
+      };
       let audioData: any = null;
+      let allVisualPrices: any[] = [];
       let context: any = null;
       let userId: string | null = null;
       let projectId: string = "";
-      let segmentTimings: any = null;
-      let previewData: any = null;
-      let baseBrollData: any = null;
-      let visualResults: any = null;
-      let segmentBrolls: any = null;
-      let finalResult: any = null;
       let result: any = null;
 
       // ========================================================================
@@ -107,7 +110,7 @@ export const productVideoOrchestrator = inngest.createFunction(
 
         const { generatedPrompts, prePrice: resolvedPrePrice } =
           await productSteps.generateProductPrompts(scheme, generatedSchema, step);
-        prePrice = resolvedPrePrice;
+        prePrice = resolvedPrePrice ?? prePrice;
 
         if (generatedPrompts && generatedPrompts.length > 0) {
           scheme.segments = productSteps.applyPromptsToSegments(scheme, generatedPrompts);
@@ -162,195 +165,216 @@ export const productVideoOrchestrator = inngest.createFunction(
         }
       }
 
-      // ========================================================================
-      // STAGE 3: MEDIA AND SET TIMINGS
-      // ========================================================================
-      if (STAGE_3_TIMINGS_MEDIA) {
-        const { dbSegments } = await step.run("fetch-stage-3-state", async () =>
-          fetchWorkflowState(schemeId),
-        );
-        scheme.segments = dbSegments.map((s: any) => s.segment_data);
+      try {
+        // ========================================================================
+        // STAGE 3: FIRST FRAMES
+        // ========================================================================
+        if (
+          STAGE_3_FIRST_FRAMES &&
+          (scheme.visuals.type === VideoType.AI_IMAGES || scheme.visuals.type === VideoType.AI_VIDEOS)
+        ) {
+          const { dbSegments } = await step.run("fetch-stage-3-state", async () =>
+            fetchWorkflowState(schemeId),
+          );
+          scheme.segments = dbSegments.map((s: any) => ensureObject(s.segment_data));
+          context = { services, scheme, schemeId, attempt };
 
-        context = { services, scheme, schemeId, attempt };
-        const mediaMetadata = audioData?.mediaMetadata || getMediaMetadata(scheme.segments);
+          const step3Results = await step.run("Generating shot first frames", () =>
+            productVisuals.generateShotFirstFrames(context, userId, projectId),
+          );
+          if (step3Results.previewUrl) resultPreviewUrl = step3Results.previewUrl;
+          if (step3Results.prices) allVisualPrices.push(...step3Results.prices);
+        }
 
-        await step.run("mark-generation-progress-timings", async () => {
-          return advanceGenerationTask(schemeId, PRODUCT_TASK_KEYS.TIMINGS, PRODUCT_TASKS);
-        });
+        // ========================================================================
+        // STAGE 4: TIMINGS
+        // ========================================================================
+        if (STAGE_4_TIMINGS) {
+          const { dbSegments } = await step.run("fetch-stage-4-state", async () =>
+            fetchWorkflowState(schemeId),
+          );
+          scheme.segments = dbSegments.map((s: any) => ensureObject(s.segment_data));
+          context = { services, scheme, schemeId, attempt };
 
-        segmentTimings = await step.run("Calculate segment timings", () =>
-          pipelineSteps.calculateSegmentTimings(context, mediaMetadata),
-        );
+          await step.run("mark-generation-progress-timings", async () => {
+            return advanceGenerationTask(schemeId, PRODUCT_TASK_KEYS.TIMINGS, PRODUCT_TASKS);
+          });
 
-        await step.run("mark-generation-progress-media", async () => {
-          return advanceGenerationTask(schemeId, PRODUCT_TASK_KEYS.MEDIA, PRODUCT_TASKS);
-        });
+          const { prices } = await step.run("Generating shot timings", () =>
+            productVisuals.generateShotTimings(context, userId, projectId),
+          );
+          if (prices) allVisualPrices.push(...prices);
+        }
 
-        const [resBaseBrollData, resPreviewData, resVisualResults] = await Promise.all([
-          step.run("Generating base B-roll video", () =>
-            pipelineSteps.processBaseBRoll(context, segmentTimings, userId, projectId),
-          ),
-          step.run("Generating preview image", () =>
-            pipelineSteps.generatePreviewImage(context, userId, projectId),
-          ),
-          step.run("Generating visual clips", () =>
-            pipelineSteps.processVisualScenes(
-              context,
-              mediaMetadata,
-              segmentTimings,
-              [],
-              userId,
-              projectId,
-            ),
-          ),
-        ]);
-        baseBrollData = resBaseBrollData;
-        previewData = resPreviewData;
-        visualResults = resVisualResults;
+        // ========================================================================
+        // STAGE 5: VIDEOS
+        // ========================================================================
+        if (STAGE_5_VIDEOS && scheme.visuals.type === VideoType.AI_VIDEOS) {
+          const { dbSegments } = await step.run("fetch-stage-5-state", async () =>
+            fetchWorkflowState(schemeId),
+          );
+          scheme.segments = dbSegments.map((s: any) => ensureObject(s.segment_data));
+          context = { services, scheme, schemeId, attempt };
 
-        await step.run("mark-generation-progress-vfx", async () => {
-          return advanceGenerationTask(schemeId, PRODUCT_TASK_KEYS.VFX, PRODUCT_TASKS);
-        });
+          await step.run("mark-generation-progress-media", async () => {
+            return advanceGenerationTask(schemeId, PRODUCT_TASK_KEYS.MEDIA, PRODUCT_TASKS);
+          });
 
-        segmentBrolls = await step.run("Processing all segment B-rolls", () =>
-          pipelineSteps.processSegmentBRolls(
-            context,
-            segmentTimings,
-            baseBrollData.url,
-            userId,
-            projectId,
-          ),
-        );
+          const { prices } = await step.run("Generating shot videos", () =>
+            productVisuals.generateShotVideos(context, userId, projectId),
+          );
+          if (prices) allVisualPrices.push(...prices);
+        }
 
-        await step.run("mark-generation-progress-assembling", async () => {
-          return advanceGenerationTask(schemeId, PRODUCT_TASK_KEYS.ASSEMBLING, PRODUCT_TASKS);
-        });
+        // ========================================================================
+        // CONSOLIDATION
+        // ========================================================================
+        result = await step.run("Consolidating modular results", async () => {
+          const { dbSegments: finalSegments } = await fetchWorkflowState(schemeId);
+          scheme.segments = finalSegments.map((s: any) => ensureObject(s.segment_data));
 
-        finalResult = (await step.run("Assembling final video", () =>
-          pipelineSteps.assembleFinalVideo(
-            context,
-            mediaMetadata,
-            visualResults.segResults,
-            segmentBrolls.results as any,
-            segmentTimings,
-            [
-              ...(previewData?.price || []),
-              ...(audioData?.prices || []),
-              ...(baseBrollData?.prices || []),
-              ...(visualResults?.prices || []),
-            ],
-            [
-              previewData.segmentAssets,
-              Object.fromEntries(
-                Object.entries(audioData?.segmentAssets || {}).map(([id, data]: [string, any]) => [
-                  id,
-                  data.assets,
-                ]),
-              ),
-              baseBrollData.segmentAssets,
-              segmentBrolls.segmentAssets,
-            ],
-            prePrice!,
-            previewData.url,
-          ),
-        )) as { scheme: VideoSchema };
+          const allPrices: PriceItem[] = [...(audioData?.prices || [])];
+          const allSegmentAssets: Record<string, SegmentAsset[]> = {};
 
-        result = finalResult.scheme;
-      }
-
-      // ========================================================================
-      // STAGE 4: LIPSYNC
-      // ========================================================================
-      if (STAGE_4_LIPSYNC && scheme.avatar?.url) {
-        await step.run("mark-generation-progress-lipsync", async () => {
-          return advanceGenerationTask(schemeId, PRODUCT_TASK_KEYS.LIPSYNC, PRODUCT_TASKS);
-        });
-        result = await step.run("apply-lipsync-to-schema", async () => {
-          return applyLipsyncToScheme(result || scheme, schemeId);
-        });
-      }
-
-      // ========================================================================
-      // STAGE 5: FINALIZING
-      // ========================================================================
-      if (STAGE_5_FINALIZING) {
-        await step.run("mark-generation-progress-finalizing", async () => {
-          return advanceGenerationTask(schemeId, PRODUCT_TASK_KEYS.FINALIZING, PRODUCT_TASKS);
-        });
-
-        await step.run("update-segments-post-resolver", async () => {
-          const { segmentQueries: sq } = await import("@/lib/database/segment-queries");
-          let finalScheme = result || scheme;
-
-          // Re-fetch current schema from DB if result is null (stateless resume)
-          if (!result) {
-            const currentGen = await db
-              .selectFrom("generations")
-              .select("output")
-              .where("id", "=", schemeId)
-              .executeTakeFirst();
-            if (
-              currentGen?.output &&
-              typeof currentGen.output === "object" &&
-              (currentGen.output as any).segments
-            ) {
-              finalScheme = currentGen.output as any;
-            }
+          if (audioData?.segmentAssets) {
+            Object.entries(audioData.segmentAssets).forEach(([id, data]: [string, any]) => {
+              allSegmentAssets[id] = data.assets || [];
+            });
           }
 
-          await sq.bulkUpdateSegments(
-            finalScheme.segments.map((s: any, index: number) => ({
-              id: s.id,
-              order: index,
-              segment_data: JSON.parse(JSON.stringify(ensureObject(s))),
-            })),
-          );
-
-          const currentGeneration = await db
-            .selectFrom("generations")
-            .select("metadata")
-            .where("id", "=", schemeId)
-            .executeTakeFirst();
-
-          const currentMetadata = (currentGeneration?.metadata as object) || {};
-
-          await withDbRetry(() =>
-            db
-              .updateTable("generations")
-              .set({
-                output: JSON.parse(JSON.stringify(finalScheme)),
-                metadata: JSON.parse(
-                  JSON.stringify({
-                    ...currentMetadata,
-                    title: finalScheme.title,
-                    preview_url: previewData?.url,
-                  }),
-                ),
-                preview_url: previewData?.url,
-                status: ResolverStatus.COMPLETED,
-                progress: 100,
-              })
-              .where("id", "=", schemeId)
-              .execute(),
-          );
-        });
-      }
-
-      return { result: result || scheme };
-    } catch (err) {
-      console.error("Product orchestrator error:", err);
-      if (schemeId) {
-        const message = err instanceof Error ? err.message : "Unknown error";
-        await step.run("publish-error-toast", async () => {
-          await publish({
-            channel,
-            topic: "steps",
-            data: {
-              type: ToastType.FUNCTION_ERROR,
-              error: message,
-              message: `Workflow failed: ${message}`,
-            },
+          let totalDurationMs = 0;
+          scheme.segments.forEach((seg: any) => {
+            if (seg.duration) totalDurationMs += seg.duration;
+            if (seg.assets?.length) {
+              allSegmentAssets[seg.id] = [
+                ...(allSegmentAssets[seg.id] || []),
+                ...seg.assets,
+              ];
+            }
           });
+
+          return {
+            ...scheme,
+            prices: [...allPrices, ...allVisualPrices],
+            segmentAssets: allSegmentAssets,
+            preview_url: resultPreviewUrl || (scheme as any).preview_url,
+            duration: totalDurationMs,
+          };
+        });
+
+        // ========================================================================
+        // STAGE 6: LIPSYNC
+        // ========================================================================
+        if (STAGE_6_LIPSYNC && scheme.avatar?.url) {
+          await step.run("mark-generation-progress-lipsync", async () => {
+            return advanceGenerationTask(schemeId, PRODUCT_TASK_KEYS.LIPSYNC, PRODUCT_TASKS);
+          });
+          result = await step.run("apply-lipsync-to-schema", async () => {
+            return applyLipsyncToScheme(result || scheme, schemeId);
+          });
+        }
+
+        // ========================================================================
+        // STAGE 7: FINALIZING
+        // ========================================================================
+        if (STAGE_7_FINALIZING) {
+          await step.run("mark-generation-progress-finalizing", async () => {
+            return advanceGenerationTask(schemeId, PRODUCT_TASK_KEYS.FINALIZING, PRODUCT_TASKS);
+          });
+
+          await step.run("update-segments-post-resolver", async () => {
+            const { segmentQueries: sq } = await import("@/lib/database/segment-queries");
+            let finalScheme = result || scheme;
+
+            // Re-fetch current schema from DB if result is null (stateless resume)
+            if (!result) {
+              const currentGen = await db
+                .selectFrom("generations")
+                .select("output")
+                .where("id", "=", schemeId)
+                .executeTakeFirst();
+              if (
+                currentGen?.output &&
+                typeof currentGen.output === "object" &&
+                (currentGen.output as any).segments
+              ) {
+                finalScheme = currentGen.output as any;
+              }
+            }
+
+            await sq.bulkUpdateSegments(
+              finalScheme.segments.map((s: any, index: number) => ({
+                id: s.id,
+                order: index,
+                segment_data: JSON.parse(JSON.stringify(ensureObject(s))),
+              })),
+            );
+
+            const allPrices = [
+              ...(audioData?.prices || []),
+              ...allVisualPrices,
+              ...(prePrice ? [prePrice] : []),
+            ];
+            const validPricing = allPrices.filter((p) => p && typeof p.price === "number");
+            const totalCost = validPricing.reduce((acc, obj) => acc + obj.price, 0);
+
+            const currentGeneration = await db
+              .selectFrom("generations")
+              .select("metadata")
+              .where("id", "=", schemeId)
+              .executeTakeFirst();
+
+            const currentMetadata = (currentGeneration?.metadata as object) || {};
+
+            await withDbRetry(() =>
+              db
+                .updateTable("generations")
+                .set({
+                  output: JSON.parse(JSON.stringify(finalScheme)),
+                  metadata: JSON.parse(
+                    JSON.stringify({
+                      ...currentMetadata,
+                      title: finalScheme.title,
+                      totalCost,
+                    }),
+                  ),
+                  status: ResolverStatus.COMPLETED,
+                  progress: 100,
+                })
+                .where("id", "=", schemeId)
+                .execute(),
+            );
+          });
+        }
+
+        return { result: result || scheme };
+      } catch (err: any) {
+        console.error(`[ORCHESTRATOR] Generation failed for ${schemeId}:`, err);
+        await step.run("mark-generation-failed", async () => {
+          return db
+            .updateTable("generations")
+            .set({
+              status: ResolverStatus.FAILED,
+              progress: 0,
+              metadata: { error: err.message || "Unknown error" },
+            })
+            .where("id", "=", schemeId)
+            .execute();
+        });
+        throw err;
+      }
+    } catch (err: any) {
+      console.error("Product Orchestrator Error:", err);
+      const message = err instanceof Error ? err.message : "Unknown error";
+      if (schemeId) {
+        await publish({
+          channel,
+          topic: "steps",
+          data: {
+            type: ToastType.FUNCTION_ERROR,
+            error: message,
+            message: `Workflow failed: ${message}`,
+          },
         });
         await db
           .updateTable("generations")
@@ -358,10 +382,7 @@ export const productVideoOrchestrator = inngest.createFunction(
           .where("id", "=", schemeId)
           .execute();
       }
-      throw new NonRetriableError(
-        `Error resolving product schema${schemeId ? ` [${schemeId}]` : ""}`,
-        { cause: err },
-      );
+      throw new NonRetriableError(`Product workflow failed: ${message}`, { cause: err });
     }
   },
 );

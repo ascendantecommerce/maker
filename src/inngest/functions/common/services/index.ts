@@ -11,7 +11,7 @@ import { VideoGenerator } from "@/lib/video-generation";
 import { LipSyncService } from "@/lib/lip-sync-generator";
 import { PipelineServices } from "../steps/types";
 
-export function initializeServices(): PipelineServices {
+export function initializeServices(options?: { videoModel?: string }): PipelineServices {
   const elevenLabsSemaphore = new DistributedSemaphore("elevenlabs:tts_slots", 2, 30000);
 
   const tts = new TtsService(
@@ -35,11 +35,12 @@ export function initializeServices(): PipelineServices {
     },
   });
 
+  const VEO_MODEL = "veo-3.1-lite-generate-preview";
   const videoGenerator = new VideoGenerator({
-    provider: "pixverse",
+    provider: "veo",
     params: {
-      url: config.freepik.url,
-      apiKey: config.freepik.key,
+      geminiApiKey: config.gemini.key,
+      model:  VEO_MODEL,
     },
   });
 

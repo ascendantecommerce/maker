@@ -197,7 +197,7 @@ export const generateUGCVideo = inngest.createFunction(
               }
             }
 
-            const operationName = await videoGenerator.create({
+            const generatorResult = await videoGenerator.create({
               prompt: finalPromptToUse,
               negativePrompt: buildUgcNegativePrompt(),
               firstFrameUrl: firstFrameToUse,
@@ -208,6 +208,9 @@ export const generateUGCVideo = inngest.createFunction(
               durationSeconds,
               referenceImageUrls: referenceImageUrlsToUse,
             });
+
+            const operationName =
+              typeof generatorResult === "string" ? generatorResult : generatorResult.url;
 
             // POLL
             let attempts = 0;

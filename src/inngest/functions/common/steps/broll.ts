@@ -123,13 +123,14 @@ export const processBaseBRoll = async (
       },
     });
 
-    videoToSyncUrl = await videoGenerator.create({
+    const result = await videoGenerator.create({
       firstFrameUrl: avatarImageUrl,
       prompt: `${firstBRoll.videoPrompt}, the person must be speaking directly to the lens`,
       style: scheme.visuals.style,
       durationSeconds: 5,
       resolution: scheme.resolution,
     });
+    videoToSyncUrl = typeof result === "string" ? result : result.url;
 
     prices.push({
       service: "PixVerse",
@@ -154,7 +155,8 @@ export const processBaseBRoll = async (
     };
     if (audioDuration > HAILUO_DURATION_MS) hailuoParams.lastFrameUrl = avatarImageUrl;
 
-    const videoUrl = await videoGenerator.create(hailuoParams);
+    const resultVid = await videoGenerator.create(hailuoParams);
+    const videoUrl = typeof resultVid === "string" ? resultVid : resultVid.url;
 
     prices.push({
       service: "Hailuo",

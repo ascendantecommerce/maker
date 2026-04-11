@@ -30,7 +30,7 @@ export class VideoGenerator implements Generator {
     }
   }
 
-  async create(params: VideoParams): Promise<string> {
+  async create(params: VideoParams): Promise<string | { url: string; duration: number }> {
     return this.instance.create(params);
   }
 

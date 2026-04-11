@@ -85,9 +85,10 @@ VOICE: ${character.voiceDescription || "natural, friendly"}`.trim();
           }
 
           const generatorOutput = await services.videoGenerator.create(generatorParams);
+          const finalVideoUrl = typeof generatorOutput === "string" ? generatorOutput : generatorOutput.url;
 
           // Convert output to buffer and upload to R2
-          const { buffer, contentType } = await fileUrlToBuffer(generatorOutput);
+          const { buffer, contentType } = await fileUrlToBuffer(finalVideoUrl);
           
           // Accurate duration calculation using FFprobe
           const tempPath = path.join(os.tmpdir(), `veo-clip-${generateId(8)}.mp4`);

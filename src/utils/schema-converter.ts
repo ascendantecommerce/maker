@@ -497,7 +497,8 @@ export const convertSchemaToDesign = async (
 
       // Process shots (video/image)
       if (segment.shots && Array.isArray(segment.shots)) {
-        for (const shot of segment.shots) {
+        for (let idx = 0; idx < segment.shots.length; idx++) {
+          const shot = segment.shots[idx];
           const videoSrc = shot.videoUrl || shot.video;
           const imgSrc = shot.imageUrl || shot.firstFrame;
 
@@ -506,12 +507,31 @@ export const convertSchemaToDesign = async (
             segmentMediaClipId = clipId;
             videoClipIds.push(clipId);
 
-            const fromUs = currentSegmentOffsetUs + (shot.display?.from ?? 0) * 1000;
-            const toUs =
+            const fromUs = Math.round(currentSegmentOffsetUs + (shot.display?.from ?? 0) * 1000);
+            const toUs = Math.round(
               currentSegmentOffsetUs +
               (shot.display?.to ??
-                (shot.display?.from ?? 0) + (shot.duration ?? 0)) * 1000;
+                (shot.display?.from ?? 0) + (shot.duration ?? 0)) * 1000
+            );
             const durationUs = toUs - fromUs;
+            console.log({
+              durationUs,
+              fromUs,
+              toUs,
+              shot,
+              currentSegmentOffsetUs
+            })
+
+            // // NEW: Try to find actual file duration from metadata if available
+            // // This helps the renderer know the true bounds of the media file
+            // let sourceDurationUs = durationUs;
+            // if (segment.generatedMedia && Array.isArray(segment.generatedMedia) && segment.generatedMedia[idx]) {
+            //     const gm = segment.generatedMedia[idx];
+            //     if (gm.duration && gm.type === "video") {
+            //         sourceDurationUs = Math.round(gm.duration * 1000);
+            //         console.log(`[CONVERTER] Using source duration for shot ${idx}: ${sourceDurationUs}us (vs shot duration ${durationUs}us)`);
+            //     }
+            // }
 
             let videoWidth = width;
             let videoHeight = height;
@@ -821,7 +841,7 @@ export const convertSchemaToDesign = async (
           style: {},
           trim: {
             from: 0,
-            to: 0,
+            to: durationUs,
           },
           loop: false,
           id: clipId,
@@ -1052,9 +1072,15 @@ export const convertSchemaToDesign = async (
       }
 
       // Update segment offset for the next iteration
-      if (segment.duration) {
-        currentSegmentOffsetUs += segment.duration * 1000;
+      // Use the maximum of reported segment duration or total shots duration to avoid gaps
+      let segmentDurationMs = segment.duration || 0;
+      if (segment.shots && Array.isArray(segment.shots) && segment.shots.length > 0) {
+        const lastShot = segment.shots[segment.shots.length - 1];
+        const lastShotEnd = (lastShot.display?.to ?? (lastShot.display?.from ?? 0) + (lastShot.duration ?? 0));
+        segmentDurationMs = Math.max(segmentDurationMs, lastShotEnd);
       }
+
+      currentSegmentOffsetUs += Math.round(segmentDurationMs * 1000);
     }
   }
 
@@ -1154,7 +1180,14 @@ export const convertSchemaToDesign = async (
       clipIds: musicClipIds,
     });
   }
-
+  console.log({ tracks,
+    clips,
+    settings: {
+      width,
+      height,
+      fps: 30,
+      bgColor: "#1c1917",
+    },})
   return {
     tracks,
     clips,
