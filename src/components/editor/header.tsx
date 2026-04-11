@@ -3,8 +3,9 @@ import { IconShare } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { useStudioStore } from "@/stores/studio-store";
 import { usePanelStore } from "@/stores/panel-store";
-import { Log, type IClip, Compositor } from "openvideo";
+import { Log, type IClip } from "openvideo";
 import { ExportModal } from "./export-modal";
+import { DriveExportModal } from "./drive-export-modal";
 import { LogoIcons } from "../shared/logos";
 import Link from "next/link";
 import { Icons } from "../shared/icons";
@@ -30,7 +31,6 @@ import { Separator } from "../ui/separator";
 import AutosizeInput from "../ui/autosize-input";
 import { debounce } from "lodash";
 import GoogleIcon from "../logos/google";
-import { toSlug } from "@/utils/format-title";
 
 export default function Header({
   projectId,
@@ -48,7 +48,7 @@ export default function Header({
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [title, setTitle] = useState(projectName || "Untitled video");
-  const [isSavingToDrive, setIsSavingToDrive] = useState(false);
+  const [isDriveExportModalOpen, setIsDriveExportModalOpen] = useState(false);
 
   useEffect(() => {
     if (projectName) {
@@ -206,136 +206,9 @@ export default function Header({
     saveTitle(newTitle);
   };
 
-  
-  /**
-   * Exports the video with default settings, auto-downloads it, then
-   * uploads the result to the user's Google Drive "scenify" folder.
-   */
-  const handleSaveToDrive = async () => {
-    if (!studio) return;
 
-    setIsSavingToDrive(true);
-    const toastId = toast.loading("Rendering video for Google Drive…");
-
-    let com: Compositor | null = null;
-
-    try {
-      const json = studio.exportToJSON();
-
-      if (!json.clips || json.clips.length === 0) {
-        throw new Error("No clips to export");
-      }
-
-      const validClips = json.clips.filter((clipJSON: any) => {
-        if (["Text", "Caption", "Effect", "Transition"].includes(clipJSON.type))
-          return true;
-        return clipJSON.src && clipJSON.src.trim() !== "";
-      });
-
-      if (validClips.length === 0) {
-        throw new Error("No valid clips to export");
-      }
-
-      const settings = json.settings || {};
-      const studioOpts = studio.getOptions() || {
-        width: 1920,
-        height: 1080,
-        fps: 30,
-      };
-
-      const combinatorOpts: any = {
-        width: settings.width || studioOpts.width || 1920,
-        height: settings.height || studioOpts.height || 1080,
-        fps: studioOpts.fps || 30,
-        bgColor: settings.bgColor || "#000000",
-        format: "mp4",
-        videoCodec: "avc1.42E032",
-        bitrate: 10_000_000,
-        audio: true,
-        audioCodec: "aac",
-        audioSampleRate: 48000,
-      };
-
-      com = new Compositor(combinatorOpts);
-
-      await com.initPixiApp();
-
-      await com.loadFromJSON({ ...json, clips: validClips });
-
-      const stream = com.output();
-      const blob = await new Response(stream).blob();
-
-      const fileName = `${toSlug(title)}-${Date.now()}.mp4`;
-
-      toast.loading("Uploading to Google Drive…", { id: toastId });
-
-      const formData = new FormData();
-      formData.append("file", blob, fileName);
-      formData.append("fileName", fileName);
-
-      const res = await fetch("/api/drive/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (!res.ok && data.error === "needs_drive_auth") {
-        toast.dismiss(toastId);
-        setIsSavingToDrive(false);
-
-        if (com) com.destroy();
-
-        const oauthRes = await fetch(
-          `/api/drive/oauth?redirectBack=${encodeURIComponent(window.location.href)}`,
-        );
-
-        const oauthData = await oauthRes.json();
-
-        if (oauthData.url) {
-          toast.info("Redirecting to Google to connect Drive…");
-          window.location.href = oauthData.url;
-        } else {
-          toast.error("Could not start Drive connection. Please try again.");
-        }
-
-        return;
-      }
-
-      if (!res.ok) {
-        throw new Error(data.error || "Upload to Drive failed");
-      }
-
-      if (com) com.destroy();
-
-      toast.success(
-        <span>
-          Saved to Google Drive ✓
-          {data.webViewLink && (
-            <>
-              {" · "}
-              <a
-                href={data.webViewLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline font-semibold"
-              >
-                Open in Drive
-              </a>
-            </>
-          )}
-        </span>,
-        { id: toastId, duration: 8000 },
-      );
-    } catch (err) {
-      Log.error("Save to Drive error:", err);
-
-      toast.error("Failed to save to Drive: " + (err as Error).message, {
-        id: toastId,
-      });
-    } finally {
-      if (com) com.destroy();
-      setIsSavingToDrive(false);
-    }
+  const handleSaveToDrive = () => {
+    setIsDriveExportModalOpen(true);
   };
   return (
     <header className="relative flex h-[52px] w-full shrink-0 items-center justify-between px-4 bg-card z-10 border-b">
@@ -419,6 +292,16 @@ export default function Header({
           open={isExportModalOpen}
           onOpenChange={setIsExportModalOpen}
         />
+        <DriveExportModal
+          open={isDriveExportModalOpen}
+          onOpenChange={setIsDriveExportModalOpen}
+          title={title}
+          onTitleChange={(t) => {
+            setTitle(t);
+            saveTitle(t);
+          }}
+          studio={studio}
+        />
         <ShortcutsModal
           open={isShortcutsModalOpen}
           onOpenChange={setIsShortcutsModalOpen}
@@ -436,22 +319,16 @@ export default function Header({
           <span className="hidden md:block">Share</span>
         </Button>
 
-        {/* Save to Google Drive */}
         <Button
           size="sm"
           variant="outline"
-          disabled={isSavingToDrive}
           onClick={handleSaveToDrive}
           className="h-7 gap-1.5 rounded-full border border-border bg-white text-neutral-700 hover:bg-gray-50 dark:bg-white dark:text-neutral-800 dark:hover:bg-gray-100 font-medium shadow-sm disabled:opacity-60"
           title="Export and save to Google Drive"
         >
-          {isSavingToDrive ? (
-            <Loader2 className="size-4 animate-spin text-[#4285F4]" />
-          ) : (
-            <GoogleIcon className="size-4" />
-          )}
+          <GoogleIcon className="size-4" />
           <span className="hidden md:block">
-            {isSavingToDrive ? "Saving…" : "Save to Drive"}
+            Save to Drive
           </span>
         </Button>
 

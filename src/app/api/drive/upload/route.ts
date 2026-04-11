@@ -184,6 +184,7 @@ export async function POST(req: NextRequest) {
     const fileName =
       (formData.get("fileName") as string) ||
       `generated-video-${Date.now()}.mp4`;
+    const targetFolderId = formData.get("folderId") as string | null;
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -192,8 +193,8 @@ export async function POST(req: NextRequest) {
     const mimeType = file.type || "video/mp4";
     const fileBuffer = await file.arrayBuffer();
 
-    // 5. Ensure the "generated" folder exists
-    const folderId = await getOrCreateGeneratedFolder(accessToken);
+    // 5. Use the target folder or ensure the "generated" folder exists
+    const folderId = targetFolderId || await getOrCreateGeneratedFolder(accessToken);
 
     // 6. Upload the file
     const driveFile = await uploadFileToDrive(

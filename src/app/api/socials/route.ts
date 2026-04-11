@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
       instagram: false,
       tiktok: false,
       youtube: false,
+      google_drive: false,
     };
 
     const ig = account_socials.find((as) => as.provider === "INSTAGRAM");
@@ -39,6 +40,9 @@ export async function GET(req: NextRequest) {
 
     const youtube = account_socials.find((as) => as.provider === "YOUTUBE");
     if (youtube) socials.youtube = true;
+
+    const googleDrive = account_socials.find((as) => as.provider === "GOOGLE_DRIVE");
+    if (googleDrive) socials.google_drive = true;
 
     return NextResponse.json({ socials }, { status: 200 });
   } catch (error) {

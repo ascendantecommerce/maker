@@ -70,6 +70,7 @@ const AccountSettings = () => {
     instagram: false,
     tiktok: false,
     youtube: false,
+    google_drive: false,
   });
 
   useEffect(() => {
@@ -84,6 +85,7 @@ const AccountSettings = () => {
           instagram: socials.instagram,
           tiktok: socials.tiktok,
           youtube: socials.youtube,
+          google_drive: socials.google_drive,
         });
       } catch (err) {
         console.error(err);
@@ -104,20 +106,28 @@ const AccountSettings = () => {
   const userEmail = user?.email || "";
   const userInitial = userName.charAt(0).toUpperCase();
 
-  const oauthFn = useCallback(async (type: "instagram" | "tiktok" | "youtube") => {
+  const oauthFn = useCallback(async (type: "instagram" | "tiktok" | "youtube" | "google_drive") => {
     try {
-      const response = await fetch(`/api/socials/${type}/oauth`);
+      const url = type === "google_drive"
+        ? `/api/drive/oauth?redirectBack=${encodeURIComponent(window.location.href)}`
+        : `/api/socials/${type}/oauth`;
+        
+      const response = await fetch(url);
       if (!response.ok) throw new Error(`Failed ${type} oauth`);
-      const { url } = await response.json();
-      window.location.href = url;
+      const { url: redirectUrl } = await response.json();
+      window.location.href = redirectUrl;
     } catch (err) {
       console.error(err);
     }
   }, []);
 
-  const disconnectFn = useCallback(async (type: "instagram" | "tiktok" | "youtube") => {
+  const disconnectFn = useCallback(async (type: "instagram" | "tiktok" | "youtube" | "google_drive") => {
     try {
-      const response = await fetch(`/api/socials/${type}/disconnect`, {
+      const url = type === "google_drive" 
+        ? `/api/drive/disconnect` 
+        : `/api/socials/${type}/disconnect`;
+
+      const response = await fetch(url, {
         method: "PUT",
       });
       if (!response.ok) throw new Error(`Failed to disconnect ${type}`);
@@ -129,7 +139,7 @@ const AccountSettings = () => {
   }, []);
 
   const handleConnectClick = useCallback(
-    (type: "instagram" | "tiktok" | "youtube") => {
+    (type: "instagram" | "tiktok" | "youtube" | "google_drive") => {
       if (!socials[type]) {
         oauthFn(type);
       } else {
@@ -139,7 +149,7 @@ const AccountSettings = () => {
     [socials, oauthFn, disconnectFn],
   );
 
-  const getButtonLabel = (type: "instagram" | "tiktok" | "youtube") =>
+  const getButtonLabel = (type: "instagram" | "tiktok" | "youtube" | "google_drive") =>
     socials[type] ? "Disconnect" : "Connect";
 
   const handleDeleteAccount = async () => {
@@ -294,6 +304,21 @@ const AccountSettings = () => {
 
         {/* Integrations Section */}
         <Section title="Integrations">
+          <SettingRow
+            title="Google Drive"
+            description="Export videos directly to Google Drive folders"
+            icon={<GoogleIcon className="size-5 w-full h-full" />}
+            action={
+              <Button
+                variant={socials.google_drive ? "default" : "outline"}
+                className="h-11 w-[130px] rounded-full font-medium text-sm"
+                onClick={() => handleConnectClick("google_drive")}
+              >
+                {getButtonLabel("google_drive")}
+              </Button>
+            }
+          />
+
           <SettingRow
             title="TikTok"
             description="Connect TikTok to publish directly from Scenify"
