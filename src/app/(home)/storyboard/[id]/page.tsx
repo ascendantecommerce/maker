@@ -182,7 +182,7 @@ export default function StoryboardPage({ params }: StoryboardPageProps) {
   }
 
   return (
-    <div className="flex h-screen w-full bg-background flex-col relative">
+    <div className="flex h-full w-full bg-background flex-col">
       <div className="h-13 border-b w-full bg-card flex-none flex items-center justify-between px-4 text-sm">
         <Breadcrumb>
           <BreadcrumbList>
@@ -221,7 +221,7 @@ export default function StoryboardPage({ params }: StoryboardPageProps) {
       {/* Inline generation progress strip — replaces the fullscreen overlay */}
       {isGenerating && <GenerationProgressBanner generationId={generationId} />}
 
-      <div className="flex flex-row flex-1 overflow-hidden">
+      <div className="flex flex-row flex-1 min-h-0 overflow-hidden">
         <StoryboardEditor isGenerating={isGenerating} />
       </div>
     </div>

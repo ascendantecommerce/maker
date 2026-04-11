@@ -37,14 +37,14 @@ export function StoryboardEditor({
   } = useUGCGeneration();
 
   return (
-    <div className="flex w-full overflow-hidden h-full bg-background">
+    <div className="flex w-full overflow-hidden h-full min-h-0 bg-background">
       <ResizablePanelGroup direction="horizontal" className="h-full w-full gap-0">
         {/* Left Panel: Storyboard */}
         <ResizablePanel
           defaultSize={30}
           minSize={20}
           maxSize={45}
-          className="relative overflow-visible! bg-card min-w-0"
+          className="relative overflow-hidden bg-card min-w-0 flex flex-col"
         >
           <Storyboard
             segments={(schema?.segments || []) as Segment[]}

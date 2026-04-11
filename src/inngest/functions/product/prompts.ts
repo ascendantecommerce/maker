@@ -46,16 +46,22 @@ Analyze the provided reference image(s). Identify the core physical attributes: 
 
 **CRITICAL CONSTRAINT**: All visual prompts MUST describe a SINGLE unified scene. NEVER generate prompts for split-screens, collages, grids, or multi-frame compositions.`;
 
-export const RETENTION_PACING_RULES = `**STEP 2: RETENTION-BASED PACING (THE 2-SECOND RULE)**
-In high-performance marketing, the timing of cuts prevents the brain from getting "bored". 
-Follow these four logic triggers for visual cuts:
-1. **THE NOUN-OBJECT MATCH (SEMANTIC SYNC)**: Trigger an immediate cut whenever a new high-value subject or noun is mentioned (e.g., "Tap water", "Ice machines", "Gummies").
-2. **THE 2-SECOND RETENTION RULE**: Maximum duration for a single shot is ~2 seconds (~3 to 5 words). If a phrase is long and lacks specific nouns, FORCE a cut to a related lifestyle or metaphor shot to keep the eyes engaged.
-3. **PUNCTUATION SYNC**: Trigger potential cut points on commas, periods, or natural breath pauses in the script.
+export const RETENTION_PACING_RULES = `**STEP 2: RETENTION-BASED PACING (MEANINGFUL SHOTS)**
+In high-performance marketing, the timing of cuts prevents the brain from getting "bored", but shots MUST hold enough context to be visually coherent. 
+Follow these logic triggers for visual cuts:
+1. **PHRASE INTEGRITY (COHERENT BUNCHING) [CRITICAL]**: The \`words\` property MUST be a complete semantic phrase, clause, or thought. NEVER split product names, compound nouns, or grammatical units.
+   - BAD: "Most people" | "have parasites" | "and have" | "no clue"
+   - GOOD: "Most people have parasites" | "and have no clue."
+   - BAD: "even brushing" | "your teeth abroad" | "can expose you" | "to microscopic parasites."
+   - GOOD: "even brushing your teeth abroad" | "can expose you to microscopic parasites."
+   - BAD: "the hydrogen" | "water bottle."
+   - GOOD: "the hydrogen water bottle."
+2. **THE NOUN-OBJECT MATCH (SEMANTIC SYNC)**: Trigger a cut whenever a new high-value subject or setting is introduced (e.g., cutting from "Tap water," to "hotel ice machines,").
+3. **PUNCTUATION SYNC**: Use commas, periods, or natural breath pauses as natural cut points.
 4. **THE TONE-SHIFT PIVOT**:
-   - **PROBLEM PHASE**: High frequency (cut every 1-2 words). Use "gross" imagery and dark colors.
-   - **SOLUTION PHASE**: Medium frequency (cut every 3-5 words). Use bright lighting and clean tech visuals.
-5. **PHRASE INTEGRITY (COHERENT BUNCHING)**: To control the visual rhythm, the \`words\` property MUST be a coherent phrase or complete clause. NEVER select arbitrary or grammatically fragmented substrings.`;
+   - **PROBLEM PHASE**: Shorter, punchy phrases (~4-6 words). Use "gross" imagery and dark colors.
+   - **SOLUTION PHASE**: Smoother, longer phrases (~6-9 words). Use bright lighting and clean tech visuals.
+5. **NEVER OVER-CUT**: Do not cut every 1-3 words. The minimum duration is a complete spoken thought.`;
 
 export function getProductImagePacingInstruction(): string {
   return RETENTION_PACING_RULES;
@@ -113,16 +119,22 @@ ${outputInstructions}`;
 
 // ─── PRODUCT VIDEO PROMPTS (Pacing & Context) ────────────────────────────────
 
-export const VIDEO_RETENTION_PACING_RULES = `**RETENTION-BASED PACING (THE 2-SECOND RULE)**
-In high-performance marketing, the timing of cuts prevents the brain from getting "bored". 
-Follow these four logic triggers for visual cuts:
-1. **THE NOUN-OBJECT MATCH (SEMANTIC SYNC)**: Trigger an immediate cut whenever a new high-value subject or noun is mentioned.
-2. **THE 2-SECOND RETENTION RULE**: Maximum duration for a single shot is ~2 seconds (~4 to 6 words).
-3. **PUNCTUATION SYNC**: Trigger potential cut points on commas, periods, or natural breath pauses.
+export const VIDEO_RETENTION_PACING_RULES = `**RETENTION-BASED PACING (MEANINGFUL SHOTS)**
+In high-performance marketing, the timing of cuts prevents the brain from getting "bored", but shots MUST hold enough context to be visually coherent. 
+Follow these logic triggers for visual cuts:
+1. **PHRASE INTEGRITY (COHERENT BUNCHING) [CRITICAL]**: The \`words\` property MUST be a complete semantic phrase, clause, or thought. NEVER split product names, compound nouns, or grammatical units.
+   - BAD: "Most people" | "have parasites" | "and have" | "no clue"
+   - GOOD: "Most people have parasites" | "and have no clue."
+   - BAD: "even brushing" | "your teeth abroad" | "can expose you" | "to microscopic parasites."
+   - GOOD: "even brushing your teeth abroad" | "can expose you to microscopic parasites."
+   - BAD: "the hydrogen" | "water bottle."
+   - GOOD: "the hydrogen water bottle."
+2. **THE NOUN-OBJECT MATCH (SEMANTIC SYNC)**: Trigger a cut whenever a new high-value subject or setting is introduced (e.g., cutting from "Tap water," to "hotel ice machines,").
+3. **PUNCTUATION SYNC**: Use commas, periods, or natural breath pauses as natural cut points.
 4. **THE TONE-SHIFT PIVOT**:
-   - **PROBLEM PHASE**: High frequency (cut every 2-3 words).
-   - **SOLUTION PHASE**: Medium frequency (cut every 5-7 words).
-5. **PHRASE INTEGRITY (COHERENT BUNCHING)**: The \`words\` property MUST be a coherent phrase or complete clause.`;
+   - **PROBLEM PHASE**: Shorter, punchy phrases (~4-6 words). Use "gross" imagery and dark colors.
+   - **SOLUTION PHASE**: Smoother, longer phrases (~6-9 words). Use bright lighting and clean tech visuals.
+5. **NEVER OVER-CUT**: Do not cut every 1-3 words. The minimum duration is a complete spoken thought.`;
 
 export function getProductVideoPacingInstruction(): string {
   return VIDEO_RETENTION_PACING_RULES;

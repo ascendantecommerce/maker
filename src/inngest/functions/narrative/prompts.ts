@@ -25,16 +25,16 @@ export const NARRATIVE_IMAGE_CORE_RULES = `For EACH segment listed above, you MU
 7. **EXACT ID MATCHING**: Return the segmentId exactly as provided.
 8. **NO TEXT**: Visual prompts MUST NEVER contain text, letters, or numbers.`;
 
-export const NARRATIVE_PACING_RULES = `**RETENTION-BASED PACING (THE 2-SECOND RULE)**
-In high-performance marketing, the timing of cuts prevents the brain from getting "bored". 
-Follow these four logic triggers for visual cuts:
-1. **THE NOUN-OBJECT MATCH (SEMANTIC SYNC)**: Trigger an immediate cut whenever a new high-value subject or noun is mentioned.
-2. **THE 2-SECOND RETENTION RULE**: Maximum duration for a single shot is ~2 seconds (~3 to 5 words).
-3. **PUNCTUATION SYNC**: Trigger potential cut points on commas, periods, or pauses.
+export const NARRATIVE_PACING_RULES = `**RETENTION-BASED PACING (MEANINGFUL SHOTS)**
+In high-performance marketing, the timing of cuts prevents the brain from getting "bored", but shots MUST hold enough context to be visually coherent.
+Follow these logic triggers for visual cuts:
+1. **PHRASE INTEGRITY (COHERENT BUNCHING) [CRITICAL]**: The \`words\` property MUST be a complete semantic phrase, clause, or thought. NEVER split compound nouns, proper nouns, or grammatical units mid-thought.
+2. **THE NOUN-OBJECT MATCH (SEMANTIC SYNC)**: Trigger a cut whenever a new high-value subject or setting is introduced.
+3. **PUNCTUATION SYNC**: Use commas, periods, or natural breath pauses as natural cut points.
 4. **THE TONE-SHIFT PIVOT**:
-   - **PROBLEM PHASE**: High frequency (cut every 1-2 words).
-   - **SOLUTION PHASE**: Medium frequency (cut every 3-5 words).
-5. **PHRASE INTEGRITY (COHERENT BUNCHING)**: The \`words\` property MUST be a coherent phrase or complete clause.`;
+   - **PROBLEM PHASE**: Shorter, punchy phrases (~4-6 words). Use dark, gritty imagery.
+   - **SOLUTION PHASE**: Smoother, longer phrases (~6-9 words). Use bright, clean visuals.
+5. **NEVER OVER-CUT**: Do not cut every 1-3 words. The minimum duration is a complete spoken thought.`;
 
 export function getNarrativeImagePacingInstruction(): string {
   return NARRATIVE_PACING_RULES;

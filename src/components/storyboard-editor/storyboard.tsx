@@ -33,7 +33,7 @@ export const Storyboard = ({
   // No longer need previewType state since all shots are shown inline
 
   return (
-    <div className="flex flex-col h-full bg-background border-r border-border/50">
+    <div className="flex flex-col h-full w-full min-w-0 bg-background border-r border-border/50">
       <div className="px-5 py-4 border-b border-border/40 flex items-center justify-between shrink-0 bg-card/30 backdrop-blur-md">
         <h3 className="font-semibold text-sm tracking-tight text-foreground">Storyboard</h3>
         <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full border border-border/50">
@@ -41,8 +41,8 @@ export const Storyboard = ({
         </span>
       </div>
 
-      <ScrollArea className="flex-1">
-        <div className="flex flex-col p-4 gap-3">
+      <ScrollArea className="flex-1 min-h-0 w-full">
+        <div className="flex flex-col p-4 gap-3 w-0 min-w-full">
           {segments.map((seg, index) => {
             const isSelected = selectedId === seg.id;
 
@@ -62,14 +62,14 @@ export const Storyboard = ({
                 key={seg.id || index}
                 onClick={() => onSelect(seg.id)}
                 className={cn(
-                  "relative group cursor-pointer rounded-sm p-5 transition-all duration-300 border",
+                  "relative group cursor-pointer rounded-sm p-5 transition-all duration-300 border w-full max-w-full overflow-hidden",
                   isSelected
                     ? "bg-card border-primary/20 shadow-[0_8px_30px_rgb(0,0,0,0.12)] ring-1 ring-primary/10"
                     : "bg-transparent border-transparent hover:bg-card/40 hover:border-border/40",
                 )}
               >
-                <div className="flex flex-col gap-4">
-                  <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-4 w-full min-w-0 max-w-full overflow-hidden">
+                  <div className="flex flex-col gap-3 w-full min-w-0">
                     {/* Scene Metadata Header */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -103,7 +103,7 @@ export const Storyboard = ({
                     {/* Narration Text */}
                     <p
                       className={cn(
-                        "text-[13.5px] leading-relaxed transition-colors tracking-tight font-normal",
+                        "text-[13.5px] leading-relaxed transition-colors tracking-tight font-normal break-words",
                         isSelected ? "text-foreground" : "text-muted-foreground/80 line-clamp-3",
                       )}
                     >
@@ -115,71 +115,73 @@ export const Storyboard = ({
                   {((seg.shots && seg.shots.length > 0) ||
                     generatingFrames?.[seg.id] ||
                     generatingVideos?.[seg.id]) && (
-                    <div className="flex items-center gap-2.5 overflow-x-auto pb-1 no-scrollbar">
-                      {seg.shots?.map((shot, shotIdx) => {
-                        const showVideo = !!shot.videoUrl;
-                        const showImage = !!shot.imageUrl;
-                        const imgSource = shot.imageUrl;
-                        const vidSource = shot.videoUrl;
+                    <div className="w-full min-w-0 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/10 hover:scrollbar-thumb-white/20">
+                      <div className="flex items-center gap-2.5 min-w-max">
+                          {seg.shots?.map((shot, shotIdx) => {
+                            const showVideo = !!shot.videoUrl;
+                            const showImage = !!shot.imageUrl;
+                            const imgSource = shot.imageUrl;
+                            const vidSource = shot.videoUrl;
 
-                        return (
-                          <div
-                            key={shotIdx}
-                            className="aspect-video w-28 shrink-0 rounded-lg overflow-hidden border border-border/60 bg-muted/30 relative group/shot shadow-sm"
-                          >
-                            {showVideo ? (
-                              <>
-                                <video
-                                  src={vidSource}
-                                  className="w-full h-full object-cover"
-                                  muted
-                                  autoPlay={false}
-                                />
-                                <div className="absolute top-1 left-1 bg-black/40 backdrop-blur-md p-1 rounded-sm border border-white/10">
-                                  <VideoIcon className="w-2.5 h-2.5 text-white" />
-                                </div>
-                                {shot.duration && (
-                                  <div className="absolute bottom-1 right-1 bg-black/60 backdrop-blur-md px-1.5 py-0.5 rounded-sm text-[9px] font-bold text-white tabular-nums border border-white/5">
-                                    {formatTime(shot.duration / 1000)}
+                            return (
+                              <div
+                                key={shotIdx}
+                                className="aspect-video w-28 shrink-0 rounded-lg overflow-hidden border border-border/60 bg-muted/30 relative group/shot shadow-sm"
+                              >
+                                {showVideo ? (
+                                  <>
+                                    <video
+                                      src={vidSource}
+                                      className="w-full h-full object-cover"
+                                      muted
+                                      autoPlay={false}
+                                    />
+                                    <div className="absolute top-1 left-1 bg-black/40 backdrop-blur-md p-1 rounded-sm border border-white/10">
+                                      <VideoIcon className="w-2.5 h-2.5 text-white" />
+                                    </div>
+                                    {shot.duration && (
+                                      <div className="absolute bottom-1 right-1 bg-black/60 backdrop-blur-md px-1.5 py-0.5 rounded-sm text-[9px] font-bold text-white tabular-nums border border-white/5">
+                                        {formatTime(shot.duration / 1000)}
+                                      </div>
+                                    )}
+                                  </>
+                                ) : showImage ? (
+                                  <>
+                                    <img
+                                      src={imgSource}
+                                      className="w-full h-full object-cover"
+                                      alt="Shot preview"
+                                    />
+                                    {shot.duration && (
+                                      <div className="absolute bottom-1 right-1 bg-black/60 backdrop-blur-md px-1.5 py-0.5 rounded-sm text-[9px] font-bold text-white tabular-nums border border-white/5">
+                                        {formatTime(shot.duration / 1000)}
+                                      </div>
+                                    )}
+                                  </>
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-secondary/20">
+                                    <ImageIcon className="w-5 h-5 text-muted-foreground/20" />
                                   </div>
                                 )}
-                              </>
-                            ) : showImage ? (
-                              <>
-                                <img
-                                  src={imgSource}
-                                  className="w-full h-full object-cover"
-                                  alt="Shot preview"
-                                />
-                                {shot.duration && (
-                                  <div className="absolute bottom-1 right-1 bg-black/60 backdrop-blur-md px-1.5 py-0.5 rounded-sm text-[9px] font-bold text-white tabular-nums border border-white/5">
-                                    {formatTime(shot.duration / 1000)}
-                                  </div>
-                                )}
-                              </>
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-secondary/20">
-                                <ImageIcon className="w-5 h-5 text-muted-foreground/20" />
+
+                                {/* Overlay glow on hover */}
+                                <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/shot:opacity-100 transition-opacity pointer-events-none" />
                               </div>
-                            )}
+                            );
+                          })}
 
-                            {/* Overlay glow on hover */}
-                            <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/shot:opacity-100 transition-opacity pointer-events-none" />
-                          </div>
-                        );
-                      })}
-
-                      {/* Loading states appended to shots row */}
-                      {(generatingFrames?.[seg.id] || generatingVideos?.[seg.id]) && (
-                        <div className="aspect-video w-28 shrink-0 rounded-lg overflow-hidden border border-primary/20 bg-primary/5 animate-pulse flex flex-col items-center justify-center gap-2">
-                          <Loader2 className="w-4 h-4 text-primary animate-spin" />
-                          <span className="text-[8px] font-bold uppercase tracking-widest text-primary/60">
-                            Generating
-                          </span>
+                          {/* Loading states appended to shots row */}
+                          {(generatingFrames?.[seg.id] || generatingVideos?.[seg.id]) && (
+                            <div className="aspect-video w-28 shrink-0 rounded-lg overflow-hidden border border-primary/20 bg-primary/5 animate-pulse flex flex-col items-center justify-center gap-2">
+                              <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                              <span className="text-[8px] font-bold uppercase tracking-widest text-primary/60">
+                                Generating
+                              </span>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  )}
+                      </div>
+                    )}
                 </div>
               </div>
             );

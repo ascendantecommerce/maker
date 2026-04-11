@@ -119,6 +119,8 @@ export const productVideoOrchestrator = inngest.createFunction(
             return pipelineSteps.saveSchema(schemeId, scheme, ResolverStatus.PROGRESS);
           });
         }
+
+        // return { scheme };
       }
 
       // ========================================================================
