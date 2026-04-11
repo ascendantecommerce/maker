@@ -9,24 +9,12 @@ import { DriveExportModal } from "./drive-export-modal";
 import { LogoIcons } from "../shared/logos";
 import Link from "next/link";
 import { Icons } from "../shared/icons";
-import { toast } from "sonner";
 import {
   Keyboard,
-  FileJson,
-  FilePlus,
-  Download,
-  Upload,
-  MessageSquare,
   ArrowLeftIcon,
-  Loader2,
 } from "lucide-react";
 import { ShortcutsModal } from "./shortcuts-modal";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
 import { Separator } from "../ui/separator";
 import AutosizeInput from "../ui/autosize-input";
 import { debounce } from "lodash";
@@ -281,12 +269,6 @@ export default function Header({
             <span className="hidden md:block">AI Chat</span>
           </Button>
         </div>
-        <Link href="https://discord.gg/SCfMrQx8kr" target="_blank">
-          <Button className="h-7 rounded-lg" variant={"outline"}>
-            <LogoIcons.discord className="w-6 h-6" />
-            <span className="hidden md:block">Join Us</span>
-          </Button>
-        </Link>
 
         <ExportModal
           open={isExportModalOpen}
@@ -323,10 +305,8 @@ export default function Header({
           size="sm"
           variant="outline"
           onClick={handleSaveToDrive}
-          className="h-7 gap-1.5 rounded-full border border-border bg-white text-neutral-700 hover:bg-gray-50 dark:bg-white dark:text-neutral-800 dark:hover:bg-gray-100 font-medium shadow-sm disabled:opacity-60"
           title="Export and save to Google Drive"
         >
-          <GoogleIcon className="size-4" />
           <span className="hidden md:block">
             Save to Drive
           </span>

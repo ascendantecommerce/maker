@@ -156,7 +156,7 @@ export function DriveExportModal({ open, onOpenChange, title, onTitleChange, stu
       const settings = json.settings || {};
       const studioOpts = studio.getOptions() || { width: 1920, height: 1080, fps: 30 };
 
-      com = new Compositor({
+      const combinatorOpts: any = {
         width: settings.width || studioOpts.width || 1920,
         height: settings.height || studioOpts.height || 1080,
         fps: studioOpts.fps || 30,
@@ -167,7 +167,9 @@ export function DriveExportModal({ open, onOpenChange, title, onTitleChange, stu
         audio: true,
         audioCodec: "aac",
         audioSampleRate: 48000,
-      });
+      };
+
+      com = new Compositor(combinatorOpts);
 
       await com.initPixiApp();
       await com.loadFromJSON({ ...json, clips: validClips });
@@ -238,7 +240,7 @@ export function DriveExportModal({ open, onOpenChange, title, onTitleChange, stu
                   size={1}
                   className="h-8" 
                   value={newFolderName} 
-                  autoFocus
+                  ref={(el) => el?.focus()}
                   onChange={(e) => setNewFolderName(e.target.value)} 
                   onKeyDown={(e) => {
                     if(e.key === "Enter") handleCreateFolder();
@@ -276,7 +278,7 @@ export function DriveExportModal({ open, onOpenChange, title, onTitleChange, stu
                       {editingFolderId === folder.id ? (
                         <div className="flex w-full items-center gap-2" onClick={e => e.stopPropagation()}>
                           <Input 
-                            autoFocus
+                            ref={(el) => el?.focus()}
                             className="h-7 text-sm" 
                             value={editFolderName} 
                             onChange={(e) => setEditFolderName(e.target.value)}
