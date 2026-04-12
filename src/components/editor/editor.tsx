@@ -15,7 +15,7 @@ import { WebCodecsUnsupportedModal } from "@/components/editor/webcodecs-unsuppo
 import { Design } from "@/types/editor";
 import { useStudioStore } from "@/stores/studio-store";
 import { debounce } from "lodash";
-import Assistant from "./assistant/assistant";
+import { PropertiesPanel } from "@/components/editor/properties-panel";
 // import template from './template.json';
 export default function Editor({
   design,
@@ -32,17 +32,38 @@ export default function Editor({
 }) {
   const {
     toolsPanel,
-    copilotPanel,
+    propertiesPanel,
     mainContent,
     timeline,
     setToolsPanel,
-    setCopilotPanel,
+    setPropertiesPanel,
     setMainContent,
     setTimeline,
-    isCopilotVisible,
   } = usePanelStore();
 
-  const { studio } = useStudioStore();
+  const { studio, selectedClips, setSelectedClips } = useStudioStore();
+
+  useEffect(() => {
+    if (!studio) return;
+
+    const handleSelection = (data: any) => {
+      setSelectedClips(data.selected);
+    };
+
+    const handleClear = () => {
+      setSelectedClips([]);
+    };
+
+    studio.on("selection:created", handleSelection);
+    studio.on("selection:updated", handleSelection);
+    studio.on("selection:cleared", handleClear);
+
+    return () => {
+      studio.off("selection:created", handleSelection);
+      studio.off("selection:updated", handleSelection);
+      studio.off("selection:cleared", handleClear);
+    };
+  }, [studio, setSelectedClips]);
   const [isReady, setIsReady] = useState(false);
   const [isWebCodecsSupported, setIsWebCodecsSupported] = useState(true);
   const posthog = usePostHog();
@@ -144,35 +165,35 @@ export default function Editor({
         </div>
       )} */}
       <div className="flex-1 min-h-0 min-w-0">
-        <ResizablePanelGroup direction="horizontal" className="h-full w-full gap-0">
-          {/* Left Column: Media Panel */}
+        <ResizablePanelGroup direction="vertical" className="h-full w-full gap-0">
+          {/* Top Row: Workspace (Panels | Canvas | Properties) */}
           <ResizablePanel
-            defaultSize={toolsPanel}
-            minSize={15}
-            maxSize={40}
-            onResize={setToolsPanel}
-            className="max-w-7xl relative overflow-visible! bg-card min-w-0"
+            defaultSize={mainContent}
+            minSize={30}
+            maxSize={85}
+            onResize={setMainContent}
+            className="min-h-0 flex-1"
           >
-            <MediaPanel />
-            <FloatingControl />
-          </ResizablePanel>
-
-          <ResizableHandle className="bg-border/90" />
-
-          {/* Middle Column: Preview + Timeline */}
-          <ResizablePanel
-            defaultSize={isCopilotVisible ? 100 - copilotPanel - toolsPanel : 100 - toolsPanel}
-            minSize={40}
-            className="min-w-0 min-h-0"
-          >
-            <ResizablePanelGroup direction="vertical" className="h-full w-full gap-0">
-              {/* Canvas Panel */}
+            <ResizablePanelGroup direction="horizontal" className="h-full w-full gap-0">
+              {/* Left Column: Media Panel */}
               <ResizablePanel
-                defaultSize={mainContent}
+                defaultSize={toolsPanel}
+                minSize={15}
+                maxSize={40}
+                onResize={setToolsPanel}
+                className="max-w-7xl relative overflow-visible! bg-card min-w-0"
+              >
+                <MediaPanel />
+                <FloatingControl />
+              </ResizablePanel>
+
+              <ResizableHandle className="bg-primary/15" />
+
+              {/* Middle Column: Canvas Panel */}
+              <ResizablePanel
+                defaultSize={100 - toolsPanel - propertiesPanel}
                 minSize={30}
-                maxSize={85}
-                onResize={setMainContent}
-                className="min-h-0"
+                className="min-w-0 min-h-0"
               >
                 <CanvasPanel
                   onReady={() => {
@@ -181,36 +202,33 @@ export default function Editor({
                 />
               </ResizablePanel>
 
-              <ResizableHandle className="bg-border/90" />
+              <ResizableHandle className="bg-primary/15" />
 
-              {/* Timeline Panel */}
+              {/* Right Column: Properties Panel */}
               <ResizablePanel
-                defaultSize={timeline}
+                defaultSize={propertiesPanel}
                 minSize={15}
-                maxSize={70}
-                onResize={setTimeline}
-                className="min-h-0"
+                maxSize={40}
+                onResize={setPropertiesPanel}
+                className="max-w-7xl relative overflow-visible! bg-card min-w-0"
               >
-                <Timeline />
+                <PropertiesPanel selectedClips={selectedClips} />
               </ResizablePanel>
             </ResizablePanelGroup>
           </ResizablePanel>
-          {isCopilotVisible && (
-            <>
-              <ResizableHandle className="bg-border/90" />
-              {/* Right Column: Chat Copilot */}
-              <ResizablePanel
-                defaultSize={copilotPanel}
-                minSize={15}
-                maxSize={40}
-                onResize={setCopilotPanel}
-                className="max-w-7xl relative overflow-visible! bg-card min-w-0"
-              >
-                {/* Chat copilot */}
-                <Assistant />
-              </ResizablePanel>
-            </>
-          )}
+
+          <ResizableHandle className="bg-primary/15 h-px z-10 w-full" />
+
+          {/* Bottom Row: Timeline Panel */}
+          <ResizablePanel
+            defaultSize={timeline}
+            minSize={15}
+            maxSize={70}
+            onResize={setTimeline}
+            className="min-h-0 relative z-0"
+          >
+            <Timeline />
+          </ResizablePanel>
         </ResizablePanelGroup>
       </div>
 

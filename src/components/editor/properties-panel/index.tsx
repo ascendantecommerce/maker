@@ -29,6 +29,14 @@ export function PropertiesPanel({ selectedClips }: { selectedClips: IClip[] }) {
     };
   }, [selectedClips]);
 
+  if (selectedClips.length === 0) {
+    return (
+      <div className="bg-card h-full p-4 flex flex-col items-center justify-center gap-3">
+        <div className="text-sm text-muted-foreground">Select an element to edit properties</div>
+      </div>
+    );
+  }
+
   if (selectedClips.length > 1) {
     return (
       <div className="bg-card h-full p-4 flex flex-col items-center justify-center gap-3">

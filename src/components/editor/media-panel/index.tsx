@@ -14,9 +14,8 @@ import PanelMusic from "./panel/music";
 import PanelVoiceovers from "./panel/voiceovers";
 import PanelSFX from "./panel/sfx";
 import PanelElements from "./panel/elements";
-import { PropertiesPanel } from "../properties-panel";
 import type { IClip } from "openvideo";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useStudioStore } from "@/stores/studio-store";
 
 const viewMap: Record<Tab, React.ReactNode> = {
@@ -35,53 +34,18 @@ const viewMap: Record<Tab, React.ReactNode> = {
 
 export function MediaPanel() {
   const { activeTab } = useMediaPanelStore();
-  const [selectedClips, setSelectedClips] = useState<IClip[]>([]);
-  const { studio, setSelectedClips: setStudioSelectedClips } = useStudioStore();
-  const [showProperties, setShowProperties] = useState(false);
+  const { studio } = useStudioStore();
 
-  useEffect(() => {
-    if (!studio) return;
-
-    const handleSelection = (data: any) => {
-      setSelectedClips(data.selected);
-      setStudioSelectedClips(data.selected);
-      setShowProperties(true);
-    };
-
-    const handleClear = () => {
-      setSelectedClips([]);
-      setShowProperties(false);
-    };
-
-    studio.on("selection:created", handleSelection);
-    studio.on("selection:updated", handleSelection);
-    studio.on("selection:cleared", handleClear);
-
-    return () => {
-      studio.off("selection:created", handleSelection);
-      studio.off("selection:updated", handleSelection);
-      studio.off("selection:cleared", handleClear);
-    };
-  }, [studio]);
-
-  useEffect(() => {
-    if (activeTab) {
-      setShowProperties(false);
-    }
-  }, [activeTab]);
+  // Removed properties effect
 
   return (
-    <div className="h-full flex flex-col bg-card overflow-hidden w-full">
-      <div className="flex-none">
+    <div className="h-full flex flex-row bg-card overflow-hidden w-full">
+      <div className="h-full w-12 flex-none bg-background z-10 flex flex-col items-center">
         <TabBar />
       </div>
-      <Separator orientation="horizontal" />
-      <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
-        {selectedClips.length > 0 && showProperties ? (
-          <PropertiesPanel selectedClips={selectedClips} />
-        ) : (
-          <>{viewMap[activeTab]}</>
-        )}
+      <Separator orientation="vertical" />
+      <div className="flex-1 min-h-0 min-w-0 overflow-hidden relative">
+        {viewMap[activeTab]}
       </div>
     </div>
   );

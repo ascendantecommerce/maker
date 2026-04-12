@@ -257,17 +257,6 @@ export default function Header({
           >
             <Keyboard className="size-5" />
           </Button>
-
-          <Button
-            size={"sm"}
-            variant="outline"
-            onClick={toggleCopilot}
-            className="h-7"
-            title="Toggle Chat Copilot"
-          >
-            <Icons.ai className="size-5" />
-            <span className="hidden md:block">AI Chat</span>
-          </Button>
         </div>
 
         <ExportModal

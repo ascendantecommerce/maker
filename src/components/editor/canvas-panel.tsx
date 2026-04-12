@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import { Studio, fontManager } from "openvideo";
 import { useStudioStore } from "@/stores/studio-store";
 import { editorFont } from "./constants";
-import { SelectionFloatingMenu } from "./selection-floating-menu";
 import { useClipActions } from "./options-floating-menu";
 import {
   ContextMenu,
@@ -20,7 +19,7 @@ const DEFAULT_CANVAS_SIZE = {
 
 const STUDIO_CONFIG = {
   fps: 30,
-  bgColor: "#1C161D",
+  bgColor: "#18181B",
   interactivity: true,
   spacing: 20,
 } as const;
@@ -142,7 +141,6 @@ export function CanvasPanel({ onReady }: CanvasPanelProps) {
               }}
               tabIndex={0}
             />
-            <SelectionFloatingMenu />
           </div>
         </div>
       </ContextMenuTrigger>
