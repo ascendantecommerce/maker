@@ -369,4 +369,10 @@ export class Scrollbars {
     canvas.off("before:render", this.beforeRenderHandler);
     canvas.off("after:render", this.afterRenderHandler);
   }
+
+  updateColors(fill: string, stroke: string) {
+    this.fill = fill;
+    this.stroke = stroke;
+    this.timeline.canvas.requestRenderAll();
+  }
 }

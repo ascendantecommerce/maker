@@ -45,6 +45,7 @@ export function TimelineToolbar({
 
   const isSelected = selectedClips.length > 0;
   const isLocked = selectedClips.some((clip) => clip.locked);
+
   const handleZoomIn = () => {
     setZoomLevel(Math.min(3.5, zoomLevel + 0.15));
   };

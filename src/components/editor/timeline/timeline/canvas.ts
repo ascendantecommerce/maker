@@ -11,6 +11,7 @@ import {
   Caption,
 } from "./clips";
 import { TransitionButton } from "./objects/transition-button";
+import { TransitionPlaceholder } from "./objects/transition-placeholder";
 import { TIMELINE_CONSTANTS } from "@/components/editor/timeline/timeline-constants";
 import {
   type ITimelineTrack,
@@ -18,11 +19,12 @@ import {
   MICROSECONDS_PER_SECOND,
   type TrackType,
 } from "@/types/timeline";
-import { useTimelineStore } from "@/stores/timeline-store";
+
 import EventEmitter from "./event-emitter";
 import * as SelectionHandlers from "./handlers/selection";
 import * as DragHandlers from "./handlers/drag-handler";
 import * as ModifyHandlers from "./handlers/modify-handler";
+import { PointerHandler } from "./handlers/pointer-handler";
 import { Scrollbars } from "./scrollbar";
 import { makeMouseWheel } from "./scrollbar/util";
 import type { ScrollbarsProps } from "./scrollbar/types";
@@ -79,12 +81,10 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
   #scrollY: number = 0;
   #scrollbars?: Scrollbars;
   #mouseWheelHandler?: (e: TPointerEventInfo<WheelEvent>) => void;
-
-  // Drag Auto-scroll state
-  #dragAutoScrollRaf: number | null = null;
-  #lastPointer: { x: number; y: number } | null = null;
+  #inputController!: PointerHandler;
   #totalTracksHeight: number = 0;
-  #isSelectingArea: boolean = false;
+  /** Framework-agnostic callback for project total duration in seconds. */
+  #getDuration: () => number;
 
   // Cache for Fabric objects
   #trackObjects: Map<string, Track> = new Map();
@@ -98,8 +98,13 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
   #trackRegions: { top: number; bottom: number; id: string }[] = [];
   #activeSeparatorIndex: number | null = null;
   #transitionButton: TransitionButton | null = null;
+  #transitionPlaceholder: TransitionPlaceholder | null = null;
 
-  // Bound event handlers
+  // Optimized cache for spatial lookups (lazy-memoized)
+  #trackCache = new Map<string, { ids: string; sorted: IClip[]; transitions: IClip[] }>();
+  #lastPlaceholderArgs: string = "";
+
+  // Bound event handlers (business-logic level — delegated from handlers/)
   #onDragging: (opt: any) => void;
   #onTrackRelocation: (opt: any) => void;
   #onClipModification: (opt: any) => void;
@@ -109,8 +114,9 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
   #onMouseMove: (opt: any) => void;
   #enableGuideRedraw: boolean = true;
 
-  constructor(id: string) {
+  constructor(id: string, options: { getDuration?: () => number } = {}) {
     super();
+    this.#getDuration = options.getDuration ?? (() => 0);
     this.containerEl = document.getElementById(id) as HTMLDivElement;
 
     if (!this.containerEl) {
@@ -118,20 +124,19 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
       return;
     }
 
-    // Bind handlers
+    // Bind business-logic handlers
     this.#onDragging = (options) => {
       const e = options.e as MouseEvent | PointerEvent | TouchEvent;
-      const pointer = "clientX" in e ? e : (e as TouchEvent).touches[0];
-      this.#lastPointer = { x: pointer.clientX, y: pointer.clientY };
-      this.#startDragAutoScroll();
+      const src = "clientX" in e ? e : (e as TouchEvent).touches[0];
+      this.#inputController.startAutoScroll({ x: src.clientX, y: src.clientY });
       DragHandlers.handleDragging(this, options);
     };
     this.#onTrackRelocation = (options) => {
-      this.#stopDragAutoScroll();
+      this.#inputController.stopAutoScroll();
       ModifyHandlers.handleTrackRelocation(this, options);
     };
     this.#onClipModification = (options) => {
-      this.#stopDragAutoScroll();
+      this.#inputController.stopAutoScroll();
       ModifyHandlers.handleClipModification(this, options);
     };
     this.#onSelectionCreate = (e) => SelectionHandlers.handleSelectionCreate(this, e);
@@ -154,44 +159,16 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
       width: clientWidth,
       height: clientHeight,
       selection: true,
+      selectionColor: "rgba(10, 189, 227, 0.2)",
+      selectionBorderColor: "#0abde3",
+      selectionLineWidth: 2,
       renderOnAddRemove: false, // Performance optimization
+      preserveObjectStacking: true,
     });
 
-    this.canvas.on("mouse:wheel", (opt) => {
-      if (this.#mouseWheelHandler) {
-        this.#mouseWheelHandler(opt);
-        return;
-      }
-      const e = opt.e;
-      e.preventDefault();
-      e.stopPropagation();
-
-      if (e.ctrlKey || e.metaKey) {
-        this.emit("zoom", { delta: e.deltaY });
-      } else {
-        const deltaX = e.shiftKey ? e.deltaY : e.deltaX;
-        const deltaY = e.shiftKey ? 0 : e.deltaY;
-        this.emit("scroll", { deltaX, deltaY });
-      }
-    });
-
-    this.canvas.on("mouse:down", (options) => {
-      if (!options.target) {
-        this.#isSelectingArea = true;
-        const e = options.e as MouseEvent | PointerEvent | TouchEvent;
-        const pointer = "clientX" in e ? e : (e as TouchEvent).touches[0];
-        this.#lastPointer = { x: pointer.clientX, y: pointer.clientY };
-        this.#startDragAutoScroll();
-      }
-    });
-
-    this.canvas.on("mouse:move", (options) => {
-      if (this.#isSelectingArea) {
-        const e = options.e as MouseEvent | PointerEvent | TouchEvent;
-        const pointer = "clientX" in e ? e : (e as TouchEvent).touches[0];
-        this.#lastPointer = { x: pointer.clientX, y: pointer.clientY };
-      }
-    });
+    // Delegate all low-level pointer/wheel input to the controller
+    this.#inputController = new PointerHandler(this);
+    this.#inputController.bind();
 
     this.render();
 
@@ -204,12 +181,16 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
     });
 
     this.#resizeObserver.observe(this.containerEl);
-    this.setupEvents();
+    this.#bindBusinessEvents();
   }
 
-  private setupEvents() {
+  /**
+   * Registers business-logic level Fabric event handlers (drag, modify, selection, hover).
+   * Low-level input (wheel/pointer) is handled by CanvasInputController.
+   */
+  #bindBusinessEvents() {
     this.canvas.on("object:moving", this.#onDragging);
-    // Note: handleTrackRelocation should run before handleClipModification or be prioritized
+    // handleTrackRelocation must run before handleClipModification
     this.canvas.on("object:modified", this.#onTrackRelocation);
     this.canvas.on("object:modified", this.#onClipModification);
     this.canvas.on("selection:created", this.#onSelectionCreate);
@@ -227,132 +208,121 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
         this.emit("clip:unhovered", { clipId: (e.target as any).elementId });
       }
     });
-
-    // Stop auto-scroll on mouse up just in case
-    this.canvas.on("mouse:up", () => this.#stopDragAutoScroll());
   }
 
-  #startDragAutoScroll() {
-    if (this.#dragAutoScrollRaf) return;
-    const step = () => {
-      this.#handleDragAutoScroll();
-      this.#dragAutoScrollRaf = requestAnimationFrame(step);
-    };
-    this.#dragAutoScrollRaf = requestAnimationFrame(step);
+  // ──────────────────────────────────────────────────────────────────────────
+  // Public accessors used by PointerHandler
+  // ──────────────────────────────────────────────────────────────────────────
+
+  /** Current horizontal scroll offset in pixels. */
+  get scrollX(): number {
+    return this.#scrollX;
   }
 
-  #stopDragAutoScroll() {
-    if (this.#dragAutoScrollRaf) {
-      cancelAnimationFrame(this.#dragAutoScrollRaf);
-      this.#dragAutoScrollRaf = null;
-    }
-    this.#lastPointer = null;
-    this.#isSelectingArea = false;
+  /** Current vertical scroll offset in pixels. */
+  get scrollY(): number {
+    return this.#scrollY;
   }
 
-  #handleDragAutoScroll() {
-    if (!this.#lastPointer) return;
+  /**
+   * Optional override installed by the Scrollbar subsystem.
+   * PointerHandler checks this so it can delegate wheel events.
+   */
+  get mouseWheelHandler(): ((e: TPointerEventInfo<WheelEvent>) => void) | undefined {
+    return this.#mouseWheelHandler;
+  }
 
-    const viewportWidth = this.canvas.width;
-    const viewportHeight = this.canvas.height;
-    const threshold = 60;
-    const maxSpeed = 30;
+  /**
+   * Total project duration in seconds, sourced via the getDuration callback
+   * provided at construction. Zero if no callback was provided.
+   */
+  get totalDuration(): number {
+    return this.#getDuration();
+  }
 
-    // Get canvas element position to calculate relative mouse position
-    const rect = this.canvas.getElement().getBoundingClientRect();
-    const x = this.#lastPointer.x - rect.left;
-    const y = this.#lastPointer.y - rect.top;
+  public getJunction(x: number, y: number, expanded = false) {
+    return this.getJunctionAt(x, y, {
+      ignoreExisting: true,
+      expanded,
+    });
+  }
 
-    let deltaX = 0;
-    let deltaY = 0;
+  public findJunction(x: number, y: number, showPlaceholder = false) {
+    const junction = this.getJunction(x, y, showPlaceholder);
 
-    if (x < threshold) {
-      deltaX = -maxSpeed * (1 - Math.max(0, x) / threshold);
-    } else if (x > viewportWidth - threshold) {
-      deltaX = maxSpeed * (1 - Math.max(0, viewportWidth - x) / threshold);
+    if (junction) {
+      if (showPlaceholder) {
+        const width = this.getProportionalTransitionWidth(junction.clipA, junction.clipB);
+        this.showTransitionPlaceholder(
+          junction.x,
+          junction.track.top + (junction.track.bottom - junction.track.top) / 2,
+          junction.trackId,
+          width,
+        );
+      }
+      return {
+        clipAId: junction.clipA.id,
+        clipBId: junction.clipB.id,
+        trackId: junction.trackId,
+        x: junction.x,
+      };
+    } else if (showPlaceholder) {
+      this.clearTransitionButton();
     }
+    return null;
+  }
 
-    if (y < threshold) {
-      deltaY = -maxSpeed * (1 - Math.max(0, y) / threshold);
-    } else if (y > viewportHeight - threshold) {
-      deltaY = maxSpeed * (1 - Math.max(0, viewportHeight - y) / threshold);
-    }
+  public findTransition(x: number, y: number) {
+    const track = this.getTrackAt(y);
+    if (!track) return null;
 
-    if (deltaX !== 0 || deltaY !== 0) {
-      // Calculate max scroll values
-      const pixelsPerSecond = TIMELINE_CONSTANTS.PIXELS_PER_SECOND;
-      const projectDuration = useTimelineStore.getState().getTotalDuration();
-      const durationPx = projectDuration * pixelsPerSecond * this.#timeScale;
+    const trackData = this.#tracks.find((t) => t.id === track.id);
+    if (!trackData) return null;
 
-      const maxScrollX = Math.max(0, durationPx - this.canvas.width);
-      const maxScrollY = Math.max(0, this.#totalTracksHeight + 15 - this.canvas.height); // 15 is extraMarginY
+    const { transitions } = this._getTrackDataForJunction(track.id, trackData.clipIds);
 
-      if (this.#isSelectingArea) {
-        // --- SYNCHRONOUS CLAMPING FOR AREA SELECTION ---
-        const newScrollX = Math.max(0, Math.min(maxScrollX, this.#scrollX + deltaX));
-        const newScrollY = Math.max(0, Math.min(maxScrollY, this.#scrollY + deltaY));
+    for (const clip of transitions) {
+      const tc = clip as any;
+      const startX =
+        (clip.display.from / MICROSECONDS_PER_SECOND) *
+        TIMELINE_CONSTANTS.PIXELS_PER_SECOND *
+        this.#timeScale;
+      const endX =
+        (clip.display.to / MICROSECONDS_PER_SECOND) *
+        TIMELINE_CONSTANTS.PIXELS_PER_SECOND *
+        this.#timeScale;
 
-        const actualDeltaX = newScrollX - this.#scrollX;
-        const actualDeltaY = newScrollY - this.#scrollY;
-
-        if (actualDeltaX !== 0 || actualDeltaY !== 0) {
-          this.setScroll(newScrollX, newScrollY);
-
-          this.emit("scroll", {
-            deltaX: actualDeltaX,
-            deltaY: actualDeltaY,
-            scrollX: newScrollX,
-            scrollY: newScrollY,
-            isSelection: true,
-          });
-
-          // Force selection update to keep marquee synced with viewport
-          const e = {
-            clientX: this.#lastPointer.x,
-            clientY: this.#lastPointer.y,
-          } as any;
-          (this.canvas as any)._onMouseMove(e);
-          this.canvas.requestRenderAll();
-        }
-      } else {
-        // --- CLAMPING FOR OBJECT DRAGGING ---
-        // For horizontal dragging, we allow unlimited scrolling to the right (per requirement)
-        // but it must be clamped at 0 (left boundary).
-        const requestedScrollX = this.#scrollX + deltaX;
-        const newScrollX = Math.max(0, requestedScrollX);
-
-        // For vertical dragging, we clamp at both boundaries 0 and maxScrollY.
-        const requestedScrollY = this.#scrollY + deltaY;
-        const newScrollY = Math.max(0, Math.min(maxScrollY, requestedScrollY));
-
-        const actualDeltaX = newScrollX - this.#scrollX;
-        const actualDeltaY = newScrollY - this.#scrollY;
-
-        if (actualDeltaX !== 0 || actualDeltaY !== 0) {
-          this.setScroll(newScrollX, newScrollY);
-
-          this.emit("scroll", {
-            deltaX: actualDeltaX,
-            deltaY: actualDeltaY,
-            scrollX: newScrollX,
-            scrollY: newScrollY,
-          });
-
-          // Simulate mouse move to keep active objects and selection box synced.
-          if (this.#lastPointer) {
-            const e = {
-              clientX: this.#lastPointer.x,
-              clientY: this.#lastPointer.y,
-              type: "mousemove",
-              preventDefault: () => {},
-              stopPropagation: () => {},
-            } as any;
-            (this.canvas as any)._onMouseMove(e);
-          }
-          this.canvas.requestRenderAll();
-        }
+      if (x >= startX && x <= endX) {
+        return {
+          clipAId: tc.fromClipId,
+          clipBId: tc.toClipId,
+          trackId: track.id,
+        };
       }
     }
+
+    return null;
+  }
+
+  private _getTrackDataForJunction(
+    trackId: string,
+    clipIds: string[],
+  ): { sorted: IClip[]; transitions: IClip[] } {
+    const idsString = clipIds.join(",");
+    const cached = this.#trackCache.get(trackId);
+    if (cached && cached.ids === idsString) {
+      return cached;
+    }
+
+    const allClips = clipIds.map((id) => this.#clipsMap[id]).filter((c) => !!c);
+    const sorted = allClips
+      .filter((c) => c.type !== "Transition")
+      .sort((a, b) => a.display.from - b.display.from);
+    const transitions = allClips.filter((c) => c.type === "Transition");
+
+    const entry = { ids: idsString, sorted, transitions };
+    this.#trackCache.set(trackId, entry);
+    return entry;
   }
 
   private handleMouseMove(opt: any) {
@@ -363,32 +333,48 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
     const junction = this.getJunctionAt(x, y);
 
     if (junction) {
+      const width = this.getProportionalTransitionWidth(junction.clipA, junction.clipB);
       this.showTransitionButton(
         junction.x,
         junction.track.top + (junction.track.bottom - junction.track.top) / 2,
         junction.clipA.id,
         junction.clipB.id,
         junction.trackId,
+        width,
       );
     } else {
       this.clearTransitionButton();
     }
   }
 
-  private getJunctionAt(x: number, y: number, options: { ignoreExisting?: boolean } = {}) {
+  private getProportionalTransitionWidth(clipA: IClip, clipB: IClip): number {
+    const minDuration = Math.min(clipA.duration || 0, clipB.duration || 0);
+    // Transition duration is 25% of the shortest clip
+    const transitionDurationUs = minDuration * 0.25;
+
+    return (
+      (transitionDurationUs / MICROSECONDS_PER_SECOND) *
+      TIMELINE_CONSTANTS.PIXELS_PER_SECOND *
+      this.#timeScale
+    );
+  }
+
+  private getJunctionAt(
+    x: number,
+    y: number,
+    options: { ignoreExisting?: boolean; expanded?: boolean } = {},
+  ) {
     const track = this.getTrackAt(y);
     if (!track) return null;
 
     const trackData = this.#tracks.find((t) => t.id === track.id);
     if (!trackData) return null;
 
-    const clipsAtTrack = trackData.clipIds
-      .map((id) => this.#clipsMap[id])
-      .filter((c) => !!c && c.type !== "Transition")
-      .sort((a, b) => a.display.from - b.display.from);
+    const { sorted: clipsAtTrack } = this._getTrackDataForJunction(track.id, trackData.clipIds);
 
     const TRANSITION_POINT_THRESHOLD = 10; // Pixels
 
+    // Case 1: Mouse is in a gap between clips or very close to a junction (Original logic)
     for (let i = 0; i < clipsAtTrack.length - 1; i++) {
       const clipA = clipsAtTrack[i];
       const clipB = clipsAtTrack[i + 1];
@@ -403,50 +389,180 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
         TIMELINE_CONSTANTS.PIXELS_PER_SECOND *
         this.#timeScale;
 
-      const transitionPointX = (endXA + startXB) / 2;
+      const junctionX = (endXA + startXB) / 2;
 
-      if (Math.abs(x - transitionPointX) < TRANSITION_POINT_THRESHOLD) {
-        if (
-          (clipA.type === "Video" || clipA.type === "Image") &&
-          (clipB.type === "Video" || clipB.type === "Image")
-        ) {
-          if (options.ignoreExisting) {
-            return {
-              x: transitionPointX,
-              clipA,
-              clipB,
-              trackId: track.id,
-              track,
-            };
-          }
+      if (Math.abs(x - junctionX) < TRANSITION_POINT_THRESHOLD) {
+        if (this.isValidJunction(clipA, clipB, junctionX, track.id, trackData.clipIds, options)) {
+          return { x: junctionX, clipA, clipB, trackId: track.id, track };
+        }
+      }
+    }
 
-          const hasTransition = trackData.clipIds.some((id) => {
-            const c = this.#clipsMap[id];
-            if (!c || c.type !== "Transition") return false;
-            const tStart =
-              (c.display.from / MICROSECONDS_PER_SECOND) *
-              TIMELINE_CONSTANTS.PIXELS_PER_SECOND *
-              this.#timeScale;
-            const tEnd =
-              (c.display.to / MICROSECONDS_PER_SECOND) *
-              TIMELINE_CONSTANTS.PIXELS_PER_SECOND *
-              this.#timeScale;
-            return transitionPointX >= tStart && transitionPointX <= tEnd;
-          });
+    // Case 2: Expanded hit area (User's requirement for dragging)
+    if (options.expanded) {
+      for (let i = 0; i < clipsAtTrack.length; i++) {
+        const clip = clipsAtTrack[i];
+        const startX =
+          (clip.display.from / MICROSECONDS_PER_SECOND) *
+          TIMELINE_CONSTANTS.PIXELS_PER_SECOND *
+          this.#timeScale;
+        const endX =
+          (clip.display.to / MICROSECONDS_PER_SECOND) *
+          TIMELINE_CONSTANTS.PIXELS_PER_SECOND *
+          this.#timeScale;
 
-          if (!hasTransition) {
-            return {
-              x: transitionPointX,
-              clipA,
-              clipB,
-              trackId: track.id,
-              track,
-            };
+        if (x >= startX && x <= endX) {
+          const midpoint = (startX + endX) / 2;
+          const leftNeighbor = i > 0 ? clipsAtTrack[i - 1] : null;
+          const rightNeighbor = i < clipsAtTrack.length - 1 ? clipsAtTrack[i + 1] : null;
+
+          if (x < midpoint) {
+            // Hovering over left half
+            if (leftNeighbor) {
+              const junctionX =
+                (startX +
+                  (leftNeighbor.display.to / MICROSECONDS_PER_SECOND) *
+                    TIMELINE_CONSTANTS.PIXELS_PER_SECOND *
+                    this.#timeScale) /
+                2;
+              if (
+                this.isValidJunction(
+                  leftNeighbor,
+                  clip,
+                  junctionX,
+                  track.id,
+                  trackData.clipIds,
+                  options,
+                )
+              ) {
+                return {
+                  x: junctionX,
+                  clipA: leftNeighbor,
+                  clipB: clip,
+                  trackId: track.id,
+                  track,
+                };
+              }
+            } else if (rightNeighbor) {
+              // Only right neighbor exists, snap to the only available junction
+              const junctionX =
+                (endX +
+                  (rightNeighbor.display.from / MICROSECONDS_PER_SECOND) *
+                    TIMELINE_CONSTANTS.PIXELS_PER_SECOND *
+                    this.#timeScale) /
+                2;
+              if (
+                this.isValidJunction(
+                  clip,
+                  rightNeighbor,
+                  junctionX,
+                  track.id,
+                  trackData.clipIds,
+                  options,
+                )
+              ) {
+                return {
+                  x: junctionX,
+                  clipA: clip,
+                  clipB: rightNeighbor,
+                  trackId: track.id,
+                  track,
+                };
+              }
+            }
+          } else {
+            // Hovering over right half
+            if (rightNeighbor) {
+              const junctionX =
+                (endX +
+                  (rightNeighbor.display.from / MICROSECONDS_PER_SECOND) *
+                    TIMELINE_CONSTANTS.PIXELS_PER_SECOND *
+                    this.#timeScale) /
+                2;
+              if (
+                this.isValidJunction(
+                  clip,
+                  rightNeighbor,
+                  junctionX,
+                  track.id,
+                  trackData.clipIds,
+                  options,
+                )
+              ) {
+                return {
+                  x: junctionX,
+                  clipA: clip,
+                  clipB: rightNeighbor,
+                  trackId: track.id,
+                  track,
+                };
+              }
+            } else if (leftNeighbor) {
+              // Only left neighbor exists, snap to the only available junction
+              const junctionX =
+                (startX +
+                  (leftNeighbor.display.to / MICROSECONDS_PER_SECOND) *
+                    TIMELINE_CONSTANTS.PIXELS_PER_SECOND *
+                    this.#timeScale) /
+                2;
+              if (
+                this.isValidJunction(
+                  leftNeighbor,
+                  clip,
+                  junctionX,
+                  track.id,
+                  trackData.clipIds,
+                  options,
+                )
+              ) {
+                return {
+                  x: junctionX,
+                  clipA: leftNeighbor,
+                  clipB: clip,
+                  trackId: track.id,
+                  track,
+                };
+              }
+            }
           }
         }
       }
     }
+
     return null;
+  }
+
+  private isValidJunction(
+    clipA: IClip,
+    clipB: IClip,
+    junctionX: number,
+    trackId: string,
+    trackClipIds: string[],
+    options: { ignoreExisting?: boolean } = {},
+  ): boolean {
+    if (
+      (clipA.type === "Video" || clipA.type === "Image") &&
+      (clipB.type === "Video" || clipB.type === "Image")
+    ) {
+      if (options.ignoreExisting) return true;
+
+      const { transitions } = this._getTrackDataForJunction(trackId, trackClipIds);
+
+      const hasTransition = transitions.some((c) => {
+        const tStart =
+          (c.display.from / MICROSECONDS_PER_SECOND) *
+          TIMELINE_CONSTANTS.PIXELS_PER_SECOND *
+          this.#timeScale;
+        const tEnd =
+          (c.display.to / MICROSECONDS_PER_SECOND) *
+          TIMELINE_CONSTANTS.PIXELS_PER_SECOND *
+          this.#timeScale;
+        return junctionX >= tStart && junctionX <= tEnd;
+      });
+
+      return !hasTransition;
+    }
+    return false;
   }
 
   private showTransitionButton(
@@ -455,24 +571,32 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
     clipAId: string,
     clipBId: string,
     trackId: string,
+    width: number,
   ) {
     if (this.#transitionButton) {
-      // If already showing for these clips, just move it if needed (though it shouldn't move much)
+      // If already showing for these clips, just move it if needed
       if (
         (this.#transitionButton as any).clipAId === clipAId &&
-        (this.#transitionButton as any).clipBId === clipBId
+        (this.#transitionButton as any).clipBId === clipBId &&
+        Math.abs(this.#transitionButton.width - width) < 0.1
       ) {
         this.#transitionButton.set({ left: x, top: y });
         this.#transitionButton.setCoords();
+        this.canvas.bringObjectToFront(this.#transitionButton);
         this.canvas.requestRenderAll();
         return;
       }
       this.clearTransitionButton();
     }
 
+    const track = this.#tracks.find((t) => t.id === trackId);
+    const height = track ? getTrackHeight(track.type as any) : 52;
+
     this.#transitionButton = new TransitionButton({
       left: x,
       top: y,
+      width: width,
+      height: height,
       onClick: () => {
         this.emit("transition:add", {
           fromClipId: clipAId,
@@ -490,26 +614,54 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
     this.canvas.requestRenderAll();
   }
 
+  public showTransitionPlaceholder(x: number, y: number, trackId: string, width: number) {
+    const args = `${x},${y},${trackId},${width}`;
+    if (this.#lastPlaceholderArgs === args) return;
+    this.#lastPlaceholderArgs = args;
+
+    const track = this.#tracks.find((t) => t.id === trackId);
+    const height = track ? getTrackHeight(track.type as any) : 52;
+
+    if (this.#transitionPlaceholder) {
+      // If height or width changed, we're better off recreating for simplicity
+      if (
+        (this.#transitionPlaceholder as any).trackId !== trackId ||
+        Math.abs(this.#transitionPlaceholder.width - width) > 0.1
+      ) {
+        this.clearTransitionButton();
+      } else {
+        this.#transitionPlaceholder.set({ left: x, top: y });
+        this.#transitionPlaceholder.setCoords();
+        this.canvas.bringObjectToFront(this.#transitionPlaceholder);
+        this.canvas.requestRenderAll();
+        return;
+      }
+    }
+
+    this.#transitionPlaceholder = new TransitionPlaceholder({
+      left: x,
+      top: y,
+      height: height,
+      width: width,
+    });
+    (this.#transitionPlaceholder as any).trackId = trackId;
+
+    this.canvas.add(this.#transitionPlaceholder);
+    this.canvas.bringObjectToFront(this.#transitionPlaceholder);
+    this.canvas.requestRenderAll();
+  }
+
   public clearTransitionButton() {
+    this.#lastPlaceholderArgs = ""; // Reset cache
     if (this.#transitionButton) {
       this.canvas.remove(this.#transitionButton);
       this.#transitionButton = null;
-      this.canvas.requestRenderAll();
     }
-  }
-
-  public getClipScreenPosition(clipId: string) {
-    const clipObj = this.#clipObjects.get(clipId);
-    if (!clipObj) return null;
-
-    // getBoundingRect returns bounds in canvas coordinate system (scaled/translated by viewport)
-    const br = clipObj.getBoundingRect();
-    return {
-      left: br.left,
-      top: br.top,
-      width: br.width,
-      height: br.height,
-    };
+    if (this.#transitionPlaceholder) {
+      this.canvas.remove(this.#transitionPlaceholder);
+      this.#transitionPlaceholder = null;
+    }
+    this.canvas.requestRenderAll();
   }
 
   // --- PUBLIC GETTERS / SETTERS FOR HANDLERS ---
@@ -588,6 +740,20 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
     return timelineSeconds * TIMELINE_CONSTANTS.PIXELS_PER_SECOND * this.#timeScale + vpt[4];
   }
 
+  public getClipScreenPosition(clipId: string) {
+    const clipObj = this.#clipObjects.get(clipId);
+    if (!clipObj) return null;
+
+    // getBoundingRect returns bounds in canvas coordinate system (scaled/translated by viewport)
+    const br = clipObj.getBoundingRect();
+    return {
+      left: br.left,
+      top: br.top,
+      width: br.width,
+      height: br.height,
+    };
+  }
+
   /**
    * Returns the stable X position in the "infinite canvas" space (starts at 0, no scroll/offset)
    */
@@ -617,66 +783,29 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
     return null;
   }
 
-  public setTracks(tracks: ITimelineTrack[]) {
+  public setTracks(tracks: ITimelineTrack[], clips: Record<string, IClip>) {
     this.#tracks = tracks;
-    const storeState = useTimelineStore.getState();
-    this.#clipsMap = storeState.clips;
+    this.#clipsMap = clips;
     this.render();
   }
 
-  public findJunction(x: number, y: number, showButton = false) {
-    const junction = this.getJunctionAt(x, y, { ignoreExisting: true });
-    if (junction) {
-      if (showButton) {
-        this.showTransitionButton(
-          junction.x,
-          junction.track.top + (junction.track.bottom - junction.track.top) / 2,
-          junction.clipA.id,
-          junction.clipB.id,
-          junction.trackId,
-        );
-      }
-      return {
-        clipAId: junction.clipA.id,
-        clipBId: junction.clipB.id,
-        trackId: junction.trackId,
-        x: junction.x,
-      };
-    }
-    return null;
-  }
+  public updateTheme(themeStr: "dark" | "light") {
+    const isDark = themeStr === "dark";
+    const trackColor = isDark ? "#202020" : "#f4f4f5";
+    const scrollbarFill = isDark ? "rgba(255, 255, 255, 0.3)" : "rgba(0, 0, 0, 0.3)";
+    const scrollbarStroke = isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)";
 
-  public findTransition(x: number, y: number) {
-    const track = this.getTrackAt(y);
-    if (!track) return null;
+    // Update existing tracks
+    this.#trackObjects.forEach((track) => {
+      track.set("fill", trackColor);
+    });
 
-    const trackData = this.#tracks.find((t) => t.id === track.id);
-    if (!trackData) return null;
-
-    for (const clipId of trackData.clipIds) {
-      const clip = this.#clipsMap[clipId];
-      if (!clip || clip.type !== "Transition") continue;
-
-      const tc = clip as any;
-      const startX =
-        (clip.display.from / MICROSECONDS_PER_SECOND) *
-        TIMELINE_CONSTANTS.PIXELS_PER_SECOND *
-        this.#timeScale;
-      const endX =
-        (clip.display.to / MICROSECONDS_PER_SECOND) *
-        TIMELINE_CONSTANTS.PIXELS_PER_SECOND *
-        this.#timeScale;
-
-      if (x >= startX && x <= endX) {
-        return {
-          clipAId: tc.fromClipId,
-          clipBId: tc.toClipId,
-          trackId: track.id,
-        };
-      }
+    // Update scrollbars
+    if (this.#scrollbars) {
+      this.#scrollbars.updateColors(scrollbarFill, scrollbarStroke);
     }
 
-    return null;
+    this.canvas.requestRenderAll();
   }
 
   public clear() {
@@ -799,6 +928,7 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
 
       let trackObj = this.#trackObjects.get(trackData.id);
       if (!trackObj) {
+        const themeStr = document.documentElement.classList.contains("dark") ? "dark" : "light";
         trackObj = new Track({
           left: 0,
           top: currentY,
@@ -808,6 +938,7 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
           trackId: trackData.id,
           selectable: false,
           evented: false,
+          fill: themeStr === "dark" ? "#202020" : "#f4f4f5",
         });
         this.#trackObjects.set(trackData.id, trackObj);
         this.canvas.add(trackObj);
@@ -839,7 +970,7 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
       const region = this.#trackRegions[trackIndex];
       const trackHeight = region.bottom - region.top;
 
-      trackData.clipIds.forEach((clipId) => {
+      trackData.clipIds.forEach((clipId, i) => {
         usedClipIds.add(clipId);
         const clip = this.#clipsMap[clipId];
         if (!clip) return;
@@ -899,8 +1030,8 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
               elementId: clip.id,
               text: clipName,
               src: clip.src,
-              lockMovementX: !!clip.locked,
-              lockMovementY: !!clip.locked,
+              lockMovementX: clip.type === "Transition" ? true : !!clip.locked,
+              lockMovementY: clip.type === "Transition" ? true : !!clip.locked,
               lockScalingX: !!clip.locked,
               lockScalingY: !!clip.locked,
               lockSkewingX: !!clip.locked,
@@ -920,6 +1051,17 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
               timelineClip = new Effect(commonProps);
             } else if (clip.type === "Transition") {
               timelineClip = new Transition(commonProps);
+
+              // Calculate max duration as 25% of shortest neighbor
+              const prevClipId = (clip as any).fromClipId;
+              const nextClipId = (clip as any).toClipId;
+              const prevClip = prevClipId ? this.#clipsMap[prevClipId] : null;
+              const nextClip = nextClipId ? this.#clipsMap[nextClipId] : null;
+
+              if (prevClip && nextClip) {
+                const minDuration = Math.min(prevClip.duration, nextClip.duration);
+                (timelineClip as any).maxTransitionDurationUs = minDuration * 0.25;
+              }
             } else if (clip.type === "Caption") {
               timelineClip = new Caption(commonProps);
             } else {
@@ -949,8 +1091,8 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
               height: trackHeight,
               text: clipName,
               src: clip.src,
-              lockMovementX: !!clip.locked,
-              lockMovementY: !!clip.locked,
+              lockMovementX: clip.type === "Transition" ? true : !!clip.locked,
+              lockMovementY: clip.type === "Transition" ? true : !!clip.locked,
               lockScalingX: !!clip.locked,
               lockScalingY: !!clip.locked,
               lockSkewingX: !!clip.locked,
@@ -970,6 +1112,18 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
               studioClipId: clip.id,
             };
 
+            if (clip.type === "Transition") {
+              const prevClipId = (clip as any).fromClipId;
+              const nextClipId = (clip as any).toClipId;
+              const prevClip = prevClipId ? this.#clipsMap[prevClipId] : null;
+              const nextClip = nextClipId ? this.#clipsMap[nextClipId] : null;
+
+              if (prevClip && nextClip) {
+                const minDuration = Math.min(prevClip.duration, nextClip.duration);
+                (timelineClip as any).maxTransitionDurationUs = minDuration * 0.25;
+              }
+            }
+
             if (timelineClip.group) {
               const group = timelineClip.group;
               props.left = startX - (group.left || 0) - (group.width || 0) / 2;
@@ -984,6 +1138,29 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
         }
       });
     });
+
+    // --- PASS 4: BRING TRANSITIONS TO FRONT ---
+    this.#tracks.forEach((trackData) => {
+      trackData.clipIds.forEach((clipId) => {
+        const clip = this.#clipsMap[clipId];
+        if (clip && clip.type === "Transition") {
+          const timelineClip = this.#clipObjects.get(clipId);
+          if (timelineClip) {
+            this.canvas.bringObjectToFront(timelineClip);
+          }
+        }
+      });
+    });
+
+    // --- PASS 5: BRING AUXILIARY OBJECTS TO FRONT ---
+    if (this.#transitionButton) {
+      this.canvas.bringObjectToFront(this.#transitionButton);
+      this.#transitionButton.set({ dirty: true });
+    }
+    if (this.#transitionPlaceholder) {
+      this.canvas.bringObjectToFront(this.#transitionPlaceholder);
+      this.#transitionPlaceholder.set({ dirty: true });
+    }
 
     // Cleanup Unused Objects
     // Tracks
@@ -1201,10 +1378,18 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
   }
 
   public dispose() {
+    // 1. Stop all input handling and cancel any pending RAF loop
+    if (this.#inputController) {
+      this.#inputController.unbind();
+    }
+
+    // 2. Stop observing size changes
     if (this.#resizeObserver) {
       this.#resizeObserver.disconnect();
       this.#resizeObserver = null;
     }
+
+    // 3. Remove business-logic Fabric listeners and dispose the canvas
     if (this.canvas) {
       this.canvas.off("object:moving", this.#onDragging);
       this.canvas.off("object:modified", this.#onTrackRelocation);
@@ -1217,6 +1402,15 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
       this.clearTransitionButton();
       this.disposeScrollbars();
       this.canvas.dispose();
+      (this.canvas as any) = null;
+    }
+
+    // 4. Clear DOM and event emitter subscriptions
+    if (this.containerEl) {
+      this.containerEl.innerHTML = "";
+    }
+    if (this.all) {
+      this.all.clear();
     }
   }
 }
