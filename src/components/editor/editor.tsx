@@ -15,7 +15,7 @@ import { WebCodecsUnsupportedModal } from "@/components/editor/webcodecs-unsuppo
 import { Design } from "@/types/editor";
 import { useStudioStore } from "@/stores/studio-store";
 import { debounce } from "lodash";
-import { PropertiesPanel } from "@/components/editor/properties-panel";
+import { RightPanel } from "@/components/editor/right-panel";
 // import template from './template.json';
 export default function Editor({
   design,
@@ -151,7 +151,7 @@ export default function Editor({
   }, [studio, schemaId, projectId, isOwner]);
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-background overflow-hidden">
+    <div className="h-screen w-screen flex flex-col bg-background overflow-hidden gap-1.5">
       {!isReady && (
         <div className="absolute inset-0 z-50">
           <Loading />
@@ -164,7 +164,7 @@ export default function Editor({
           You&apos;re editing a shared project — changes are not saved to the database.
         </div>
       )} */}
-      <div className="flex-1 min-h-0 min-w-0">
+      <div className="flex-1 min-h-0 min-w-0  bg-[#09090B]">
         <ResizablePanelGroup direction="vertical" className="h-full w-full gap-0">
           {/* Top Row: Workspace (Panels | Canvas | Properties) */}
           <ResizablePanel
@@ -172,7 +172,7 @@ export default function Editor({
             minSize={30}
             maxSize={85}
             onResize={setMainContent}
-            className="min-h-0 flex-1"
+            className="min-h-0 flex-1 p-1 pb-0 pt-0"
           >
             <ResizablePanelGroup direction="horizontal" className="h-full w-full gap-0">
               {/* Left Column: Media Panel */}
@@ -181,13 +181,13 @@ export default function Editor({
                 minSize={15}
                 maxSize={40}
                 onResize={setToolsPanel}
-                className="max-w-7xl relative overflow-visible! bg-card min-w-0"
+                className="max-w-7xl relative overflow-visible! min-w-0"
               >
                 <MediaPanel />
                 <FloatingControl />
               </ResizablePanel>
 
-              <ResizableHandle className="bg-primary/15" />
+              <ResizableHandle className="w-1 bg-transparent" />
 
               {/* Middle Column: Canvas Panel */}
               <ResizablePanel
@@ -202,7 +202,7 @@ export default function Editor({
                 />
               </ResizablePanel>
 
-              <ResizableHandle className="bg-primary/15" />
+              <ResizableHandle className="w-1 bg-transparent" />
 
               {/* Right Column: Properties Panel */}
               <ResizablePanel
@@ -210,14 +210,14 @@ export default function Editor({
                 minSize={15}
                 maxSize={40}
                 onResize={setPropertiesPanel}
-                className="max-w-7xl relative overflow-visible! bg-card min-w-0"
+                className="max-w-7xl relative overflow-visible! min-w-0"
               >
-                <PropertiesPanel selectedClips={selectedClips} />
+                <RightPanel selectedClips={selectedClips} />
               </ResizablePanel>
             </ResizablePanelGroup>
           </ResizablePanel>
 
-          <ResizableHandle className="bg-primary/15 h-px z-10 w-full" />
+          <ResizableHandle className="h-1 bg-transparent z-10 w-full" />
 
           {/* Bottom Row: Timeline Panel */}
           <ResizablePanel
@@ -227,7 +227,9 @@ export default function Editor({
             onResize={setTimeline}
             className="min-h-0 relative z-0"
           >
-            <Timeline />
+            <div className="h-full w-full bg-card rounded-xl border border-border/50 shadow-sm overflow-hidden">
+              <Timeline />
+            </div>
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>

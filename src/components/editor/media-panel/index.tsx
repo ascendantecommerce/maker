@@ -39,12 +39,11 @@ export function MediaPanel() {
   // Removed properties effect
 
   return (
-    <div className="h-full flex flex-row bg-card overflow-hidden w-full">
-      <div className="h-full w-12 flex-none bg-background z-10 flex flex-col items-center">
+    <div className="h-full flex flex-row bg-transparent overflow-hidden w-full gap-1">
+      <div className="h-full w-12 flex-none bg-card z-10 flex flex-col items-center">
         <TabBar />
       </div>
-      <Separator orientation="vertical" />
-      <div className="flex-1 min-h-0 min-w-0 overflow-hidden relative">
+      <div className="flex-1 min-h-0 min-w-0 overflow-hidden relative bg-card rounded-sm border border-border/50 shadow-sm">
         {viewMap[activeTab]}
       </div>
     </div>
