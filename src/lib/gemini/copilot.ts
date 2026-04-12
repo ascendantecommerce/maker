@@ -14,8 +14,8 @@ if (!apiKey) {
 
 const genAI = new GoogleGenAI({ apiKey });
 
-// Using gemini-3-flash-preview for reliable tool calling
-const MODEL_NAME = "gemini-3-flash-preview";
+// Using gemini-2.5-flash-image for reliable tool calling
+const MODEL_NAME = "gemini-2.5-flash-image";
 export const TOOL_DEFINITIONS = [
   {
     name: "process_video_workflow",

@@ -52,7 +52,7 @@ export function calculateGeminiCost(
       outputPricePer1M = isLargeContext ? 18.0 : 12.0;
       break;
 
-    case "gemini-3-flash-preview":
+    case "gemini-2.5-flash-image":
       // Flash 3: $0.50 input (except audio), $3.00 output
       // Note: If audio is present, the calculation is mixed,
       inputPricePer1M = 0.5;
@@ -78,7 +78,7 @@ export function calculateGeminiCost(
     const audioTokens =
       usage.promptTokensDetails?.find((d) => d.modality === MediaModality.AUDIO)?.tokenCount || 0;
     const otherTokens = (usage.promptTokenCount || 0) - audioTokens;
-    const audioPrice = model === "gemini-3-flash-preview" ? 1.0 : 1.0; // Ambos $1.00 para audio
+    const audioPrice = model === "gemini-2.5-flash-image" ? 1.0 : 1.0; // Ambos $1.00 para audio
     inputCost =
       (otherTokens / 1_000_000) * inputPricePer1M + (audioTokens / 1_000_000) * audioPrice;
   } else {

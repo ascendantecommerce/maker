@@ -249,7 +249,7 @@ ${extractReadableText(data.html)}
     ],
   };
 
-  const geminiModel = "gemini-3-flash-preview";
+  const geminiModel = "gemini-2.5-flash-image";
   const response = await client.models.generateContent({
     model: geminiModel,
     contents: [userContent],

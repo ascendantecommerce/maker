@@ -59,7 +59,7 @@ export async function generateShotFirstFrames(
           
           await withRetry(async (attempt) => {
             console.log("GENERATING IMAGE FOR SHOT",  seg.id, index );
-            const fallbackModel = attempt > 0 ? "gemini-3-flash-preview" : undefined;
+            const fallbackModel = attempt > 0 ? "gemini-2.5-flash-image" : undefined;
             const { imageUrl: img, price: imgPrice } = await generateImage(
               context,
               seg,
