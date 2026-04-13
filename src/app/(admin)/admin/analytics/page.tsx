@@ -53,16 +53,16 @@ export default function AdminAnalyticsPage() {
 
   const generationBreakdown = stats
     ? [
-      { name: "Completed", value: stats.completedGenerations },
-      { name: "Failed", value: stats.failedGenerations },
-      {
-        name: "Other",
-        value: Math.max(
-          0,
-          stats.totalGenerations - stats.completedGenerations - stats.failedGenerations,
-        ),
-      },
-    ]
+        { name: "Completed", value: stats.completedGenerations },
+        { name: "Failed", value: stats.failedGenerations },
+        {
+          name: "Other",
+          value: Math.max(
+            0,
+            stats.totalGenerations - stats.completedGenerations - stats.failedGenerations,
+          ),
+        },
+      ]
     : [];
 
   const successRate =

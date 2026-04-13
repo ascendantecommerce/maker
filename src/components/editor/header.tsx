@@ -187,17 +187,18 @@ export default function Header({
     setIsDriveExportModalOpen(true);
   };
   return (
-    <header className="relative flex h-[52px] w-full shrink-0 items-center justify-between px-4 bg-card z-10 border-b">
+    <header className="relative flex h-13 w-full shrink-0 items-center justify-between px-4 bg-card z-10 border-b">
       {/* Left Section */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 h-13">
         <Link
           href="/home"
-          className="pointer-events-auto gap-2 flex h-11 text-sm items-center justify-center rounded-md font-semibold hover:bg-stone-800/50 px-2 transition-colors"
+          className="pointer-events-auto gap-2 flex h-13 text-sm items-center justify-center rounded-md font-semibold hover:bg-stone-800/50 px-2 transition-colors"
         >
           <ArrowLeftIcon className="size-5" /> Back
         </Link>
-        <Separator orientation="vertical" className="!h-6 w-1 bg-stone-600 ml-2" />
-        <div className=" pointer-events-auto flex h-10 items-center">
+        <div className="w-px h-8 bg-border" />
+
+        <div className=" pointer-events-auto flex h-13 items-center">
           <Button onClick={() => studio?.undo()} disabled={!canUndo} variant="ghost" size="icon">
             <Icons.undo className="size-5" />
           </Button>

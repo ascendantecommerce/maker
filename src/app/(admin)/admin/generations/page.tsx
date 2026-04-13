@@ -148,8 +148,12 @@ export default function AdminGenerationsPage() {
                 <SelectValue placeholder="Sort" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="desc" className="text-xs">Newest</SelectItem>
-                <SelectItem value="asc" className="text-xs">Oldest</SelectItem>
+                <SelectItem value="desc" className="text-xs">
+                  Newest
+                </SelectItem>
+                <SelectItem value="asc" className="text-xs">
+                  Oldest
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -161,10 +165,18 @@ export default function AdminGenerationsPage() {
                 <SelectValue placeholder="Timeframe" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all" className="text-xs">All Time</SelectItem>
-                <SelectItem value="24h" className="text-xs">Last 24h</SelectItem>
-                <SelectItem value="7d" className="text-xs">Last 7d</SelectItem>
-                <SelectItem value="30d" className="text-xs">Last 30d</SelectItem>
+                <SelectItem value="all" className="text-xs">
+                  All Time
+                </SelectItem>
+                <SelectItem value="24h" className="text-xs">
+                  Last 24h
+                </SelectItem>
+                <SelectItem value="7d" className="text-xs">
+                  Last 7d
+                </SelectItem>
+                <SelectItem value="30d" className="text-xs">
+                  Last 30d
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -193,77 +205,83 @@ export default function AdminGenerationsPage() {
               <div className="divide-y divide-border/40">
                 {loading
                   ? Array.from({ length: 10 }).map((_, i) => (
-                    <div key={i} className="grid grid-cols-[1.5fr_1fr_1.2fr_1fr_1fr] px-4 py-4 items-center">
-                      <div className="space-y-2">
+                      <div
+                        key={i}
+                        className="grid grid-cols-[1.5fr_1fr_1.2fr_1fr_1fr] px-4 py-4 items-center"
+                      >
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-3 w-20" />
+                        </div>
+                        <Skeleton className="h-4 w-24" />
                         <Skeleton className="h-4 w-32" />
-                        <Skeleton className="h-3 w-20" />
+                        <Skeleton className="h-4 w-24" />
+                        <div className="flex justify-end">
+                          <Skeleton className="h-8 w-8 rounded-full" />
+                        </div>
                       </div>
-                      <Skeleton className="h-4 w-24" />
-                      <Skeleton className="h-4 w-32" />
-                      <Skeleton className="h-4 w-24" />
-                      <div className="flex justify-end">
-                        <Skeleton className="h-8 w-8 rounded-full" />
-                      </div>
-                    </div>
-                  ))
+                    ))
                   : data?.generations.map((gen) => (
-                    <div
-                      key={gen.id}
-                      className="grid grid-cols-[1.5fr_1fr_1.2fr_1fr_1fr] px-4 py-3.5 items-center hover:bg-muted/30 transition-colors group"
-                    >
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-[13px] tracking-tight truncate">
-                            {gen.id.slice(0, 12)}
-                          </span>
-                          <Badge variant="outline" className="text-[10px] h-4 px-1 font-mono font-normal">
-                            Production
-                          </Badge>
+                      <div
+                        key={gen.id}
+                        className="grid grid-cols-[1.5fr_1fr_1.2fr_1fr_1fr] px-4 py-3.5 items-center hover:bg-muted/30 transition-colors group"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-[13px] tracking-tight truncate">
+                              {gen.id.slice(0, 12)}
+                            </span>
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] h-4 px-1 font-mono font-normal"
+                            >
+                              Production
+                            </Badge>
+                          </div>
+                          <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1.5">
+                            <span className="font-mono">{gen.id}</span>
+                          </div>
                         </div>
-                        <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1.5">
-                          <span className="font-mono">{gen.id}</span>
-                        </div>
-                      </div>
 
-                      <div>
-                        <StatusDot status={gen.status} />
-                        <div className="text-[11px] text-muted-foreground mt-0.5">
-                          {formatRelativeTime(gen.updated_at)}
+                        <div>
+                          <StatusDot status={gen.status} />
+                          <div className="text-[11px] text-muted-foreground mt-0.5">
+                            {formatRelativeTime(gen.updated_at)}
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="pr-8">
-                        <div className="flex flex-col gap-1.5">
-                          <Progress
-                            value={gen.progress ?? 0}
-                            className="h-1 flex-1 bg-muted/50"
-                          />
-                          <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
-                            <span>{Math.round(gen.progress ?? 0)}%</span>
-                            <span>{gen.status.toLowerCase()}</span>
+                        <div className="pr-8">
+                          <div className="flex flex-col gap-1.5">
+                            <Progress
+                              value={gen.progress ?? 0}
+                              className="h-1 flex-1 bg-muted/50"
+                            />
+                            <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
+                              <span>{Math.round(gen.progress ?? 0)}%</span>
+                              <span>{gen.status.toLowerCase()}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="text-[12px] text-muted-foreground">
+                          {formatRelativeTime(gen.created_at)}
+                        </div>
+
+                        <div className="flex items-center justify-end gap-2.5">
+                          <div className="text-right min-w-0">
+                            <p className="text-[12px] font-medium truncate max-w-[120px]">
+                              {gen.user_name || "Unknown"}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground truncate max-w-[120px]">
+                              {gen.user_email}
+                            </p>
+                          </div>
+                          <div className="size-7 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold shrink-0">
+                            {(gen.user_name || gen.user_email || "U").charAt(0).toUpperCase()}
                           </div>
                         </div>
                       </div>
-
-                      <div className="text-[12px] text-muted-foreground">
-                        {formatRelativeTime(gen.created_at)}
-                      </div>
-
-                      <div className="flex items-center justify-end gap-2.5">
-                        <div className="text-right min-w-0">
-                          <p className="text-[12px] font-medium truncate max-w-[120px]">
-                            {gen.user_name || "Unknown"}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground truncate max-w-[120px]">
-                            {gen.user_email}
-                          </p>
-                        </div>
-                        <div className="size-7 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold shrink-0">
-                          {(gen.user_name || gen.user_email || "U").charAt(0).toUpperCase()}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
               </div>
             </div>
 

@@ -11,8 +11,8 @@ export function RightPanel({ selectedClips }: { selectedClips: IClip[] }) {
   const { activeTab } = useRightPanelStore();
 
   return (
-    <div className="h-full flex flex-row bg-transparent overflow-hidden w-full gap-1">
-      <div className="flex-1 min-h-0 min-w-0 overflow-hidden relative bg-card rounded-sm border border-border/50 shadow-sm">
+    <div className="h-full flex flex-row bg-transparent overflow-hidden w-full">
+      <div className="flex-1 min-h-0 min-w-0 overflow-hidden relative bg-card border-x border-border shadow-sm">
         {activeTab === "properties" && <PropertiesPanel selectedClips={selectedClips} />}
         {activeTab === "ai" && <AIToolsPanel selectedClips={selectedClips} />}
       </div>

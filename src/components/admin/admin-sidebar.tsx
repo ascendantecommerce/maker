@@ -52,7 +52,7 @@ const navItems = [
     label: "Analytics",
     href: "/admin/analytics",
     icon: LineChart,
-  }
+  },
 ];
 
 export function AdminSidebar() {

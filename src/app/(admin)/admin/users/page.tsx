@@ -3,7 +3,17 @@
 import { cn } from "@/lib/utils";
 
 import { useEffect, useState, useCallback } from "react";
-import { Search, ChevronLeft, ChevronRight, Mail, CheckCircle2, XCircle, RefreshCcw, Filter, ArrowUpDown } from "lucide-react";
+import {
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Mail,
+  CheckCircle2,
+  XCircle,
+  RefreshCcw,
+  Filter,
+  ArrowUpDown,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -51,7 +61,9 @@ function PlanStatus({ plan }: { plan: string | null }) {
 function VerifiedStatus({ verified }: { verified: boolean }) {
   return (
     <div className="flex items-center gap-2">
-      <div className={`size-1.5 rounded-full ${verified ? "bg-green-500" : "bg-muted-foreground"}`} />
+      <div
+        className={`size-1.5 rounded-full ${verified ? "bg-green-500" : "bg-muted-foreground"}`}
+      />
       <span className="text-[13px] font-medium">{verified ? "Verified" : "Unverified"}</span>
     </div>
   );
@@ -138,9 +150,15 @@ export default function AdminUsersPage() {
                 <SelectValue placeholder="Plan" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all" className="text-xs">All Plans</SelectItem>
-                <SelectItem value="free" className="text-xs">Free</SelectItem>
-                <SelectItem value="pro" className="text-xs">Pro</SelectItem>
+                <SelectItem value="all" className="text-xs">
+                  All Plans
+                </SelectItem>
+                <SelectItem value="free" className="text-xs">
+                  Free
+                </SelectItem>
+                <SelectItem value="pro" className="text-xs">
+                  Pro
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -152,8 +170,12 @@ export default function AdminUsersPage() {
                 <SelectValue placeholder="Sort" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="desc" className="text-xs">Newest</SelectItem>
-                <SelectItem value="asc" className="text-xs">Oldest</SelectItem>
+                <SelectItem value="desc" className="text-xs">
+                  Newest
+                </SelectItem>
+                <SelectItem value="asc" className="text-xs">
+                  Oldest
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -182,65 +204,72 @@ export default function AdminUsersPage() {
               <div className="divide-y divide-border/40">
                 {loading
                   ? Array.from({ length: 8 }).map((_, i) => (
-                    <div key={i} className="grid grid-cols-[2fr_1fr_1fr_1fr_1.2fr] px-4 py-4 items-center">
-                      <div className="flex items-center gap-3">
-                        <Skeleton className="size-8 rounded-full" />
-                        <div className="space-y-2">
-                          <Skeleton className="h-4 w-32" />
-                          <Skeleton className="h-3 w-40" />
-                        </div>
-                      </div>
-                      <Skeleton className="h-4 w-20" />
-                      <Skeleton className="h-4 w-12" />
-                      <Skeleton className="h-4 w-24" />
-                      <div className="flex justify-end">
-                        <Skeleton className="h-4 w-24" />
-                      </div>
-                    </div>
-                  ))
-                  : data?.users.map((user) => (
-                    <div
-                      key={user.id}
-                      className="grid grid-cols-[2fr_1fr_1fr_1fr_1.2fr] px-4 py-3.5 items-center hover:bg-muted/30 transition-colors group"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <Avatar className="size-8 border border-border/50">
-                          <AvatarImage src={user.image || ""} alt={user.name || ""} />
-                          <AvatarFallback className="text-[10px] font-bold">
-                            {(user.name || user.email).charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0">
-                          <p className="text-[13px] font-bold tracking-tight truncate">
-                            {user.name || <span className="text-muted-foreground font-normal italic">No name set</span>}
-                          </p>
-                          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-0.5">
-                            <Mail className="size-3 shrink-0" />
-                            <span className="truncate">{user.email}</span>
+                      <div
+                        key={i}
+                        className="grid grid-cols-[2fr_1fr_1fr_1fr_1.2fr] px-4 py-4 items-center"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="size-8 rounded-full" />
+                          <div className="space-y-2">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-3 w-40" />
                           </div>
                         </div>
-                      </div>
-
-                      <div>
-                        <PlanStatus plan={user.plan} />
-                        <div className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-tighter font-mono">
-                          {user.subscription_status || "no subscription"}
+                        <Skeleton className="h-4 w-20" />
+                        <Skeleton className="h-4 w-12" />
+                        <Skeleton className="h-4 w-24" />
+                        <div className="flex justify-end">
+                          <Skeleton className="h-4 w-24" />
                         </div>
                       </div>
+                    ))
+                  : data?.users.map((user) => (
+                      <div
+                        key={user.id}
+                        className="grid grid-cols-[2fr_1fr_1fr_1fr_1.2fr] px-4 py-3.5 items-center hover:bg-muted/30 transition-colors group"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Avatar className="size-8 border border-border/50">
+                            <AvatarImage src={user.image || ""} alt={user.name || ""} />
+                            <AvatarFallback className="text-[10px] font-bold">
+                              {(user.name || user.email).charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p className="text-[13px] font-bold tracking-tight truncate">
+                              {user.name || (
+                                <span className="text-muted-foreground font-normal italic">
+                                  No name set
+                                </span>
+                              )}
+                            </p>
+                            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-0.5">
+                              <Mail className="size-3 shrink-0" />
+                              <span className="truncate">{user.email}</span>
+                            </div>
+                          </div>
+                        </div>
 
-                      <div className="text-[13px] font-mono text-muted-foreground">
-                        {user.credits?.toLocaleString() ?? "0"}
-                      </div>
+                        <div>
+                          <PlanStatus plan={user.plan} />
+                          <div className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-tighter font-mono">
+                            {user.subscription_status || "no subscription"}
+                          </div>
+                        </div>
 
-                      <div>
-                        <VerifiedStatus verified={user.email_verified} />
-                      </div>
+                        <div className="text-[13px] font-mono text-muted-foreground">
+                          {user.credits?.toLocaleString() ?? "0"}
+                        </div>
 
-                      <div className="text-right text-[12px] text-muted-foreground">
-                        {formatRelativeTime(user.created_at)}
+                        <div>
+                          <VerifiedStatus verified={user.email_verified} />
+                        </div>
+
+                        <div className="text-right text-[12px] text-muted-foreground">
+                          {formatRelativeTime(user.created_at)}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
               </div>
             </div>
 

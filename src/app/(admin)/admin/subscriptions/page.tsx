@@ -47,7 +47,9 @@ function StatusDot({ status }: { status: string | null }) {
   const isActive = status === "active";
   return (
     <div className="flex items-center gap-2">
-      <div className={`size-1.5 rounded-full ${isActive ? "bg-green-500" : "bg-muted-foreground"}`} />
+      <div
+        className={`size-1.5 rounded-full ${isActive ? "bg-green-500" : "bg-muted-foreground"}`}
+      />
       <span className="text-[13px] font-medium capitalize">{status.toLowerCase()}</span>
     </div>
   );
@@ -158,10 +160,18 @@ export default function AdminSubscriptionsPage() {
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all" className="text-xs">All Statuses</SelectItem>
-                <SelectItem value="active" className="text-xs">Active</SelectItem>
-                <SelectItem value="canceled" className="text-xs">Canceled</SelectItem>
-                <SelectItem value="past_due" className="text-xs">Past Due</SelectItem>
+                <SelectItem value="all" className="text-xs">
+                  All Statuses
+                </SelectItem>
+                <SelectItem value="active" className="text-xs">
+                  Active
+                </SelectItem>
+                <SelectItem value="canceled" className="text-xs">
+                  Canceled
+                </SelectItem>
+                <SelectItem value="past_due" className="text-xs">
+                  Past Due
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -173,8 +183,12 @@ export default function AdminSubscriptionsPage() {
                 <SelectValue placeholder="Sort" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="desc" className="text-xs">Newest</SelectItem>
-                <SelectItem value="asc" className="text-xs">Oldest</SelectItem>
+                <SelectItem value="desc" className="text-xs">
+                  Newest
+                </SelectItem>
+                <SelectItem value="asc" className="text-xs">
+                  Oldest
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -203,64 +217,69 @@ export default function AdminSubscriptionsPage() {
               <div className="divide-y divide-border/40">
                 {loading
                   ? Array.from({ length: 8 }).map((_, i) => (
-                    <div key={i} className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1.5fr] px-4 py-4 items-center">
-                      <div className="space-y-2">
+                      <div
+                        key={i}
+                        className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1.5fr] px-4 py-4 items-center"
+                      >
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-3 w-40" />
+                        </div>
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-20" />
+                          <Skeleton className="h-3 w-16" />
+                        </div>
+                        <Skeleton className="h-4 w-12" />
                         <Skeleton className="h-4 w-32" />
-                        <Skeleton className="h-3 w-40" />
+                        <div className="flex justify-end">
+                          <Skeleton className="h-4 w-36" />
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <Skeleton className="h-4 w-20" />
-                        <Skeleton className="h-3 w-16" />
-                      </div>
-                      <Skeleton className="h-4 w-12" />
-                      <Skeleton className="h-4 w-32" />
-                      <div className="flex justify-end">
-                        <Skeleton className="h-4 w-36" />
-                      </div>
-                    </div>
-                  ))
+                    ))
                   : data?.subscriptions.map((sub) => (
-                    <div
-                      key={sub.id}
-                      className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1.5fr] px-4 py-3.5 items-center hover:bg-muted/30 transition-colors group"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-[13px] font-bold tracking-tight truncate">
-                          {sub.user_name || "Unknown"}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground truncate font-mono mt-0.5">
-                          {sub.user_email}
-                        </p>
-                      </div>
-
-                      <div className="space-y-0.5">
-                        <PlanStatus plan={sub.plan} />
-                        <StatusDot status={sub.status} />
-                      </div>
-
-                      <div className="text-[13px] font-mono text-muted-foreground">
-                        {sub.credits?.toLocaleString() ?? "—"}
-                      </div>
-
-                      <div className="text-[12px] text-muted-foreground">
-                        <p>{formatDate(sub.period_start)}</p>
-                        <p className="text-[10px] opacity-70">to {formatDate(sub.period_end)}</p>
-                      </div>
-
-                      <div className="text-right min-w-0">
-                        {sub.stripe_subscription_id ? (
-                          <p className="text-[11px] font-mono text-muted-foreground mb-0.5 truncate">
-                            {sub.stripe_subscription_id}
+                      <div
+                        key={sub.id}
+                        className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1.5fr] px-4 py-3.5 items-center hover:bg-muted/30 transition-colors group"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-bold tracking-tight truncate">
+                            {sub.user_name || "Unknown"}
                           </p>
-                        ) : (
-                          <p className="text-[11px] text-muted-foreground italic mb-0.5">No Stripe ID</p>
-                        )}
-                        <p className="text-[10px] text-muted-foreground uppercase opacity-70 tracking-tighter">
-                          {formatRelativeTime(sub.created_at)}
-                        </p>
+                          <p className="text-[11px] text-muted-foreground truncate font-mono mt-0.5">
+                            {sub.user_email}
+                          </p>
+                        </div>
+
+                        <div className="space-y-0.5">
+                          <PlanStatus plan={sub.plan} />
+                          <StatusDot status={sub.status} />
+                        </div>
+
+                        <div className="text-[13px] font-mono text-muted-foreground">
+                          {sub.credits?.toLocaleString() ?? "—"}
+                        </div>
+
+                        <div className="text-[12px] text-muted-foreground">
+                          <p>{formatDate(sub.period_start)}</p>
+                          <p className="text-[10px] opacity-70">to {formatDate(sub.period_end)}</p>
+                        </div>
+
+                        <div className="text-right min-w-0">
+                          {sub.stripe_subscription_id ? (
+                            <p className="text-[11px] font-mono text-muted-foreground mb-0.5 truncate">
+                              {sub.stripe_subscription_id}
+                            </p>
+                          ) : (
+                            <p className="text-[11px] text-muted-foreground italic mb-0.5">
+                              No Stripe ID
+                            </p>
+                          )}
+                          <p className="text-[10px] text-muted-foreground uppercase opacity-70 tracking-tighter">
+                            {formatRelativeTime(sub.created_at)}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
               </div>
             </div>
 

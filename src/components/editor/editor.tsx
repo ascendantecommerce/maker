@@ -151,7 +151,7 @@ export default function Editor({
   }, [studio, schemaId, projectId, isOwner]);
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-background overflow-hidden gap-1.5">
+    <div className="h-screen w-screen flex flex-col bg-background overflow-hidden">
       {!isReady && (
         <div className="absolute inset-0 z-50">
           <Loading />
@@ -187,7 +187,7 @@ export default function Editor({
                 <FloatingControl />
               </ResizablePanel>
 
-              <ResizableHandle className="w-1 bg-transparent" />
+              <ResizableHandle className="bg-border" />
 
               {/* Middle Column: Canvas Panel */}
               <ResizablePanel
@@ -202,7 +202,7 @@ export default function Editor({
                 />
               </ResizablePanel>
 
-              <ResizableHandle className="w-1 bg-transparent" />
+              <ResizableHandle className="bg-border" />
 
               {/* Right Column: Properties Panel */}
               <ResizablePanel
@@ -217,7 +217,7 @@ export default function Editor({
             </ResizablePanelGroup>
           </ResizablePanel>
 
-          <ResizableHandle className="h-1 bg-transparent z-10 w-full" />
+          <ResizableHandle className="h-1 bg-border z-10 w-full" />
 
           {/* Bottom Row: Timeline Panel */}
           <ResizablePanel
