@@ -76,7 +76,17 @@ export async function GET(req: Request, { params }: { params: Promise<{ schemaId
         animation: (schema.metadata as any)?.animation,
       },
     ],
-    segments: segments,
+    segments: segments.map((s) => {
+      const data = s.segment_data as any;
+      let shots = data.shots || [];
+      if (shots && !Array.isArray(shots)) {
+        shots = [shots];
+      }
+      return {
+        ...data,
+        shots,
+      };
+    }),
     assets: assets,
     scene: existingScene || null,
     isOwner,

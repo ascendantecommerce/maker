@@ -7,6 +7,7 @@ import Editor from "@/components/editor/editor";
 import { convertSchemaToDesign } from "@/utils/schema-converter";
 import { convertUgcSchemaToDesign } from "@/utils/ugc-schema-converter";
 import { useStudioStore } from "@/stores/studio-store";
+import { useSchemaStore } from "@/stores/schema-store";
 import { Design } from "@/types/editor";
 import { Scene } from "@/lib/database";
 
@@ -30,6 +31,7 @@ export default function FolderPage({ params }: { params: Promise<{ schemaId: str
   const [design, setDesign] = useState<Design | null>(null);
   const [isOwner, setIsOwner] = useState(true);
   const posthog = usePostHog();
+  const { setSchema } = useSchemaStore();
 
   useEffect(() => {
     Sentry.setTag("page_name", "edit-scene");
@@ -61,6 +63,14 @@ export default function FolderPage({ params }: { params: Promise<{ schemaId: str
   useEffect(() => {
     const convertAndSave = async () => {
       if (!projectData) return;
+
+      const mainSchema = projectData.schemas?.[0];
+      if (mainSchema) {
+        setSchema({
+          ...mainSchema,
+          segments: projectData.segments || [],
+        });
+      }
 
       // // 1. If scene exists, load it directly
       if (projectData.scene) {
