@@ -1,10 +1,6 @@
 import { fontManager, getPresetTemplate } from "openvideo";
 import { Design } from "@/types/editor";
-import {
-  FONT_DEFAULT,
-  FONT_SIZE_DEFAULT,
-  FONT_URL_DEFAULT,
-} from "@/constants/captions";
+import { FONT_DEFAULT, FONT_SIZE_DEFAULT, FONT_URL_DEFAULT } from "@/constants/captions";
 import { ICaptionsControlProps } from "@/components/editor/interface/captions";
 import { CAPTION_PRESETS } from "@/components/editor/constant/caption";
 import * as PIXI from "pixi.js";
@@ -94,9 +90,7 @@ export const calculateFitDimensions = (
 /**
  * Gets image dimensions from a URL
  */
-export const getImageDimensions = (
-  url: string,
-): Promise<{ width: number; height: number }> => {
+export const getImageDimensions = (url: string): Promise<{ width: number; height: number }> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
@@ -113,9 +107,7 @@ export const getImageDimensions = (
 /**
  * Gets video dimensions from a URL
  */
-export const getVideoDimensions = (
-  url: string,
-): Promise<{ width: number; height: number }> => {
+export const getVideoDimensions = (url: string): Promise<{ width: number; height: number }> => {
   console.log("getVideoDimensions", url);
   return new Promise((resolve, reject) => {
     const video = document.createElement("video");
@@ -218,8 +210,7 @@ export const groupWordsByWidth = (
 
     const metrics = ctx.measureText("AaFfLMZpPqQ");
     const singleLineHeight =
-      metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent ||
-      fontSize;
+      metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent || fontSize;
 
     const totalHeight = singleLineHeight * currentLineCount;
 
@@ -421,8 +412,7 @@ export const convertSchemaToDesign = async (
 
   // Find the style preset based on the caption ID
   const styleCaptions: ICaptionsControlProps =
-    CAPTION_PRESETS.find((preset) => preset.id === captionConfig.id) ||
-    CAPTION_PRESETS[6];
+    CAPTION_PRESETS.find((preset) => preset.id === captionConfig.id) || CAPTION_PRESETS[6];
 
   // Map size to fontSize
   const sizeToFontSize: Record<string, number> = {
@@ -438,8 +428,7 @@ export const convertSchemaToDesign = async (
     middle: "center",
     bottom: "bottom",
   };
-  const verticalAlign =
-    positionToVerticalAlign[captionConfig.position] || "bottom";
+  const verticalAlign = positionToVerticalAlign[captionConfig.position] || "bottom";
 
   // Load font for caption text measurement
   await fontManager.loadFonts([
@@ -481,12 +470,10 @@ export const convertSchemaToDesign = async (
 
       if (groupKeys.length > 1 && lastAnimationGroupKey !== null) {
         do {
-          currentGroupKey =
-            groupKeys[Math.floor(Math.random() * groupKeys.length)];
+          currentGroupKey = groupKeys[Math.floor(Math.random() * groupKeys.length)];
         } while (currentGroupKey === lastAnimationGroupKey);
       } else {
-        currentGroupKey =
-          groupKeys[Math.floor(Math.random() * groupKeys.length)];
+        currentGroupKey = groupKeys[Math.floor(Math.random() * groupKeys.length)];
       }
 
       const segmentAnimationGroup = COMBO_ANIMATION_GROUPS[currentGroupKey];
@@ -510,8 +497,7 @@ export const convertSchemaToDesign = async (
             const fromUs = Math.round(currentSegmentOffsetUs + (shot.display?.from ?? 0) * 1000);
             const toUs = Math.round(
               currentSegmentOffsetUs +
-              (shot.display?.to ??
-                (shot.display?.from ?? 0) + (shot.duration ?? 0)) * 1000
+                (shot.display?.to ?? (shot.display?.from ?? 0) + (shot.duration ?? 0)) * 1000,
             );
             const durationUs = toUs - fromUs;
             console.log({
@@ -519,8 +505,8 @@ export const convertSchemaToDesign = async (
               fromUs,
               toUs,
               shot,
-              currentSegmentOffsetUs
-            })
+              currentSegmentOffsetUs,
+            });
 
             // // NEW: Try to find actual file duration from metadata if available
             // // This helps the renderer know the true bounds of the media file
@@ -590,8 +576,7 @@ export const convertSchemaToDesign = async (
             const fromUs = currentSegmentOffsetUs + (shot.display?.from ?? 0) * 1000;
             const toUs =
               currentSegmentOffsetUs +
-              (shot.display?.to ??
-                (shot.display?.from ?? 0) + (shot.duration ?? 0)) * 1000;
+              (shot.display?.to ?? (shot.display?.from ?? 0) + (shot.duration ?? 0)) * 1000;
             const durationUs = toUs - fromUs;
 
             let imgWidth = width;
@@ -641,19 +626,12 @@ export const convertSchemaToDesign = async (
               animations: [
                 (() => {
                   let animationIndex: number;
-                  if (
-                    segmentAnimationGroup.length > 1 &&
-                    segmentLastAnimationIndex !== null
-                  ) {
+                  if (segmentAnimationGroup.length > 1 && segmentLastAnimationIndex !== null) {
                     do {
-                      animationIndex = Math.floor(
-                        Math.random() * segmentAnimationGroup.length,
-                      );
+                      animationIndex = Math.floor(Math.random() * segmentAnimationGroup.length);
                     } while (animationIndex === segmentLastAnimationIndex);
                   } else {
-                    animationIndex = Math.floor(
-                      Math.random() * segmentAnimationGroup.length,
-                    );
+                    animationIndex = Math.floor(Math.random() * segmentAnimationGroup.length);
                   }
                   segmentLastAnimationIndex = animationIndex;
                   const animationData = segmentAnimationGroup[animationIndex];
@@ -699,9 +677,7 @@ export const convertSchemaToDesign = async (
             // Determine if bRoll is image or video
             const isImage =
               bRoll.type === "image" ||
-              /\.(jpg|jpeg|png|webp|avif)$/i.test(
-                bRoll.imageUrl || bRoll.videoUrl || bRoll.url,
-              );
+              /\.(jpg|jpeg|png|webp|avif)$/i.test(bRoll.imageUrl || bRoll.videoUrl || bRoll.url);
 
             let bRollWidth = width;
             let bRollHeight = height;
@@ -710,12 +686,8 @@ export const convertSchemaToDesign = async (
 
             try {
               const dimensions = isImage
-                ? await getImageDimensions(
-                    bRoll.imageUrl || bRoll.videoUrl || bRoll.url,
-                  )
-                : await getVideoDimensions(
-                    bRoll.imageUrl || bRoll.videoUrl || bRoll.url,
-                  );
+                ? await getImageDimensions(bRoll.imageUrl || bRoll.videoUrl || bRoll.url)
+                : await getVideoDimensions(bRoll.imageUrl || bRoll.videoUrl || bRoll.url);
 
               if (bRoll.displayMode === "overlay") {
                 const scale = bRoll.scale || 0.35;
@@ -817,8 +789,8 @@ export const convertSchemaToDesign = async (
         const toUs =
           currentSegmentOffsetUs +
           (segment.textToSpeech.display?.to ??
-            (segment.textToSpeech.display?.from ?? 0) +
-              (segment.textToSpeech.duration ?? 0)) * 1000;
+            (segment.textToSpeech.display?.from ?? 0) + (segment.textToSpeech.duration ?? 0)) *
+            1000;
         const durationUs = toUs - fromUs;
 
         clips.push({
@@ -862,8 +834,7 @@ export const convertSchemaToDesign = async (
           ) {
             const words = captionData.results.main.words;
             const maxLines = styleCaptions?.textBoxStyle?.maxLines ?? 1;
-            const verticalPadding =
-              styleCaptions?.textBoxStyle?.verticalPadding ?? 0;
+            const verticalPadding = styleCaptions?.textBoxStyle?.verticalPadding ?? 0;
             await fontManager.loadFonts([
               {
                 name: styleCaptions.fontFamily ?? FONT_DEFAULT,
@@ -926,8 +897,7 @@ export const convertSchemaToDesign = async (
                   Math.ceil(chunk.height) +
                   (jumpLines + 1) * verticalPadding * 2 +
                   14 * (jumpLines + 1);
-                const captionBottomPadding =
-                  450 - (maxCaptionHeight - captionHeight) / 2;
+                const captionBottomPadding = 450 - (maxCaptionHeight - captionHeight) / 2;
                 topPosition = height - captionBottomPadding;
               }
 
@@ -982,8 +952,7 @@ export const convertSchemaToDesign = async (
                     background: styleCaptions.backgroundColor ?? "#FF5700",
                     keyword: styleCaptions.isKeywordColor ?? "#ffffff",
                   },
-                  preserveKeywordColor:
-                    styleCaptions.preservedColorKeyWord ?? true,
+                  preserveKeywordColor: styleCaptions.preservedColorKeyWord ?? true,
                   positioning: {
                     videoWidth: width,
                     videoHeight: height,
@@ -992,9 +961,7 @@ export const convertSchemaToDesign = async (
                     ? { textBoxStyle: styleCaptions.textBoxStyle }
                     : {}),
                 },
-                ...(styleCaptions.textBoxStyle
-                  ? { textBoxStyle: styleCaptions.textBoxStyle }
-                  : {}),
+                ...(styleCaptions.textBoxStyle ? { textBoxStyle: styleCaptions.textBoxStyle } : {}),
                 id: clipId,
                 effects: [],
                 mediaId: segmentMediaClipId,
@@ -1014,7 +981,7 @@ export const convertSchemaToDesign = async (
         for (const sfx of sortedSfx) {
           if (sfx.url) {
             const clipId = generateClipId("sfx");
-            
+
             const fromUs = currentSegmentOffsetUs + (sfx.start ?? 0) * 1000;
             // duration is now in ms, so multiply by 1000 for us
             const durationUs = (sfx.duration ?? 1000) * 1000;
@@ -1076,7 +1043,8 @@ export const convertSchemaToDesign = async (
       let segmentDurationMs = segment.duration || 0;
       if (segment.shots && Array.isArray(segment.shots) && segment.shots.length > 0) {
         const lastShot = segment.shots[segment.shots.length - 1];
-        const lastShotEnd = (lastShot.display?.to ?? (lastShot.display?.from ?? 0) + (lastShot.duration ?? 0));
+        const lastShotEnd =
+          lastShot.display?.to ?? (lastShot.display?.from ?? 0) + (lastShot.duration ?? 0);
         segmentDurationMs = Math.max(segmentDurationMs, lastShotEnd);
       }
 
@@ -1180,14 +1148,16 @@ export const convertSchemaToDesign = async (
       clipIds: musicClipIds,
     });
   }
-  console.log({ tracks,
+  console.log({
+    tracks,
     clips,
     settings: {
       width,
       height,
       fps: 30,
       bgColor: "#1c1917",
-    },})
+    },
+  });
   return {
     tracks,
     clips,

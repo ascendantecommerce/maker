@@ -372,9 +372,10 @@ Apply these rules for the Character-Driven Ad blocks:
           includeThoughts: true,
         },
       },
-      prompt: finalImageUrls.length > 0
-        ? [{ text: prompt }, ...finalImageUrls.map(url => ({ media: { url } }))]
-        : prompt,
+      prompt:
+        finalImageUrls.length > 0
+          ? [{ text: prompt }, ...finalImageUrls.map((url) => ({ media: { url } }))]
+          : prompt,
       tools: getScriptToVideoTools(),
     });
 
@@ -407,9 +408,7 @@ Apply these rules for the Character-Driven Ad blocks:
           if (toolContent.toolResponse) {
             const name = toolContent.toolResponse.name;
             const responseOutput = toolContent.toolResponse.output;
-            const tool = toolsQueue.find(
-              (t) => t.name === name && t.response === undefined,
-            );
+            const tool = toolsQueue.find((t) => t.name === name && t.response === undefined);
             if (tool) tool.response = responseOutput;
           }
         }
@@ -437,9 +436,7 @@ Apply these rules for the Character-Driven Ad blocks:
     }
 
     return {
-      reply:
-        text ||
-        "I've processed your request, but no textual reply was generated.",
+      reply: text || "I've processed your request, but no textual reply was generated.",
     };
   },
 );

@@ -112,7 +112,14 @@ Return the response as a JSON object with the following structure:
 export interface StyledPromptOptions {
   styleDescription?: string;
   isProduct?: boolean;
-  shotType?: "lifestyle" | "medical_cgi" | "metaphor" | "product" | "generic" | "b-roll" | "character-speaking";
+  shotType?:
+    | "lifestyle"
+    | "medical_cgi"
+    | "metaphor"
+    | "product"
+    | "generic"
+    | "b-roll"
+    | "character-speaking";
   aspectRatio?: aspectRatioType;
 }
 
@@ -170,7 +177,8 @@ export function createStyledPrompt(originalPrompt: string, options: StyledPrompt
       shotContext = "CONTEXT: Product Presentation. Focus on highlighting the item clearly.";
       break;
     case "character-speaking":
-      shotContext = "CONTEXT: Character Portrait. Focus on clear facial features, expression, and professional cinematic character animation/rendering.";
+      shotContext =
+        "CONTEXT: Character Portrait. Focus on clear facial features, expression, and professional cinematic character animation/rendering.";
       break;
     default:
       shotContext = "CONTEXT: Cinematic Scene.";

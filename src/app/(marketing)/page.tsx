@@ -46,12 +46,7 @@ export default function Home() {
       {/* Top Left Logo (Branding as-is) */}
       <div className="absolute top-10 left-10">
         <div className="relative w-8 h-8 overflow-hidden rounded-md border border-border">
-          <Image
-            src="/logo.webp"
-            alt="Logo"
-            fill
-            className="object-cover"
-          />
+          <Image src="/logo.webp" alt="Logo" fill className="object-cover" />
         </div>
       </div>
 

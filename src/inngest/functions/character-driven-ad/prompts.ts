@@ -59,10 +59,14 @@ Categorize the physical product interaction for every scene using \`productInter
 EXPRESSIVE AUDIO:
 - Villains: Aggressive, exaggerated (e.g., "Gruff, shouty male", "High-pitched, chaotic creature").
 - Heroes: Energetic, bright, powerful (e.g., "Sweet, high-pitched female", "Warm, confident male").
-${scriptTone ? `
+${
+  scriptTone
+    ? `
 SCRIPT TONE & NARRATIVE REGISTER:
 ${scriptTone}
-Apply this tonal register to ALL dialogue. The voice, pacing, and emotional pitch of every line — from villain introductions to the hero's CTA — must reflect this style.` : ""}
+Apply this tonal register to ALL dialogue. The voice, pacing, and emotional pitch of every line — from villain introductions to the hero's CTA — must reflect this style.`
+    : ""
+}
 `;
 
 /**
@@ -75,14 +79,20 @@ export const CHARACTER_AD_SCRIPT_OUTPUT_SCHEMA = {
     script: { type: "string", description: "The full combined narration/dialogue script text" },
     reply: { type: "string", description: "The conversational response to the user" },
     productName: { type: "string", description: "Extracted or consolidated product name" },
-    productDescription: { type: "string", description: "Extracted or consolidated product description" },
+    productDescription: {
+      type: "string",
+      description: "Extracted or consolidated product description",
+    },
     segments: {
       type: "array",
       description: "Ordered list of scenes. Each scene is a segment with a character.",
       items: {
         type: "object",
         properties: {
-          title: { type: "string", description: "Short title for the scene, e.g. 'Scene 1: Brain Fog Villain'" },
+          title: {
+            type: "string",
+            description: "Short title for the scene, e.g. 'Scene 1: Brain Fog Villain'",
+          },
           text: { type: "string", description: "The spoken dialogue for this scene" },
           character: {
             type: "object",
@@ -92,37 +102,61 @@ export const CHARACTER_AD_SCRIPT_OUTPUT_SCHEMA = {
               role: { type: "string", enum: ["villain", "hero", "human", "narrator"] },
               visualDescription: {
                 type: "string",
-                description: "LITERAL 3D physical description of the character. Describe exact material, shape, color. NEVER use metaphorical or human descriptions."
+                description:
+                  "LITERAL 3D physical description of the character. Describe exact material, shape, color. NEVER use metaphorical or human descriptions.",
               },
               voiceDescription: {
                 type: "string",
-                description: "Voice tone and style for audio generation (e.g. 'Raspy, sneaky, fast-talking')"
+                description:
+                  "Voice tone and style for audio generation (e.g. 'Raspy, sneaky, fast-talking')",
               },
-              emotion: { type: "string", description: "The current emotional state or expression of the character" }
+              emotion: {
+                type: "string",
+                description: "The current emotional state or expression of the character",
+              },
             },
-            required: ["name", "role", "visualDescription", "voiceDescription", "emotion"]
+            required: ["name", "role", "visualDescription", "voiceDescription", "emotion"],
           },
           sceneDescription: {
             type: "string",
-            description: "Detailed visual description of the environment. MUST be a cleanly lit, bright, modern Pixar 3D room."
+            description:
+              "Detailed visual description of the environment. MUST be a cleanly lit, bright, modern Pixar 3D room.",
           },
           videoDescription: {
             type: "string",
-            description: "Description of character motion and action in the scene"
+            description: "Description of character motion and action in the scene",
           },
           productInteractionType: {
             type: "string",
-            enum: ["packaging_hero", "product_content_hero", "packaging_in_hand", "product_content_in_hand", "packaging_on_surface", "product_content_on_surface", "product_reveal", "none"]
-          }
+            enum: [
+              "packaging_hero",
+              "product_content_hero",
+              "packaging_in_hand",
+              "product_content_in_hand",
+              "packaging_on_surface",
+              "product_content_on_surface",
+              "product_reveal",
+              "none",
+            ],
+          },
         },
-        required: ["title", "text", "character", "sceneDescription", "videoDescription", "productInteractionType"]
-      }
-    }
+        required: [
+          "title",
+          "text",
+          "character",
+          "sceneDescription",
+          "videoDescription",
+          "productInteractionType",
+        ],
+      },
+    },
   },
-  required: ["script", "reply", "segments"]
+  required: ["script", "reply", "segments"],
 };
 
-export const getCharacterAdParserSystemPrompt = (visualStyle: string = "High-end 3D Pixar/Illumination animation style") => `You are a script-to-schema parser for character-driven ads.
+export const getCharacterAdParserSystemPrompt = (
+  visualStyle: string = "High-end 3D Pixar/Illumination animation style",
+) => `You are a script-to-schema parser for character-driven ads.
 Your task is to take a raw script string and split it into structured segments according to the provided JSON schema.
 
 RULES:

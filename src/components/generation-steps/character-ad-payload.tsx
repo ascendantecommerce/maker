@@ -23,16 +23,18 @@ const DEFAULT_BLOCKS: UserScriptBlock[] = [
     voiceDescription: "deep, gravelly, cynical",
     emotion: "skeptical",
     dialogue: "You really think this product will work? I've seen it all before.",
-  }
+  },
 ];
 
-export function CharacterAdPayload({ 
-  blocks, 
-  onChange, 
-  title = "Direct Payload (JSON)" 
+export function CharacterAdPayload({
+  blocks,
+  onChange,
+  title = "Direct Payload (JSON)",
 }: CharacterAdPayloadProps) {
   const [localPayload, setLocalPayload] = useState<string>(
-    blocks?.length > 0 ? JSON.stringify({ blocks }, null, 2) : JSON.stringify({ blocks: DEFAULT_BLOCKS }, null, 2)
+    blocks?.length > 0
+      ? JSON.stringify({ blocks }, null, 2)
+      : JSON.stringify({ blocks: DEFAULT_BLOCKS }, null, 2),
   );
   const [error, setError] = useState<string | null>(null);
 
@@ -84,10 +86,7 @@ export function CharacterAdPayload({
         <div className="space-y-4 pb-6 pt-2">
           <div className="flex flex-col space-y-2.5">
             <div className="space-y-1 px-1">
-              <Label
-                htmlFor="char-ad-payload"
-                className="text-sm font-medium text-foreground"
-              >
+              <Label htmlFor="char-ad-payload" className="text-sm font-medium text-foreground">
                 Structured Scene Data
               </Label>
               <div className="text-xs text-muted-foreground">
@@ -100,7 +99,7 @@ export function CharacterAdPayload({
               value={localPayload}
               onChange={(e) => handleChange(e.target.value)}
               minHeight={300}
-              className={`py-4 px-4 text-xs font-mono leading-relaxed w-full wrap-break-word ${error ? 'border-destructive' : ''}`}
+              className={`py-4 px-4 text-xs font-mono leading-relaxed w-full wrap-break-word ${error ? "border-destructive" : ""}`}
             />
             {error && <p className="text-[10px] text-destructive px-1">{error}</p>}
           </div>

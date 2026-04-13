@@ -9,27 +9,28 @@ const inngest = getInngestApp();
 
 /**
  * Product Ad Script Generator
- * 
+ *
  * Specialized function for writing high-converting product video ads.
  */
 export const generateProductAdScript = inngest.createFunction(
   { id: "product-ad-script-generator", concurrency: 5 },
   { event: "product/script.request" },
   async ({ event, step, publish }) => {
-    const { message, imageUrls, schemaId, previousSchema, productName, productDescription } = event.data;
+    const { message, imageUrls, schemaId, previousSchema, productName, productDescription } =
+      event.data;
     const channel = workflowChannel(schemaId);
 
     // 1. Initial Status Update
     await step.run("mark-scripting-start", async () => {
       await db
         .updateTable("generations")
-        .set({ 
-          status: ResolverStatus.PROGRESS, 
-          metadata: { message: "AI is writing your product ad script..." } 
+        .set({
+          status: ResolverStatus.PROGRESS,
+          metadata: { message: "AI is writing your product ad script..." },
         })
         .where("id", "=", schemaId)
         .execute();
-        
+
       await publish({
         channel,
         topic: "steps",
@@ -60,10 +61,10 @@ export const generateProductAdScript = inngest.createFunction(
     await step.run("save-script-result", async () => {
       await db
         .updateTable("generations")
-        .set({ 
-          input: result, 
+        .set({
+          input: result,
           status: ResolverStatus.COMPLETED,
-          metadata: { message: "Product ad scripting complete." }
+          metadata: { message: "Product ad scripting complete." },
         })
         .where("id", "=", schemaId)
         .execute();
@@ -92,5 +93,5 @@ export const generateProductAdScript = inngest.createFunction(
     });
 
     return result;
-  }
+  },
 );

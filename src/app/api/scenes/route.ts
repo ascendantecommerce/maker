@@ -14,10 +14,7 @@ export async function POST(req: Request) {
     const { schemaId, sceneData, projectId } = await req.json();
 
     if (!schemaId || !sceneData || !projectId) {
-      return Response.json(
-        { error: "Missing required fields" },
-        { status: 400 },
-      );
+      return Response.json({ error: "Missing required fields" }, { status: 400 });
     }
 
     const project = await projectQueries.findById(projectId);

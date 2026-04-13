@@ -126,12 +126,7 @@ export function AppSidebar() {
                         className="flex items-center gap-2"
                       >
                         <div className="relative w-6 h-6 overflow-hidden rounded-md border border-border">
-                          <Image
-                            src="/logo.webp"
-                            alt="Logo"
-                            fill
-                            className="object-cover"
-                          />
+                          <Image src="/logo.webp" alt="Logo" fill className="object-cover" />
                         </div>
                         <span className="font-semibold text-sm tracking-tight text-foreground truncate">
                           Ascendant Ecommerce
@@ -186,7 +181,7 @@ export function AppSidebar() {
                       onClick={() => {
                         setIsCreateModalOpen(true);
                         handleMobileClose();
-                       }}
+                      }}
                     >
                       <Icons.plus className="size-10 text-inherit!" />
                       {shouldShowLabels && <span className="text-zinc-200">Create new</span>}

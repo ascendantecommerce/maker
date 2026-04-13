@@ -24,7 +24,7 @@ export async function PUT(req: NextRequest) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
     return NextResponse.json(
       { error: "Failed to disconnect Google Drive", details: errorMessage },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

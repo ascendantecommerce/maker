@@ -106,9 +106,7 @@ export function DriveExportModal({ open, onOpenChange, title, onTitleChange, stu
         body: JSON.stringify({ name: editFolderName }),
       });
       if (!res.ok) throw new Error("Failed to rename");
-      setFolders((prev) =>
-        prev.map((f) => (f.id === id ? { ...f, name: editFolderName } : f))
-      );
+      setFolders((prev) => prev.map((f) => (f.id === id ? { ...f, name: editFolderName } : f)));
       toast.success("Folder renamed");
     } catch (err) {
       toast.error("Failed to rename folder");
@@ -228,7 +226,12 @@ export function DriveExportModal({ open, onOpenChange, title, onTitleChange, stu
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium">Select Folder</label>
               {!isCreatingFolder && (
-                <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => setIsCreatingFolder(true)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2"
+                  onClick={() => setIsCreatingFolder(true)}
+                >
                   <Plus className="size-3 mr-1" /> New Folder
                 </Button>
               )}
@@ -236,22 +239,32 @@ export function DriveExportModal({ open, onOpenChange, title, onTitleChange, stu
 
             {isCreatingFolder && (
               <div className="flex items-center gap-2 mb-2">
-                <Input 
+                <Input
                   size={1}
-                  className="h-8" 
-                  value={newFolderName} 
+                  className="h-8"
+                  value={newFolderName}
                   ref={(el) => el?.focus()}
-                  onChange={(e) => setNewFolderName(e.target.value)} 
+                  onChange={(e) => setNewFolderName(e.target.value)}
                   onKeyDown={(e) => {
-                    if(e.key === "Enter") handleCreateFolder();
-                    if(e.key === "Escape") setIsCreatingFolder(false);
+                    if (e.key === "Enter") handleCreateFolder();
+                    if (e.key === "Escape") setIsCreatingFolder(false);
                   }}
-                  placeholder="Folder name" 
+                  placeholder="Folder name"
                 />
-                <Button size="icon" variant="ghost" className="h-8 w-8 text-green-500" onClick={handleCreateFolder}>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 text-green-500"
+                  onClick={handleCreateFolder}
+                >
                   <Check className="size-4" />
                 </Button>
-                <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500" onClick={() => setIsCreatingFolder(false)}>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 text-red-500"
+                  onClick={() => setIsCreatingFolder(false)}
+                >
                   <X className="size-4" />
                 </Button>
               </div>
@@ -276,18 +289,26 @@ export function DriveExportModal({ open, onOpenChange, title, onTitleChange, stu
                     <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
                       <FolderIcon className="size-4 shrink-0 text-muted-foreground" />
                       {editingFolderId === folder.id ? (
-                        <div className="flex w-full items-center gap-2" onClick={e => e.stopPropagation()}>
-                          <Input 
+                        <div
+                          className="flex w-full items-center gap-2"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Input
                             ref={(el) => el?.focus()}
-                            className="h-7 text-sm" 
-                            value={editFolderName} 
+                            className="h-7 text-sm"
+                            value={editFolderName}
                             onChange={(e) => setEditFolderName(e.target.value)}
                             onKeyDown={(e) => {
-                              if(e.key === "Enter") handleRenameFolder(folder.id);
-                              if(e.key === "Escape") setEditingFolderId(null);
+                              if (e.key === "Enter") handleRenameFolder(folder.id);
+                              if (e.key === "Escape") setEditingFolderId(null);
                             }}
                           />
-                          <Button size="icon" variant="ghost" className="h-7 w-7 text-green-500" onClick={() => handleRenameFolder(folder.id)}>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-green-500"
+                            onClick={() => handleRenameFolder(folder.id)}
+                          >
                             <Check className="size-4" />
                           </Button>
                         </div>
@@ -297,10 +318,10 @@ export function DriveExportModal({ open, onOpenChange, title, onTitleChange, stu
                     </div>
                     {editingFolderId !== folder.id && (
                       <div className="flex items-center gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-6 w-6 text-muted-foreground" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-muted-foreground"
                           onClick={(e) => {
                             e.stopPropagation();
                             setEditingFolderId(folder.id);
@@ -309,16 +330,18 @@ export function DriveExportModal({ open, onOpenChange, title, onTitleChange, stu
                         >
                           <Edit2 className="size-3" />
                         </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-6 w-6 text-destructive" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-destructive"
                           onClick={(e) => handleDeleteFolder(folder.id, e)}
                         >
                           <Trash2 className="size-3" />
                         </Button>
                         {selectedFolderId === folder.id && (
-                          <div className="w-6 flex justify-center"><Check className="size-4 text-blue-500" /></div>
+                          <div className="w-6 flex justify-center">
+                            <Check className="size-4 text-blue-500" />
+                          </div>
                         )}
                       </div>
                     )}
@@ -329,7 +352,14 @@ export function DriveExportModal({ open, onOpenChange, title, onTitleChange, stu
           </div>
         </div>
         <div className="flex justify-end pt-4 border-t">
-          <Button onClick={handleExport} disabled={isExporting || (!selectedFolderId && folders.length > 0) || (folders.length === 0 && !isCreatingFolder)}>
+          <Button
+            onClick={handleExport}
+            disabled={
+              isExporting ||
+              (!selectedFolderId && folders.length > 0) ||
+              (folders.length === 0 && !isCreatingFolder)
+            }
+          >
             {isExporting ? (
               <>
                 <Loader2 className="mr-2 size-4 animate-spin" />

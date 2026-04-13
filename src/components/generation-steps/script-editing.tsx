@@ -59,15 +59,10 @@ export function ScriptEditing({ title = "Edit Your Script" }: ScriptEditingProps
         <div className="space-y-4 pb-6 pt-2">
           <div className="flex flex-col space-y-2.5">
             <div className="space-y-1 px-1">
-              <Label
-                htmlFor="full-script"
-                className="text-sm font-medium text-foreground"
-              >
+              <Label htmlFor="full-script" className="text-sm font-medium text-foreground">
                 Customize Your Script
               </Label>
-              <div className="text-xs text-muted-foreground">
-                Enter your script here...
-              </div>
+              <div className="text-xs text-muted-foreground">Enter your script here...</div>
             </div>
             <AutosizeTextarea
               id="full-script"

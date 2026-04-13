@@ -263,8 +263,14 @@ export async function transcribeAndTrimVeoVideo({
     try {
       // 2a. Extract audio track as mp3
       await ffmpegAsync([
-        "-y", "-i", localRawPath,
-        "-vn", "-acodec", "libmp3lame", "-ab", "128k",
+        "-y",
+        "-i",
+        localRawPath,
+        "-vn",
+        "-acodec",
+        "libmp3lame",
+        "-ab",
+        "128k",
         rawAudioPath,
       ]);
 
@@ -273,13 +279,19 @@ export async function transcribeAndTrimVeoVideo({
       let audioToIsolatePath = rawAudioPath;
       if (audioDurationMs > 0 && audioDurationMs < 5000) {
         await ffmpegAsync([
-          "-y", "-i", rawAudioPath,
-          "-af", "apad,atrim=0:5",
-          "-to", "5",
+          "-y",
+          "-i",
+          rawAudioPath,
+          "-af",
+          "apad,atrim=0:5",
+          "-to",
+          "5",
           paddedAudioPath,
         ]);
         audioToIsolatePath = paddedAudioPath;
-        console.log(`[veo-processor] Audio padded to 5s for isolation (was ${(audioDurationMs / 1000).toFixed(2)}s) for ${segmentId}`);
+        console.log(
+          `[veo-processor] Audio padded to 5s for isolation (was ${(audioDurationMs / 1000).toFixed(2)}s) for ${segmentId}`,
+        );
       }
 
       // 2c. Isolate voice using ElevenLabs (removes background noise, music, SFX)
@@ -291,12 +303,18 @@ export async function transcribeAndTrimVeoVideo({
       // 2d. Merge isolated audio back into the original video
       await ffmpegAsync([
         "-y",
-        "-i", localRawPath,
-        "-i", cleanAudioPath,
-        "-map", "0:v:0",
-        "-map", "1:a:0",
-        "-c:v", "copy",
-        "-c:a", "aac",
+        "-i",
+        localRawPath,
+        "-i",
+        cleanAudioPath,
+        "-map",
+        "0:v:0",
+        "-map",
+        "1:a:0",
+        "-c:v",
+        "copy",
+        "-c:a",
+        "aac",
         "-shortest",
         cleanVideoPath,
       ]);
@@ -309,10 +327,13 @@ export async function transcribeAndTrimVeoVideo({
       isolatedVideoUrl = await r2.uploadData(
         `ugc-videos/${schemaId}/${segmentId}/isolated-${nanoid()}.mp4`,
         cleanBuf,
-        "video/mp4"
+        "video/mp4",
       );
     } catch (e) {
-      console.warn(`[veo-processor] Voice isolation failed for ${segmentId}, continuing with raw audio:`, e);
+      console.warn(
+        `[veo-processor] Voice isolation failed for ${segmentId}, continuing with raw audio:`,
+        e,
+      );
     } finally {
       [rawAudioPath, paddedAudioPath, cleanAudioPath].forEach((p) => {
         if (fs.existsSync(p)) fs.unlinkSync(p);
@@ -357,9 +378,7 @@ export async function transcribeAndTrimVeoVideo({
     // If isolation failed, fall back to using transcription timestamps.
     const firstWordOffset = transcription.firstWordStart ?? 0;
     const deepgramOffset = transcription.offsetSeconds ?? 0;
-    const introSilenceOffset = isolationSucceeded
-      ? 0
-      : Math.max(firstWordOffset, deepgramOffset);
+    const introSilenceOffset = isolationSucceeded ? 0 : Math.max(firstWordOffset, deepgramOffset);
 
     console.log(
       `[veo-processor] Intro offset: ${introSilenceOffset.toFixed(3)}s (isolation: ${isolationSucceeded}, firstWord: ${firstWordOffset.toFixed(3)}s, Deepgram: ${deepgramOffset.toFixed(3)}s) for ${segmentId}`,

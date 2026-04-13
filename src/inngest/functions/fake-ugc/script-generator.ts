@@ -9,27 +9,28 @@ const inngest = getInngestApp();
 
 /**
  * Fake UGC Script Generator
- * 
+ *
  * Specialized function for writing AI-generated UGC scripts.
  */
 export const generateFakeUGCScript = inngest.createFunction(
   { id: "fake-ugc-script-generator", concurrency: 5 },
   { event: "fake-ugc/script.request" },
   async ({ event, step, publish }) => {
-    const { message, imageUrls, schemaId, previousSchema, productName, productDescription } = event.data;
+    const { message, imageUrls, schemaId, previousSchema, productName, productDescription } =
+      event.data;
     const channel = workflowChannel(schemaId);
 
     // 1. Initial Status Update
     await step.run("mark-scripting-start", async () => {
       await db
         .updateTable("generations")
-        .set({ 
-          status: ResolverStatus.PROGRESS, 
-          metadata: { message: "AI is writing your fake UGC script..." } 
+        .set({
+          status: ResolverStatus.PROGRESS,
+          metadata: { message: "AI is writing your fake UGC script..." },
         })
         .where("id", "=", schemaId)
         .execute();
-        
+
       await publish({
         channel,
         topic: "steps",
@@ -60,10 +61,10 @@ export const generateFakeUGCScript = inngest.createFunction(
     await step.run("save-script-result", async () => {
       await db
         .updateTable("generations")
-        .set({ 
-          input: result, 
+        .set({
+          input: result,
           status: ResolverStatus.COMPLETED,
-          metadata: { message: "Fake UGC scripting complete." }
+          metadata: { message: "Fake UGC scripting complete." },
         })
         .where("id", "=", schemaId)
         .execute();
@@ -92,5 +93,5 @@ export const generateFakeUGCScript = inngest.createFunction(
     });
 
     return result;
-  }
+  },
 );

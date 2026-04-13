@@ -106,9 +106,7 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
   const [exportBlobUrl, setExportBlobUrl] = useState<string | null>(null);
   const [exportBlob, setExportBlob] = useState<Blob | null>(null);
   const [exportStartTime, setExportStartTime] = useState<number | null>(null);
-  const [exportCombinator, setExportCombinator] = useState<Compositor | null>(
-    null,
-  );
+  const [exportCombinator, setExportCombinator] = useState<Compositor | null>(null);
   const [isSavingToDrive, setIsSavingToDrive] = useState(false);
 
   // Export settings
@@ -192,12 +190,10 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
 
     try {
       const json = studio.exportToJSON();
-      if (!json.clips || json.clips.length === 0)
-        throw new Error("No clips to export");
+      if (!json.clips || json.clips.length === 0) throw new Error("No clips to export");
 
       const validClips = json.clips.filter((clipJSON: any) => {
-        if (["Text", "Caption", "Effect", "Transition"].includes(clipJSON.type))
-          return true;
+        if (["Text", "Caption", "Effect", "Transition"].includes(clipJSON.type)) return true;
         return clipJSON.src && clipJSON.src.trim() !== "";
       });
       if (validClips.length === 0) throw new Error("No valid clips to export");
@@ -309,13 +305,7 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
   if (!open) return null;
 
   // Shared field row
-  const Row = ({
-    label,
-    children,
-  }: {
-    label: string;
-    children: React.ReactNode;
-  }) => (
+  const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
     <div className="flex items-center justify-between gap-4">
       <span className="text-xs text-muted-foreground shrink-0">{label}</span>
       <div className="flex-1 min-w-0">{children}</div>
@@ -341,8 +331,7 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
                 Export
               </DialogTitle>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {studioOpts.width}×{studioOpts.height} ·{" "}
-                {(maxDuration / 1e6).toFixed(1)}s
+                {studioOpts.width}×{studioOpts.height} · {(maxDuration / 1e6).toFixed(1)}s
               </p>
             </div>
 
@@ -352,14 +341,9 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
                 <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                   <div className="flex items-center gap-2">
                     <Video className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span className="text-xs font-medium text-foreground">
-                      Video
-                    </span>
+                    <span className="text-xs font-medium text-foreground">Video</span>
                   </div>
-                  <Switch
-                    checked={includeVideo}
-                    onCheckedChange={setIncludeVideo}
-                  />
+                  <Switch checked={includeVideo} onCheckedChange={setIncludeVideo} />
                 </div>
                 <div
                   className={`px-4 py-3 flex flex-col gap-3 transition-opacity ${!includeVideo ? "opacity-30 pointer-events-none" : ""}`}
@@ -428,14 +412,9 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
                 <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                   <div className="flex items-center gap-2">
                     <Music className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span className="text-xs font-medium text-foreground">
-                      Audio
-                    </span>
+                    <span className="text-xs font-medium text-foreground">Audio</span>
                   </div>
-                  <Switch
-                    checked={includeAudio}
-                    onCheckedChange={setIncludeAudio}
-                  />
+                  <Switch checked={includeAudio} onCheckedChange={setIncludeAudio} />
                 </div>
                 <div
                   className={`px-4 py-3 flex flex-col gap-3 transition-opacity ${!includeAudio ? "opacity-30 pointer-events-none" : ""}`}
@@ -471,10 +450,7 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
                     </Select>
                   </Row>
                   <Row label="Sample Rate">
-                    <Select
-                      value={audioSampleRate}
-                      onValueChange={setAudioSampleRate}
-                    >
+                    <Select value={audioSampleRate} onValueChange={setAudioSampleRate}>
                       <SelectTrigger className={selectCls}>
                         <SelectValue />
                       </SelectTrigger>
@@ -494,9 +470,7 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
               <div className="flex items-center justify-between mt-1">
                 <div className="flex items-center gap-1.5 text-muted-foreground">
                   <Clock className="w-3 h-3" />
-                  <span className="text-[11px]">
-                    {(maxDuration / 1e6).toFixed(2)}s
-                  </span>
+                  <span className="text-[11px]">{(maxDuration / 1e6).toFixed(2)}s</span>
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -535,29 +509,18 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
                 { label: "FPS", value: fps },
                 {
                   label: "Resolution",
-                  value: includeVideo
-                    ? `${studioOpts.width}×${studioOpts.height}`
-                    : "N/A",
+                  value: includeVideo ? `${studioOpts.width}×${studioOpts.height}` : "N/A",
                 },
                 { label: "Video", value: includeVideo ? "On" : "Off" },
                 { label: "Audio", value: includeAudio ? "On" : "Off" },
                 {
                   label: "Sample",
-                  value: includeAudio
-                    ? `${Number(audioSampleRate) / 1000}k`
-                    : "N/A",
+                  value: includeAudio ? `${Number(audioSampleRate) / 1000}k` : "N/A",
                 },
               ].map(({ label, value }) => (
-                <div
-                  key={label}
-                  className="rounded-lg border border-border bg-card px-3 py-2"
-                >
-                  <p className="text-[10px] text-muted-foreground mb-0.5">
-                    {label}
-                  </p>
-                  <p className="text-xs font-medium text-foreground truncate">
-                    {value}
-                  </p>
+                <div key={label} className="rounded-lg border border-border bg-card px-3 py-2">
+                  <p className="text-[10px] text-muted-foreground mb-0.5">{label}</p>
+                  <p className="text-xs font-medium text-foreground truncate">{value}</p>
                 </div>
               ))}
             </div>
@@ -571,8 +534,7 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
                   {exportProgress > 0 && exportStartTime
                     ? (() => {
                         const elapsed = Date.now() - exportStartTime;
-                        const remaining =
-                          (elapsed / exportProgress - elapsed) / 1000;
+                        const remaining = (elapsed / exportProgress - elapsed) / 1000;
                         const mins = Math.floor(remaining / 60);
                         const secs = Math.floor(remaining % 60);
                         return ` · ${mins}m ${secs}s left`;
@@ -621,9 +583,7 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
               className="w-full h-9 text-xs rounded-xl border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted"
               disabled={isSavingToDrive}
             >
-              {isExporting && (
-                <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
-              )}
+              {isExporting && <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />}
               {isExporting ? "Cancel Export" : "Close"}
             </Button>
           </div>

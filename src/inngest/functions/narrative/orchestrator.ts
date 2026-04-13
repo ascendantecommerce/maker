@@ -171,7 +171,8 @@ export const narrativeVideoOrchestrator = inngest.createFunction(
         // ========================================================================
         if (
           STAGE_3_FIRST_FRAMES &&
-          (scheme.visuals.type === VideoType.AI_IMAGES || scheme.visuals.type === VideoType.AI_VIDEOS)
+          (scheme.visuals.type === VideoType.AI_IMAGES ||
+            scheme.visuals.type === VideoType.AI_VIDEOS)
         ) {
           const { dbSegments } = await step.run("fetch-stage-3-state", async () =>
             fetchWorkflowState(schemeId),
@@ -246,10 +247,7 @@ export const narrativeVideoOrchestrator = inngest.createFunction(
           scheme.segments.forEach((seg: any) => {
             if (seg.duration) totalDurationMs += seg.duration;
             if (seg.assets?.length) {
-              allSegmentAssets[seg.id] = [
-                ...(allSegmentAssets[seg.id] || []),
-                ...seg.assets,
-              ];
+              allSegmentAssets[seg.id] = [...(allSegmentAssets[seg.id] || []), ...seg.assets];
             }
           });
 

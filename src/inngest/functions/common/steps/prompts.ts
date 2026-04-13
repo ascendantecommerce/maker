@@ -35,7 +35,10 @@ export const generateStandardPrompts = async (
           generatedSchema.description,
         );
         const prompt = productPrompts.buildProductImagePrompt(
-          productPrompts.buildProductContextBlock(scheme.product?.name, scheme.product?.description),
+          productPrompts.buildProductContextBlock(
+            scheme.product?.name,
+            scheme.product?.description,
+          ),
           schemaContext,
           productPrompts.SCHEMA_OUTPUT_INSTRUCTIONS,
           scheme.visuals.style,
@@ -58,10 +61,7 @@ export const generateStandardPrompts = async (
           scheme.visuals.style,
         );
 
-        const res = await gemini.generateStandardImagePrompts(
-          prompt,
-          generatedSchema as Schema,
-        );
+        const res = await gemini.generateStandardImagePrompts(prompt, generatedSchema as Schema);
         schemaPrompts = res.prompts;
         price = res.price;
       }
@@ -84,7 +84,10 @@ export const generateStandardPrompts = async (
           scheme.visuals.style,
         );
         const prompt = buildVideoGenerationPrompt(
-          productPrompts.buildProductContextBlock(scheme.product?.name, scheme.product?.description),
+          productPrompts.buildProductContextBlock(
+            scheme.product?.name,
+            scheme.product?.description,
+          ),
           schemaContext,
           "",
           scheme.visuals.style,
@@ -107,10 +110,7 @@ export const generateStandardPrompts = async (
           scheme.visuals.style,
         );
 
-        const res = await gemini.generateStandardVideoPrompts(
-          prompt,
-          generatedSchema as Schema,
-        );
+        const res = await gemini.generateStandardVideoPrompts(prompt, generatedSchema as Schema);
         videoPrompts = res.prompts;
         price = res.price;
       }

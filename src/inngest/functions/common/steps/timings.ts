@@ -210,7 +210,6 @@ export async function extractTimingsManual(
     currentPos += clipDurationMs;
   }
 
-
   // 2. B-Rolls
   const bRollTimings: BRollTiming[] = [];
   if (seg.bRolls) {
@@ -439,10 +438,7 @@ export const calculateSegmentTimings = async (
   const timings: SegmentTiming[] = [];
   let globalTotalDuration = 0;
 
-  const segmentUpdater = new SegmentUpdater(
-    context.schemeId,
-    segments.length,
-  );
+  const segmentUpdater = new SegmentUpdater(context.schemeId, segments.length);
 
   // 1. Pre-fetch transcripts and perform "Manual Probe"
   const segmentsWithData = await Promise.all(
@@ -594,10 +590,7 @@ export const calculateSegmentTimingsManual = async (
   const END_SNAP_THRESHOLD = 1000; // 1s
   let globalTotalDuration = 0;
 
-  const segmentUpdater = new SegmentUpdater(
-    context.schemeId,
-    segments.length,
-  );
+  const segmentUpdater = new SegmentUpdater(context.schemeId, segments.length);
 
   for (const seg of segments) {
     let attempts = 0;
@@ -902,8 +895,7 @@ export const calculateSegmentTimingsAI = async (
             const geminiShot = segmentGemini.shots[idx];
             let from = currentPos;
             let to =
-              convertSecondsToMs(geminiShot.end) +
-              (idx === seg.shots.length - 1 ? endPause : 0);
+              convertSecondsToMs(geminiShot.end) + (idx === seg.shots.length - 1 ? endPause : 0);
 
             // First clip includes startPause
             if (idx === 0) from = 0;

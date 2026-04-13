@@ -9,10 +9,7 @@ import { DriveExportModal } from "./drive-export-modal";
 import { LogoIcons } from "../shared/logos";
 import Link from "next/link";
 import { Icons } from "../shared/icons";
-import {
-  Keyboard,
-  ArrowLeftIcon,
-} from "lucide-react";
+import { Keyboard, ArrowLeftIcon } from "lucide-react";
 import { ShortcutsModal } from "./shortcuts-modal";
 
 import { Separator } from "../ui/separator";
@@ -69,13 +66,7 @@ export default function Header({
     setCanUndo(studio.history.canUndo());
     setCanRedo(studio.history.canRedo());
 
-    const handleHistoryChange = ({
-      canUndo,
-      canRedo,
-    }: {
-      canUndo: boolean;
-      canRedo: boolean;
-    }) => {
+    const handleHistoryChange = ({ canUndo, canRedo }: { canUndo: boolean; canRedo: boolean }) => {
       setCanUndo(canUndo);
       setCanRedo(canRedo);
     };
@@ -170,9 +161,7 @@ export default function Header({
         });
 
         if (validClips.length === 0) {
-          throw new Error(
-            "No valid clips found in JSON. All clips have empty source URLs.",
-          );
+          throw new Error("No valid clips found in JSON. All clips have empty source URLs.");
         }
 
         const validJson = { ...json, clips: validClips };
@@ -194,7 +183,6 @@ export default function Header({
     saveTitle(newTitle);
   };
 
-
   const handleSaveToDrive = () => {
     setIsDriveExportModalOpen(true);
   };
@@ -208,25 +196,12 @@ export default function Header({
         >
           <ArrowLeftIcon className="size-5" /> Back
         </Link>
-        <Separator
-          orientation="vertical"
-          className="!h-6 w-1 bg-stone-600 ml-2"
-        />
+        <Separator orientation="vertical" className="!h-6 w-1 bg-stone-600 ml-2" />
         <div className=" pointer-events-auto flex h-10 items-center">
-          <Button
-            onClick={() => studio?.undo()}
-            disabled={!canUndo}
-            variant="ghost"
-            size="icon"
-          >
+          <Button onClick={() => studio?.undo()} disabled={!canUndo} variant="ghost" size="icon">
             <Icons.undo className="size-5" />
           </Button>
-          <Button
-            onClick={() => studio?.redo()}
-            disabled={!canRedo}
-            variant="ghost"
-            size="icon"
-          >
+          <Button onClick={() => studio?.redo()} disabled={!canRedo} variant="ghost" size="icon">
             <Icons.redo className="size-5" />
           </Button>
         </div>
@@ -259,10 +234,7 @@ export default function Header({
           </Button>
         </div>
 
-        <ExportModal
-          open={isExportModalOpen}
-          onOpenChange={setIsExportModalOpen}
-        />
+        <ExportModal open={isExportModalOpen} onOpenChange={setIsExportModalOpen} />
         <DriveExportModal
           open={isDriveExportModalOpen}
           onOpenChange={setIsDriveExportModalOpen}
@@ -273,10 +245,7 @@ export default function Header({
           }}
           studio={studio}
         />
-        <ShortcutsModal
-          open={isShortcutsModalOpen}
-          onOpenChange={setIsShortcutsModalOpen}
-        />
+        <ShortcutsModal open={isShortcutsModalOpen} onOpenChange={setIsShortcutsModalOpen} />
 
         <Button
           className="flex h-7 gap-1 border border-border"
@@ -286,8 +255,7 @@ export default function Header({
             console.log(studio?.exportToJSON());
           }}
         >
-          <IconShare width={18} />{" "}
-          <span className="hidden md:block">Share</span>
+          <IconShare width={18} /> <span className="hidden md:block">Share</span>
         </Button>
 
         <Button
@@ -296,16 +264,10 @@ export default function Header({
           onClick={handleSaveToDrive}
           title="Export and save to Google Drive"
         >
-          <span className="hidden md:block">
-            Save to Drive
-          </span>
+          <span className="hidden md:block">Save to Drive</span>
         </Button>
 
-        <Button
-          size="sm"
-          className="gap-2 rounded-full"
-          onClick={() => setIsExportModalOpen(true)}
-        >
+        <Button size="sm" className="gap-2 rounded-full" onClick={() => setIsExportModalOpen(true)}>
           Download
         </Button>
       </div>

@@ -37,8 +37,8 @@ export function DeleteProjectDialog({
           </AlertDialogMedia>
           <AlertDialogTitle>Delete project?</AlertDialogTitle>
           <AlertDialogDescription>
-            Scenes and generations are permanently deleted when you delete a
-            project. This action cannot be undone.
+            Scenes and generations are permanently deleted when you delete a project. This action
+            cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

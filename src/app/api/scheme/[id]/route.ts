@@ -25,7 +25,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const isOwner = !!session && project.user_id === session.user.id;
     if (!isOwner && !project.public) {
       // Non-public and either not logged in or not the owner
-      return Response.json({ error: !session ? "Unauthorized" : "Forbidden" }, { status: !session ? 401 : 403 });
+      return Response.json(
+        { error: !session ? "Unauthorized" : "Forbidden" },
+        { status: !session ? 401 : 403 },
+      );
     }
 
     // 2. Find the schema using projectId

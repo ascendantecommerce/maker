@@ -7,22 +7,22 @@ import { ResolverStatus } from "@/utils/enum";
 
 /**
  * Async Script Generation Trigger
- * 
+ *
  * Creates a generation record and triggers the background Inngest task.
  */
 export async function POST(req: Request) {
   const inngest = getInngestApp();
   const body = await req.json();
-  const { 
-    message, 
-    imageUrls, 
-    schemaId, 
-    previousSchema, 
-    productName, 
+  const {
+    message,
+    imageUrls,
+    schemaId,
+    previousSchema,
+    productName,
     productDescription,
     visualStyle,
     scriptTone,
-    mode = "character-driven-ad" 
+    mode = "character-driven-ad",
   } = body;
 
   const session = await auth.api.getSession({ headers: await headers() });
@@ -45,20 +45,20 @@ export async function POST(req: Request) {
   if (!existing) {
     await db
       .insertInto("generations")
-      .values({ 
-        id: generationId, 
-        status: ResolverStatus.PENDING, 
+      .values({
+        id: generationId,
+        status: ResolverStatus.PENDING,
         user_id: userId,
         input: previousSchema || {},
-        metadata: { message: "Initializing AI script generation..." }
+        metadata: { message: "Initializing AI script generation..." },
       } as any)
       .execute();
   } else {
     await db
       .updateTable("generations")
-      .set({ 
+      .set({
         status: ResolverStatus.PENDING,
-        metadata: { message: "Starting new AI refinement..." }
+        metadata: { message: "Starting new AI refinement..." },
       })
       .where("id", "=", generationId)
       .execute();
@@ -75,7 +75,6 @@ export async function POST(req: Request) {
 
   const eventName = eventMapping[mode as string] || "script/generate.request";
 
-    
   await inngest.send({
     name: eventName,
     data: {
@@ -90,9 +89,9 @@ export async function POST(req: Request) {
     },
   });
 
-  return Response.json({ 
-    ok: true, 
+  return Response.json({
+    ok: true,
     generationId,
-    message: "Generation triggered successfully" 
+    message: "Generation triggered successfully",
   });
 }

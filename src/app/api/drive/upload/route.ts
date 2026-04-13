@@ -33,9 +33,7 @@ async function refreshDriveToken(refreshToken: string): Promise<string | null> {
 /**
  * Finds or creates the "generated" folder in the user's Google Drive root.
  */
-async function getOrCreateGeneratedFolder(
-  accessToken: string,
-): Promise<string> {
+async function getOrCreateGeneratedFolder(accessToken: string): Promise<string> {
   const query = encodeURIComponent(
     `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
   );
@@ -102,18 +100,12 @@ async function uploadFileToDrive(
   const fileBytes = new Uint8Array(fileBuffer);
 
   const combined = new Uint8Array(
-    metadataBytes.length +
-      filePartBytes.length +
-      fileBytes.length +
-      closingBytes.length,
+    metadataBytes.length + filePartBytes.length + fileBytes.length + closingBytes.length,
   );
   combined.set(metadataBytes, 0);
   combined.set(filePartBytes, metadataBytes.length);
   combined.set(fileBytes, metadataBytes.length + filePartBytes.length);
-  combined.set(
-    closingBytes,
-    metadataBytes.length + filePartBytes.length + fileBytes.length,
-  );
+  combined.set(closingBytes, metadataBytes.length + filePartBytes.length + fileBytes.length);
 
   const uploadRes = await fetch(
     `${DRIVE_UPLOAD_API}/files?uploadType=multipart&fields=id,name,webViewLink`,
@@ -128,9 +120,7 @@ async function uploadFileToDrive(
   );
 
   if (!uploadRes.ok) {
-    throw new Error(
-      `Drive upload failed (${uploadRes.status}): ${await uploadRes.text()}`,
-    );
+    throw new Error(`Drive upload failed (${uploadRes.status}): ${await uploadRes.text()}`);
   }
 
   return uploadRes.json();
@@ -181,9 +171,7 @@ export async function POST(req: NextRequest) {
     // 4. Parse the incoming form data
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
-    const fileName =
-      (formData.get("fileName") as string) ||
-      `generated-video-${Date.now()}.mp4`;
+    const fileName = (formData.get("fileName") as string) || `generated-video-${Date.now()}.mp4`;
     const targetFolderId = formData.get("folderId") as string | null;
 
     if (!file) {
@@ -194,7 +182,7 @@ export async function POST(req: NextRequest) {
     const fileBuffer = await file.arrayBuffer();
 
     // 5. Use the target folder or ensure the "generated" folder exists
-    const folderId = targetFolderId || await getOrCreateGeneratedFolder(accessToken);
+    const folderId = targetFolderId || (await getOrCreateGeneratedFolder(accessToken));
 
     // 6. Upload the file
     const driveFile = await uploadFileToDrive(

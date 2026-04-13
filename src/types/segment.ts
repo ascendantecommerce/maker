@@ -16,7 +16,15 @@ export interface UserScriptBlock {
   voiceDescription: string;
   emotion: string;
   dialogue: string;
-  productInteractionType?: "packaging_hero" | "product_content_hero" | "packaging_in_hand" | "product_content_in_hand" | "packaging_on_surface" | "product_content_on_surface" | "product_reveal" | "none";
+  productInteractionType?:
+    | "packaging_hero"
+    | "product_content_hero"
+    | "packaging_in_hand"
+    | "product_content_in_hand"
+    | "packaging_on_surface"
+    | "product_content_on_surface"
+    | "product_reveal"
+    | "none";
 }
 
 export interface CharacterConfig {
@@ -30,7 +38,14 @@ export interface CharacterConfig {
 }
 
 export interface VisualShot {
-  type: "product" | "generic" | "lifestyle" | "medical_cgi" | "metaphor" | "b-roll" | "character-speaking";
+  type:
+    | "product"
+    | "generic"
+    | "lifestyle"
+    | "medical_cgi"
+    | "metaphor"
+    | "b-roll"
+    | "character-speaking";
   category: string;
   videoPrompt?: string;
   scenePrompt?: string;
@@ -145,7 +160,12 @@ export interface VideoSchema {
   aspectRatio: aspectRatioType;
   animation?: boolean;
   isUGC?: boolean;
-  type?: "narrative-video" | "product-video-ad" | "ugc-video-ad" | "fake-ugc-video-ad" | "character-driven-ad";
+  type?:
+    | "narrative-video"
+    | "product-video-ad"
+    | "ugc-video-ad"
+    | "fake-ugc-video-ad"
+    | "character-driven-ad";
   audioMode?: "native-video-model" | "separate-tts";
   pacing?: "fast" | "slow" | "regular" | "dynamic" | "relaxed";
   characters?: CharacterConfig[];

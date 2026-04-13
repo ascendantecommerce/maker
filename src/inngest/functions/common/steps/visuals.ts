@@ -1,18 +1,10 @@
 import { StepContext } from "./types";
-import {
-  Segment,
-  PriceItem, 
-} from "@/inngest/utils/types";
+import { Segment, PriceItem } from "@/inngest/utils/types";
 import { ServicePricing } from "@/inngest/utils/pricing";
-import {
-  downloadVideo,
-} from "@/inngest/functions/common/utils/common";
+import { downloadVideo } from "@/inngest/functions/common/utils/common";
 import { fixAndValidateMp4 } from "@/inngest/services/ffmpeg";
 import { createStyledPrompt } from "@/lib/prompts";
-import {
-  resolutionType,
-  aspectRatioType,
-} from "@/utils/enum";
+import { resolutionType, aspectRatioType } from "@/utils/enum";
 import fs from "fs";
 
 export const generateImage = async (
@@ -20,7 +12,14 @@ export const generateImage = async (
   seg: Segment,
   isProduct: boolean = false,
   promptOverride?: string,
-  shotType?: "lifestyle" | "medical_cgi" | "metaphor" | "product" | "generic" | "b-roll" | "character-speaking",
+  shotType?:
+    | "lifestyle"
+    | "medical_cgi"
+    | "metaphor"
+    | "product"
+    | "generic"
+    | "b-roll"
+    | "character-speaking",
   fallbackModel?: string,
 ): Promise<{ imageUrl: string; price: PriceItem }> => {
   if (!promptOverride) {

@@ -108,10 +108,11 @@ const AccountSettings = () => {
 
   const oauthFn = useCallback(async (type: "instagram" | "tiktok" | "youtube" | "google_drive") => {
     try {
-      const url = type === "google_drive"
-        ? `/api/drive/oauth?redirectBack=${encodeURIComponent(window.location.href)}`
-        : `/api/socials/${type}/oauth`;
-        
+      const url =
+        type === "google_drive"
+          ? `/api/drive/oauth?redirectBack=${encodeURIComponent(window.location.href)}`
+          : `/api/socials/${type}/oauth`;
+
       const response = await fetch(url);
       if (!response.ok) throw new Error(`Failed ${type} oauth`);
       const { url: redirectUrl } = await response.json();
@@ -121,22 +122,24 @@ const AccountSettings = () => {
     }
   }, []);
 
-  const disconnectFn = useCallback(async (type: "instagram" | "tiktok" | "youtube" | "google_drive") => {
-    try {
-      const url = type === "google_drive" 
-        ? `/api/drive/disconnect` 
-        : `/api/socials/${type}/disconnect`;
+  const disconnectFn = useCallback(
+    async (type: "instagram" | "tiktok" | "youtube" | "google_drive") => {
+      try {
+        const url =
+          type === "google_drive" ? `/api/drive/disconnect` : `/api/socials/${type}/disconnect`;
 
-      const response = await fetch(url, {
-        method: "PUT",
-      });
-      if (!response.ok) throw new Error(`Failed to disconnect ${type}`);
-      const updated = await response.json();
-      if (updated.success) setSocials((prev) => ({ ...prev, [type]: false }));
-    } catch (err) {
-      console.error(err);
-    }
-  }, []);
+        const response = await fetch(url, {
+          method: "PUT",
+        });
+        if (!response.ok) throw new Error(`Failed to disconnect ${type}`);
+        const updated = await response.json();
+        if (updated.success) setSocials((prev) => ({ ...prev, [type]: false }));
+      } catch (err) {
+        console.error(err);
+      }
+    },
+    [],
+  );
 
   const handleConnectClick = useCallback(
     (type: "instagram" | "tiktok" | "youtube" | "google_drive") => {

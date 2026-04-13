@@ -37,7 +37,11 @@ export async function generateShotFirstFrames(
   context: StepContext,
   userId: string | null,
   projectId: string | null,
-): Promise<{ prices: PriceItem[]; segmentAssets: Record<string, SegmentAsset[]>; previewUrl?: string }> {
+): Promise<{
+  prices: PriceItem[];
+  segmentAssets: Record<string, SegmentAsset[]>;
+  previewUrl?: string;
+}> {
   const { scheme, services, schemeId } = context;
   const segments = scheme.segments;
   const prices: PriceItem[] = [];
@@ -56,9 +60,9 @@ export async function generateShotFirstFrames(
           if (shot.imageUrl) return;
 
           const isProductShot = shot.type === "product";
-          
+
           await withRetry(async (attempt) => {
-            console.log("GENERATING IMAGE FOR SHOT",  seg.id, index );
+            console.log("GENERATING IMAGE FOR SHOT", seg.id, index);
             const fallbackModel = attempt > 0 ? "gemini-3.1-pro-image-preview" : undefined;
             const { imageUrl: img, price: imgPrice } = await generateImage(
               context,
@@ -94,7 +98,7 @@ export async function generateShotFirstFrames(
               originalFilename: `shot_frame_${seg.id}_${generateId()}.${extension}`,
             });
           });
-        })
+        }),
       );
 
       if (segmentUpdated) {
@@ -106,7 +110,7 @@ export async function generateShotFirstFrames(
         };
       }
       return null;
-    })
+    }),
   );
 
   const validUpdates = updates.filter((u): u is NonNullable<typeof u> => u !== null);
@@ -135,7 +139,7 @@ export async function generateShotTimings(
     const seg = segments[i];
 
     // Get audio data directly from segment
-    const audioData = (seg.textToSpeech as any);
+    const audioData = seg.textToSpeech as any;
     const captionUrl = (seg.speechToText as any)?.src;
     const originalDurationMs = audioData?.duration;
 
@@ -294,7 +298,7 @@ export async function generateShotVideos(
             }
           }
           segmentUpdated = true;
-        })
+        }),
       );
 
       if (segmentUpdated) {
@@ -305,7 +309,7 @@ export async function generateShotVideos(
         };
       }
       return null;
-    })
+    }),
   );
 
   const validUpdates = updates.filter((u): u is NonNullable<typeof u> => u !== null);

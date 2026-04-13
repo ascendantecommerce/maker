@@ -18,7 +18,11 @@ export async function generateShotFirstFrames(
   context: StepContext,
   userId: string | null,
   projectId: string | null,
-): Promise<{ prices: PriceItem[]; segmentAssets: Record<string, SegmentAsset[]>; previewUrl?: string }> {
+): Promise<{
+  prices: PriceItem[];
+  segmentAssets: Record<string, SegmentAsset[]>;
+  previewUrl?: string;
+}> {
   const { scheme, services, schemeId } = context;
   const segments = scheme.segments;
   const prices: PriceItem[] = [];
@@ -101,7 +105,7 @@ export async function generateShotTimings(
     const seg = segments[i];
 
     // Get audio data directly from segment
-    const audioData = (seg.textToSpeech as any);
+    const audioData = seg.textToSpeech as any;
     const captionUrl = (seg.speechToText as any)?.src;
     const originalDurationMs = audioData?.duration;
 

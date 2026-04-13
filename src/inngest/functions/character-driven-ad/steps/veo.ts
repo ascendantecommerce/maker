@@ -18,7 +18,7 @@ export const generateSegmentVideo = async (
   schemeId: string,
   scheme: VideoSchema,
   services: CharacterAdServices,
-  runToken: string
+  runToken: string,
 ) => {
   const segments = scheme.segments || [];
   const characters = scheme.characters || [];
@@ -29,7 +29,7 @@ export const generateSegmentVideo = async (
   const results = await Promise.all(
     segments.map(async (segment) => {
       const character = characters.find((c) => c.id === segment.characterId);
-      
+
       if (!character) {
         console.warn(`Missing character config for segment ${segment.id}`);
         return { id: segment.id, success: false };
@@ -48,16 +48,20 @@ export const generateSegmentVideo = async (
 
           // Use the pre-built shot.videoPrompt from mapping (includes product interaction type)
           // Fall back to a simple segment prompt if missing
-          const characterDesc = character.visualDescription?.trim() || `${character.role} character`;
-          const shotPrompt = shot.videoPrompt
-            || `${globalStyle}, ${characterDesc}, ${segment.emotion || "natural"} expression, cinematic lighting`;
+          const characterDesc =
+            character.visualDescription?.trim() || `${character.role} character`;
+          const shotPrompt =
+            shot.videoPrompt ||
+            `${globalStyle}, ${characterDesc}, ${segment.emotion || "natural"} expression, cinematic lighting`;
 
           const finalPrompt = `${shotPrompt}
 
 DIALOGUE: "${segment.text}"
 VOICE: ${character.voiceDescription || "natural, friendly"}`.trim();
 
-          console.log(`Generating Veo 3.1 clip for shot: ${shot.words?.slice(0, 30)}... (${requestedDuration}s)`);
+          console.log(
+            `Generating Veo 3.1 clip for shot: ${shot.words?.slice(0, 30)}... (${requestedDuration}s)`,
+          );
 
           let generatorParams: any = {
             prompt: finalPrompt,
@@ -72,7 +76,9 @@ VOICE: ${character.voiceDescription || "natural, friendly"}`.trim();
             // Scene composition image (shot.imageUrl) is secondary context.
             const productAssetUrl = scheme.assets?.[0]?.url;
             const productAssetUrl2 = scheme.assets?.[1]?.url;
-            const refs = [productAssetUrl, productAssetUrl2, shot.imageUrl].filter(Boolean) as string[];
+            const refs = [productAssetUrl, productAssetUrl2, shot.imageUrl].filter(
+              Boolean,
+            ) as string[];
             if (refs.length > 0) {
               generatorParams.referenceImageUrls = refs;
             } else {
@@ -85,11 +91,12 @@ VOICE: ${character.voiceDescription || "natural, friendly"}`.trim();
           }
 
           const generatorOutput = await services.videoGenerator.create(generatorParams);
-          const finalVideoUrl = typeof generatorOutput === "string" ? generatorOutput : generatorOutput.url;
+          const finalVideoUrl =
+            typeof generatorOutput === "string" ? generatorOutput : generatorOutput.url;
 
           // Convert output to buffer and upload to R2
           const { buffer, contentType } = await fileUrlToBuffer(finalVideoUrl);
-          
+
           // Accurate duration calculation using FFprobe
           const tempPath = path.join(os.tmpdir(), `veo-clip-${generateId(8)}.mp4`);
           fs.writeFileSync(tempPath, buffer);
@@ -104,12 +111,12 @@ VOICE: ${character.voiceDescription || "natural, friendly"}`.trim();
             ...shot,
             videoUrl,
             duration: realDurationMs,
-            display: { 
-              from: shot.display?.from || 0, 
-              to: (shot.display?.from || 0) + realDurationMs 
-            }
+            display: {
+              from: shot.display?.from || 0,
+              to: (shot.display?.from || 0) + realDurationMs,
+            },
           };
-        })
+        }),
       );
 
       // Calculate total segment duration from individual shots
@@ -118,15 +125,15 @@ VOICE: ${character.voiceDescription || "natural, friendly"}`.trim();
       // Persist the generated clips to the database via segment_data JSONB
       await db
         .updateTable("segments")
-        .set({ 
+        .set({
           segment_data: {
-              ...segment,
-              status: "ready",
-              duration: totalDurationMs,
-              estimatedDuration: totalDurationMs / 1000,
-              shots: updatedShots
+            ...segment,
+            status: "ready",
+            duration: totalDurationMs,
+            estimatedDuration: totalDurationMs / 1000,
+            shots: updatedShots,
           },
-          updated_at: new Date()
+          updated_at: new Date(),
         })
         .where("id", "=", segment.id)
         .execute();
@@ -136,7 +143,7 @@ VOICE: ${character.voiceDescription || "natural, friendly"}`.trim();
         videoUrl: updatedShots[0]?.videoUrl,
         success: true,
       };
-    })
+    }),
   );
 
   return results;

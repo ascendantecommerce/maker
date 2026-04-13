@@ -29,7 +29,7 @@ export function AIToolsPanel({ selectedClips }: { selectedClips: IClip[] }) {
           <Sparkles className="size-4 text-purple-400" />
           AI Magic
         </div>
-        
+
         {clip.type === "Text" && (
           <div className="space-y-2">
             <Button variant="secondary" className="w-full justify-start text-xs h-9">
@@ -37,7 +37,7 @@ export function AIToolsPanel({ selectedClips }: { selectedClips: IClip[] }) {
             </Button>
           </div>
         )}
-        
+
         {(clip.type === "Image" || clip.type === "Video") && (
           <div className="space-y-2">
             <Button variant="secondary" className="w-full justify-start text-xs h-9">

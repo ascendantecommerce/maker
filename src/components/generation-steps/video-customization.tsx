@@ -164,7 +164,8 @@ export function VideoCustomization({
     if (generationParams.product) setProduct(generationParams.product);
     if (generationParams.avatar) setAvatar(generationParams.avatar);
     if (generationParams.pacing) setPacing(generationParams.pacing as any);
-    if (generationParams.scriptTone !== undefined) setSelectedScriptTone(generationParams.scriptTone);
+    if (generationParams.scriptTone !== undefined)
+      setSelectedScriptTone(generationParams.scriptTone);
   }, [generationParams]);
 
   // Update generation params when local state changes
@@ -332,7 +333,6 @@ export function VideoCustomization({
               caption={caption}
               onCaptionChange={(updatedCaption) => setCaption(updatedCaption)}
             />
-
           </div>
         </ScrollArea>
       </div>

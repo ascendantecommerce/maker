@@ -20,7 +20,6 @@ import {
   getNarrativeVideoPacingInstruction,
 } from "../../narrative/prompts";
 
-
 export const generateProductPrompts = async (scheme: VideoSchema, generatedSchema: any) => {
   const gemini = new GeminiService(config.gemini.key, config.gemini.model2);
   let prePrice: any = { service: "Gemini", type: "Chat", price: 0 };
@@ -34,8 +33,6 @@ export const generateProductPrompts = async (scheme: VideoSchema, generatedSchem
 
   if (scheme?.visuals.type === VideoType.AI_IMAGES) {
     if (scheme.assets?.length) {
-
-
       const pacingInstruction = getProductImagePacingInstruction();
 
       const schemaContext = buildVideoGenerationSchemaContext(
@@ -80,8 +77,6 @@ export const generateProductPrompts = async (scheme: VideoSchema, generatedSchem
     }
   } else if (scheme?.visuals.type === VideoType.AI_VIDEOS) {
     if (scheme.assets?.length) {
-
-
       const pacingInstruction = getProductVideoPacingInstruction();
 
       const schemaContext = buildProductVideoSchemaContext(

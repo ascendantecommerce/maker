@@ -27,18 +27,25 @@ export interface CharacterSegmentInput {
   productInteractionType?: UserScriptBlock["productInteractionType"];
 }
 
-const DEFAULT_STYLE = "High-end 3D Pixar/Illumination animation style, cinematic lighting, ultra-detailed textures, vibrant colors";
+const DEFAULT_STYLE =
+  "High-end 3D Pixar/Illumination animation style, cinematic lighting, ultra-detailed textures, vibrant colors";
 const DEFAULT_ASPECT_RATIO = "9:16";
 const DEFAULT_TITLE = "Character-Driven Ad";
 
 /** Appended to firstFramePrompt to prevent AI image layout artifacts */
-const SINGLE_FRAME_SUFFIX = "single cinematic frame, NO TEXT, no letters, no words, no labels, no split screen, no panels, no collage, no before-and-after, no multiple views, no text overlays, no watermarks, no borders";
+const SINGLE_FRAME_SUFFIX =
+  "single cinematic frame, NO TEXT, no letters, no words, no labels, no split screen, no panels, no collage, no before-and-after, no multiple views, no text overlays, no watermarks, no borders";
 
-const DEFAULT_HERO_VISUAL = (style: string) => `Cute character, highly expressive facial features, premium realistic materials, ultra-clean, brightly lit, ${style}`;
-const DEFAULT_VILLAIN_VISUAL = (style: string) => `Mischievous character or anthropomorphized object representing the problem, highly expressive facial features, premium solid materials, ${style}`;
-const DEFAULT_HUMAN_VISUAL = (style: string) => `blurred cinematic human subject in background, reacting with emotional frustration or stress, out of focus (bokeh), ${style}`;
-const DEFAULT_SCENE_VISUAL = (style: string) => `Clean, bright, modern premium interior, cinematic lighting, volumetric light rays, glossy reflections, ${style}`;
-const DEFAULT_MOTION_VISUAL = "Energetic, expressive, and playful character animation, highly dynamic movements reacting to the product";
+const DEFAULT_HERO_VISUAL = (style: string) =>
+  `Cute character, highly expressive facial features, premium realistic materials, ultra-clean, brightly lit, ${style}`;
+const DEFAULT_VILLAIN_VISUAL = (style: string) =>
+  `Mischievous character or anthropomorphized object representing the problem, highly expressive facial features, premium solid materials, ${style}`;
+const DEFAULT_HUMAN_VISUAL = (style: string) =>
+  `blurred cinematic human subject in background, reacting with emotional frustration or stress, out of focus (bokeh), ${style}`;
+const DEFAULT_SCENE_VISUAL = (style: string) =>
+  `Clean, bright, modern premium interior, cinematic lighting, volumetric light rays, glossy reflections, ${style}`;
+const DEFAULT_MOTION_VISUAL =
+  "Energetic, expressive, and playful character animation, highly dynamic movements reacting to the product";
 
 const calculateEstimatedDuration = (text: string): number => {
   if (!text) return 4;
@@ -48,7 +55,11 @@ const calculateEstimatedDuration = (text: string): number => {
 };
 
 /** Build a product-action prefix for a given interaction type */
-function buildProductActionPrefix(interaction: string, productName: string, productDescription?: string): string {
+function buildProductActionPrefix(
+  interaction: string,
+  productName: string,
+  productDescription?: string,
+): string {
   let productAction = "";
   switch (interaction) {
     case "packaging_hero":
@@ -113,8 +124,10 @@ function buildMappedSegment(
   // Stage 1: firstFramePrompt (Persona + Ambient)
   const isContentShot = interaction.includes("product_content");
   const visualQuality = `cinematic lighting, ultra-detailed textures, ${globalStyle}`;
-  const packagingAccuracy = "The product packaging in the scene must be reproduced with exact colors, exact branding text, and exact label details from the reference image — do not stylize, recolor, or alter the product packaging in any way, photorealistic product, faithful brand reproduction";
-  const contentAccuracy = "Focus heavily on the texture, material, and visual characteristics of the internal product content (the substance) as shown in the reference images — maintain high visual fidelity to its shape and appearance.";
+  const packagingAccuracy =
+    "The product packaging in the scene must be reproduced with exact colors, exact branding text, and exact label details from the reference image — do not stylize, recolor, or alter the product packaging in any way, photorealistic product, faithful brand reproduction";
+  const contentAccuracy =
+    "Focus heavily on the texture, material, and visual characteristics of the internal product content (the substance) as shown in the reference images — maintain high visual fidelity to its shape and appearance.";
   const productAccuracy = isContentShot ? contentAccuracy : packagingAccuracy;
   const sceneVisual = data.sceneDescription || DEFAULT_SCENE_VISUAL(globalStyle);
 
@@ -125,7 +138,9 @@ function buildMappedSegment(
     visualQuality,
     isProductShot ? productAccuracy : "",
     SINGLE_FRAME_SUFFIX,
-  ].filter(Boolean).join(", ");
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   // Stage 2: videoPrompt (Veo)
   const finalVideoPrompt = [
@@ -135,7 +150,9 @@ function buildMappedSegment(
     data.videoDescription || DEFAULT_MOTION_VISUAL,
     "the character has NO TEXT, NO LETTERS, AND NO WORDS on them.",
     SINGLE_FRAME_SUFFIX,
-  ].filter(Boolean).join(", ");
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   return {
     id: segmentId,
@@ -211,7 +228,9 @@ export function mapInputToSchema(input: GenerateCharacterVideoInput): VideoSchem
           name,
           role,
           visualDescription: finalVisualDescription,
-          voiceDescription: voiceDescription || (role === "villain" ? "Raspy, sneaky, fast-talking" : "Warm, deep, confident"),
+          voiceDescription:
+            voiceDescription ||
+            (role === "villain" ? "Raspy, sneaky, fast-talking" : "Warm, deep, confident"),
           baseImageUrl: undefined,
         });
       }
@@ -223,8 +242,10 @@ export function mapInputToSchema(input: GenerateCharacterVideoInput): VideoSchem
         let visualDescription = block.characterDescription;
         if (!visualDescription) {
           if (block.characterRole === "hero") visualDescription = DEFAULT_HERO_VISUAL(globalStyle);
-          else if (block.characterRole === "villain") visualDescription = DEFAULT_VILLAIN_VISUAL(globalStyle);
-          else if (block.characterRole === "human") visualDescription = DEFAULT_HUMAN_VISUAL(globalStyle);
+          else if (block.characterRole === "villain")
+            visualDescription = DEFAULT_VILLAIN_VISUAL(globalStyle);
+          else if (block.characterRole === "human")
+            visualDescription = DEFAULT_HUMAN_VISUAL(globalStyle);
           else visualDescription = DEFAULT_SCENE_VISUAL(globalStyle);
         }
         characterMap.set(block.characterName, {
@@ -232,7 +253,11 @@ export function mapInputToSchema(input: GenerateCharacterVideoInput): VideoSchem
           name: block.characterName,
           role: block.characterRole,
           visualDescription,
-          voiceDescription: block.voiceDescription || (block.characterRole === "villain" ? "Raspy, sneaky, fast-talking" : "Warm, deep, confident"),
+          voiceDescription:
+            block.voiceDescription ||
+            (block.characterRole === "villain"
+              ? "Raspy, sneaky, fast-talking"
+              : "Warm, deep, confident"),
           baseImageUrl: undefined,
         });
       }
@@ -247,26 +272,40 @@ export function mapInputToSchema(input: GenerateCharacterVideoInput): VideoSchem
   if (hasNewSegments) {
     segments = input.segments!.map((seg, index) => {
       const character = characterMap.get(seg.character.name)!;
-      return buildMappedSegment(index, schemaId, globalStyle, character, {
-        title: seg.title,
-        text: seg.text,
-        sceneDescription: seg.sceneDescription,
-        videoDescription: seg.videoDescription,
-        emotion: seg.character.emotion,
-        productInteractionType: seg.productInteractionType,
-      }, input.product);
+      return buildMappedSegment(
+        index,
+        schemaId,
+        globalStyle,
+        character,
+        {
+          title: seg.title,
+          text: seg.text,
+          sceneDescription: seg.sceneDescription,
+          videoDescription: seg.videoDescription,
+          emotion: seg.character.emotion,
+          productInteractionType: seg.productInteractionType,
+        },
+        input.product,
+      );
     });
   } else {
     segments = input.blocks!.map((block, index) => {
       const character = characterMap.get(block.characterName)!;
-      return buildMappedSegment(index, schemaId, globalStyle, character, {
-        title: `Scene ${index + 1}: ${block.characterName}`,
-        text: block.dialogue,
-        sceneDescription: block.sceneDescription,
-        videoDescription: block.videoDescription,
-        emotion: block.emotion,
-        productInteractionType: block.productInteractionType,
-      }, input.product);
+      return buildMappedSegment(
+        index,
+        schemaId,
+        globalStyle,
+        character,
+        {
+          title: `Scene ${index + 1}: ${block.characterName}`,
+          text: block.dialogue,
+          sceneDescription: block.sceneDescription,
+          videoDescription: block.videoDescription,
+          emotion: block.emotion,
+          productInteractionType: block.productInteractionType,
+        },
+        input.product,
+      );
     });
   }
 

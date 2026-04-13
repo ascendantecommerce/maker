@@ -28,7 +28,10 @@ export async function POST(req: Request) {
   }
 
   if (!body.topic && !body.script && !body.product && !body.blocks) {
-    return Response.json({ error: "Topic, script, product or blocks are required" }, { status: 400 });
+    return Response.json(
+      { error: "Topic, script, product or blocks are required" },
+      { status: 400 },
+    );
   }
 
   const requestedFolderId: string | null = body.folderId || null;

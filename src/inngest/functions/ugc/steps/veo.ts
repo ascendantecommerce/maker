@@ -303,7 +303,8 @@ export const generateAndUploadVeo = async ({
                   `[Veo] Product NOT clearly visible in last frame (Confidence: ${visibility.confidence}). Applying fallback...`,
                 );
 
-                const originalEstimatedDuration = (segData as any).originalEstimatedDuration ?? estimatedDuration;
+                const originalEstimatedDuration =
+                  (segData as any).originalEstimatedDuration ?? estimatedDuration;
 
                 if (originalEstimatedDuration > 4.5) {
                   // Fallback to Reference Mode for longer product shots
@@ -541,7 +542,7 @@ export async function generateUgcVideo({
 }) {
   const estimatedDurationInit = segData.estimatedDuration ?? 5;
   const targetDuration = 7.5; // Max target duration
-  
+
   // Apply fillers if it's reference mode OR continuity mode (last_frame interpolation) and shorter than 6.75s
   const isShortReferenceMode = mode === "reference to video" && estimatedDurationInit < 6.75;
   const isShortContinuityMode = firstFrameSource === "last_frame" && estimatedDurationInit < 6.75;
@@ -551,10 +552,10 @@ export async function generateUgcVideo({
 
   if (needsFiller) {
     const timeToFillSeconds = Math.max(0, targetDuration - estimatedDurationInit);
-    
+
     // Pick the closest filler phrase length (1 to 4 seconds)
     const fillerSecondsNeeded = Math.min(Math.max(Math.round(timeToFillSeconds), 1), 4);
-    
+
     let selectedFiller = "";
     switch (fillerSecondsNeeded) {
       case 1:
@@ -575,8 +576,10 @@ export async function generateUgcVideo({
     }
 
     const modeName = isShortContinuityMode ? "continuity" : "reference";
-    console.log(`[Veo] Padding short ${modeName} video script [${estimatedDurationInit}s]. Adding ~${fillerSecondsNeeded}s filler to hit ~7.5s.`);
-    
+    console.log(
+      `[Veo] Padding short ${modeName} video script [${estimatedDurationInit}s]. Adding ~${fillerSecondsNeeded}s filler to hit ~7.5s.`,
+    );
+
     const trimmedBase = localSegData.text?.trim() ?? "";
     const textWithDot = trimmedBase.endsWith(".") ? trimmedBase : `${trimmedBase}.`;
     localSegData.text = `${textWithDot} ${selectedFiller}`;

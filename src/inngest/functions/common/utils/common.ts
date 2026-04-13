@@ -149,14 +149,14 @@ export async function downloadVideo(url: string, outputDir: string): Promise<str
       const match = parts[0].match(/^data:([^;]+);/);
       const contentType = match ? match[1] : "video/mp4";
       const buffer = Buffer.from(parts[1] || "", "base64");
-      
+
       const extension = mime.getExtension(contentType) || "mp4";
       const filename = `${generateId()}.${extension}`;
       const outputPath = path.join(outputDir, filename);
-      
+
       fs.mkdirSync(outputDir, { recursive: true });
       fs.writeFileSync(outputPath, buffer);
-      
+
       console.log(`[DOWNLOAD_VIDEO] Processed Data URI. Saved to: ${outputPath}`);
       return outputPath;
     } catch (err: any) {
@@ -196,7 +196,6 @@ export async function downloadVideo(url: string, outputDir: string): Promise<str
   }
 }
 
-
 export async function fileUrlToBuffer(
   fileUrl: string,
   defaultType = "png",
@@ -219,7 +218,8 @@ export async function fileUrlToBuffer(
       if (fileUrl.startsWith("/") && fs.existsSync(fileUrl)) {
         console.log(`[COMMON] Reading local file: ${fileUrl}`);
         const buffer = fs.readFileSync(fileUrl);
-        const contentType = mime.getType(fileUrl) || (defaultType === "png" ? "image/png" : "image/jpeg");
+        const contentType =
+          mime.getType(fileUrl) || (defaultType === "png" ? "image/png" : "image/jpeg");
         const extension = mime.getExtension(contentType) || defaultType;
         return { buffer, contentType, extension, numBytes: buffer.length };
       }

@@ -41,7 +41,7 @@ export async function fileUrlToBuffer(
 
     // Extract MIME type from the response headers
     let contentType = response.headers.get("content-type") || "application/octet-stream";
-    
+
     // Fallback to URL extension if MIME is generic or bin
     const mime = await import("mime/lite");
     try {
@@ -59,7 +59,7 @@ export async function fileUrlToBuffer(
         if (inferredMime) contentType = inferredMime;
       }
     } catch (e) {
-       // Ignore URL parsing errors for non-standard URLs
+      // Ignore URL parsing errors for non-standard URLs
     }
 
     // Convert the array buffer to a Node.js buffer
@@ -73,4 +73,3 @@ export async function fileUrlToBuffer(
     throw error;
   }
 }
-

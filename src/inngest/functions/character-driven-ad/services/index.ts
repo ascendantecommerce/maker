@@ -26,7 +26,6 @@ export function initializeCharacterAdServices(): CharacterAdServices {
     provider: "veo",
     params: {
       geminiApiKey: config.gemini.key,
-      
     },
   });
 

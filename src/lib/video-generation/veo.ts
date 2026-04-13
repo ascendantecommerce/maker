@@ -27,7 +27,9 @@ export class VeoProvider implements Generator {
     return { url, duration };
   }
 
-  private async submitVeoTask(params: VideoParams): Promise<{ operationName: string; duration: number }> {
+  private async submitVeoTask(
+    params: VideoParams,
+  ): Promise<{ operationName: string; duration: number }> {
     const aspectRatio = params.aspectRatio || aspectRatioType.NINE_SIXTEEN;
     let imagePart: Image | undefined = undefined;
 
@@ -122,7 +124,10 @@ export class VeoProvider implements Generator {
 
     const operation = await this.gemini.models.generateVideos(payload);
     if (!operation.name) throw new Error("Failed to get operation name from Gemini");
-    return { operationName: operation.name, duration: usesReferences || lastFramePart ? 8 : (params.durationSeconds ?? 5) };
+    return {
+      operationName: operation.name,
+      duration: usesReferences || lastFramePart ? 8 : (params.durationSeconds ?? 5),
+    };
   }
 
   async getStatus(operationName: string): Promise<VideoStatusResponse> {

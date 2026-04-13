@@ -81,11 +81,7 @@ export class SegmentUpdater {
       );
     } else {
       await withDbRetry(() =>
-        db
-          .updateTable("generations")
-          .set({ progress })
-          .where("id", "=", this.schemeId)
-          .execute(),
+        db.updateTable("generations").set({ progress }).where("id", "=", this.schemeId).execute(),
       );
     }
 
@@ -96,14 +92,15 @@ export class SegmentUpdater {
         .selectFrom("segments")
         .select("segment_data")
         .where("id", "=", result.id)
-        .executeTakeFirst()
+        .executeTakeFirst(),
     );
 
     let segmentData: any = result;
     if (existingSegment && existingSegment.segment_data) {
-      const parsedData = typeof existingSegment.segment_data === "string" 
-        ? JSON.parse(existingSegment.segment_data) 
-        : existingSegment.segment_data;
+      const parsedData =
+        typeof existingSegment.segment_data === "string"
+          ? JSON.parse(existingSegment.segment_data)
+          : existingSegment.segment_data;
       segmentData = { ...parsedData, ...result };
     }
 

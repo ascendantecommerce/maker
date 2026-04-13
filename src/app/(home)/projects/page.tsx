@@ -115,8 +115,8 @@ function ProjectCard({ project, onDelete }: ProjectCardProps) {
           <p className="text-xs text-muted-foreground">
             {project.createdAt
               ? formatDistanceToNow(new Date(project.createdAt), {
-                addSuffix: true,
-              })
+                  addSuffix: true,
+                })
               : "Just now"}
           </p>
         </div>

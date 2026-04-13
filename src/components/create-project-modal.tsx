@@ -52,10 +52,7 @@ const getTools = () => [
   },
 ];
 
-export function CreateProjectModal({ 
-  open, 
-  onOpenChange,
-}: CreateProjectModalProps) {
+export function CreateProjectModal({ open, onOpenChange }: CreateProjectModalProps) {
   const router = useRouter();
   const [isCreating, setIsCreating] = useState<string | null>(null);
 
@@ -141,7 +138,7 @@ export function CreateProjectModal({
                   className={cn(
                     "group relative flex flex-row items-center gap-4 p-4 bg-secondary/30 backdrop-blur-sm border border-white/5 rounded-xl transition-all duration-200 cursor-pointer",
                     "hover:bg-secondary/50 hover:border-white/10 shadow-sm",
-                    isCreating === tool.type && "opacity-50 pointer-events-none"
+                    isCreating === tool.type && "opacity-50 pointer-events-none",
                   )}
                 >
                   <div className="size-10 rounded-lg bg-secondary/50 border border-white/10 flex items-center justify-center text-muted-foreground group-hover:text-foreground transition-all duration-300 shrink-0">
@@ -150,9 +147,7 @@ export function CreateProjectModal({
 
                   <div className="flex flex-col gap-0.5 flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-4">
-                      <h3 className="text-sm font-semibold text-foreground">
-                        {tool.title}
-                      </h3>
+                      <h3 className="text-sm font-semibold text-foreground">{tool.title}</h3>
                       {tool.badge && (
                         <span className="px-2 py-0.5 text-[8px] uppercase font-bold tracking-wider bg-background/50 text-muted-foreground border border-white/5 rounded-full shrink-0">
                           {tool.badge}

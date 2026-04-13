@@ -8,8 +8,8 @@ interface Clip {
   url: string;
   /** URL of the original Veo-generated video (with native audio). Used for SFX analysis. */
   originalUrl?: string;
-  effects?: { prompt: string; start: number; end: number, volume?: number }[];
-  soundEffects?: { start: number; url: string; duration?: number, volume?: number }[];
+  effects?: { prompt: string; start: number; end: number; volume?: number }[];
+  soundEffects?: { start: number; url: string; duration?: number; volume?: number }[];
 }
 
 /**
@@ -49,14 +49,16 @@ export async function generateCharacterSoundEffects(
 
       // 2. Audit the original video's audio to clone existing SFX
       const videoBuffer = fs.readFileSync(analysisVideoPath);
-      const { effects } = await services.gemini.analyzeVideoForSfx(
-        videoBuffer,
-        "video/mp4",
-      );
+      const { effects } = await services.gemini.analyzeVideoForSfx(videoBuffer, "video/mp4");
       console.log(`[SFX] Clip ${clip.id} — cloned effects from original:`, effects);
 
       // 3. Regenerate each identified SFX via ElevenLabs
-      const generatedSoundEffects: { start: number; url: string; duration?: number, volume?: number }[] = [];
+      const generatedSoundEffects: {
+        start: number;
+        url: string;
+        duration?: number;
+        volume?: number;
+      }[] = [];
 
       if (effects && effects.length > 0) {
         for (let index = 0; index < effects.length; index++) {
@@ -65,16 +67,9 @@ export async function generateCharacterSoundEffects(
           const durationSeconds = Math.max(0.5, durationMs / 1000);
 
           try {
-            const sfxBuffer = await services.tts.generateSfx(
-              effect.prompt,
-              durationSeconds,
-            );
+            const sfxBuffer = await services.tts.generateSfx(effect.prompt, durationSeconds);
             const fileName = `character-ads/${schemeId}/sfx-${clip.id}-${index}-${runToken}.mp3`;
-            const sfxUrl = await services.r2.uploadData(
-              fileName,
-              sfxBuffer,
-              "audio/mpeg",
-            );
+            const sfxUrl = await services.r2.uploadData(fileName, sfxBuffer, "audio/mpeg");
 
             generatedSoundEffects.push({
               start: effect.start,
@@ -103,4 +98,3 @@ export async function generateCharacterSoundEffects(
 
   return finalClips;
 }
-

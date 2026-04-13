@@ -29,7 +29,10 @@ export const ASSISTANT_SCRIPT_OUTPUT_SCHEMA = {
     script: { type: "string", description: "The full narration script text" },
     reply: { type: "string", description: "The conversational response to the user" },
     productName: { type: "string", description: "Consolitated or extracted product name" },
-    productDescription: { type: "string", description: "Consolitated or extracted product description" },
+    productDescription: {
+      type: "string",
+      description: "Consolitated or extracted product description",
+    },
     blocks: {
       type: "array",
       items: {
@@ -37,29 +40,52 @@ export const ASSISTANT_SCRIPT_OUTPUT_SCHEMA = {
         properties: {
           characterName: { type: "string" },
           characterRole: { type: "string", enum: ["villain", "hero", "human", "narrator"] },
-          characterDescription: { type: "string", description: "LITERAL visual description of the mascot/character. NEVER describe a human or metaphorical personification." },
-          sceneDescription: { type: "string", description: "Detailed visual description of the environment. MUST be a cleanly lit, bright, modern Pixar room (no dark/chaotic spaces)." },
-          videoDescription: { type: "string", description: "Description of the movement and motion behavior" },
-          voiceDescription: { type: "string", description: "Description of the voice tone and style for audio generation" },
+          characterDescription: {
+            type: "string",
+            description:
+              "LITERAL visual description of the mascot/character. NEVER describe a human or metaphorical personification.",
+          },
+          sceneDescription: {
+            type: "string",
+            description:
+              "Detailed visual description of the environment. MUST be a cleanly lit, bright, modern Pixar room (no dark/chaotic spaces).",
+          },
+          videoDescription: {
+            type: "string",
+            description: "Description of the movement and motion behavior",
+          },
+          voiceDescription: {
+            type: "string",
+            description: "Description of the voice tone and style for audio generation",
+          },
           emotion: { type: "string" },
           dialogue: { type: "string" },
-          productInteractionType: { 
-            type: "string", 
-            enum: ["packaging_hero", "product_content_hero", "packaging_in_hand", "product_content_in_hand", "packaging_on_surface", "product_content_on_surface", "product_reveal", "none"] 
-          }
+          productInteractionType: {
+            type: "string",
+            enum: [
+              "packaging_hero",
+              "product_content_hero",
+              "packaging_in_hand",
+              "product_content_in_hand",
+              "packaging_on_surface",
+              "product_content_on_surface",
+              "product_reveal",
+              "none",
+            ],
+          },
         },
         required: [
-          "characterName", 
-          "characterRole", 
-          "dialogue", 
-          "characterDescription", 
-          "sceneDescription", 
-          "videoDescription", 
+          "characterName",
+          "characterRole",
+          "dialogue",
+          "characterDescription",
+          "sceneDescription",
+          "videoDescription",
           "voiceDescription",
-          "productInteractionType"
-        ]
-      }
-    }
+          "productInteractionType",
+        ],
+      },
+    },
   },
-  required: ["script", "reply", "blocks"]
+  required: ["script", "reply", "blocks"],
 };

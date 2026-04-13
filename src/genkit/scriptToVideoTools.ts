@@ -43,19 +43,56 @@ export function getScriptToVideoTools() {
           .string()
           .optional()
           .describe("The size of captions ('small', 'medium', 'large')."),
-        blocks: z.array(z.object({
-          characterName: z.string().optional(),
-          characterRole: z.string().optional().describe("Always set this to 'villain', 'hero', 'human', or 'narrator' (all lowercase)"),
-          characterDescription: z.string().optional().describe("FIXED visual identity (Persona): ONLY the character's physical appearance (e.g. 'A blue gummy bear with silver molecular patterns'). KEEP it clean and consistent across all blocks for this character."),
-          sceneDescription: z.string().optional().describe("AMBIENT environment (Ambient): The setting and background details (e.g. 'On a snowy mountain peak at sunset')."),
-          videoDescription: z.string().optional().describe("MOTION logic: What the character is doing in this specific clip (e.g. 'Jumping into the air while holding the product')."),
-          voiceDescription: z.string().optional(),
-          emotion: z.string().optional(),
-          dialogue: z.string().optional(),
-          productInteractionType: z.enum(["packaging_hero", "product_content_hero", "packaging_in_hand", "product_content_in_hand", "packaging_on_surface", "product_content_on_surface", "product_reveal", "none"])
-            .optional()
-            .describe("Set the focus to either the outer packaging or the internal product content for this scene.")
-        })).optional().describe("Used exclusively to define scenes when type is 'character-driven-ad'."),
+        blocks: z
+          .array(
+            z.object({
+              characterName: z.string().optional(),
+              characterRole: z
+                .string()
+                .optional()
+                .describe(
+                  "Always set this to 'villain', 'hero', 'human', or 'narrator' (all lowercase)",
+                ),
+              characterDescription: z
+                .string()
+                .optional()
+                .describe(
+                  "FIXED visual identity (Persona): ONLY the character's physical appearance (e.g. 'A blue gummy bear with silver molecular patterns'). KEEP it clean and consistent across all blocks for this character.",
+                ),
+              sceneDescription: z
+                .string()
+                .optional()
+                .describe(
+                  "AMBIENT environment (Ambient): The setting and background details (e.g. 'On a snowy mountain peak at sunset').",
+                ),
+              videoDescription: z
+                .string()
+                .optional()
+                .describe(
+                  "MOTION logic: What the character is doing in this specific clip (e.g. 'Jumping into the air while holding the product').",
+                ),
+              voiceDescription: z.string().optional(),
+              emotion: z.string().optional(),
+              dialogue: z.string().optional(),
+              productInteractionType: z
+                .enum([
+                  "packaging_hero",
+                  "product_content_hero",
+                  "packaging_in_hand",
+                  "product_content_in_hand",
+                  "packaging_on_surface",
+                  "product_content_on_surface",
+                  "product_reveal",
+                  "none",
+                ])
+                .optional()
+                .describe(
+                  "Set the focus to either the outer packaging or the internal product content for this scene.",
+                ),
+            }),
+          )
+          .optional()
+          .describe("Used exclusively to define scenes when type is 'character-driven-ad'."),
         productName: z.string().optional().describe("The name of the product."),
         productDescription: z.string().optional().describe("A brief description of the product."),
       }),

@@ -22,7 +22,9 @@ export function TabBar() {
                   size="icon"
                   className={cn(
                     "size-9 rounded-md transition-colors",
-                    isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                    isActive
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                   )}
                   onClick={() => setActiveTab(tabKey)}
                 >

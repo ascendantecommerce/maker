@@ -114,7 +114,7 @@ export const ugcVideoOrchestrator = inngest.createFunction(
         }
 
         await step.run("mark-generation-progress-shots", async () => {
-          console.log("Marking generation progress for shots"); 
+          console.log("Marking generation progress for shots");
           return await advanceGenerationTask(schemeId, UGC_TASK_KEYS.SHOTS, UGC_TASKS);
         });
 
@@ -438,7 +438,9 @@ export const ugcVideoOrchestrator = inngest.createFunction(
 
         const stsTasks = dbSegments.map(async (segment) => {
           const sd = segment.segment_data as any;
-          const videoAsset = (sd.assets || sd.shots || []).find((a: any) => a.type === "video" && a.videoUrl && a.active !== false);
+          const videoAsset = (sd.assets || sd.shots || []).find(
+            (a: any) => a.type === "video" && a.videoUrl && a.active !== false,
+          );
           let currentUrl = videoAsset?.videoUrl || sd.shots?.[0]?.videoUrl;
 
           if (!currentUrl) return;
@@ -475,9 +477,11 @@ export const ugcVideoOrchestrator = inngest.createFunction(
 
         const enhanceTasks = dbSegments.map(async (segment) => {
           const sd = segment.segment_data as any;
-          const videoAsset = (sd.assets || sd.shots || []).find((a: any) => a.type === "video" && a.videoUrl && a.active !== false);
+          const videoAsset = (sd.assets || sd.shots || []).find(
+            (a: any) => a.type === "video" && a.videoUrl && a.active !== false,
+          );
           let currentUrl = videoAsset?.videoUrl || sd.shots?.[0]?.videoUrl;
-          
+
           if (!currentUrl) return;
 
           const enhancedResult = await step.run(

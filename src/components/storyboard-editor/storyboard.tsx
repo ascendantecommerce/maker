@@ -117,71 +117,71 @@ export const Storyboard = ({
                     generatingVideos?.[seg.id]) && (
                     <div className="w-full min-w-0 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/10 hover:scrollbar-thumb-white/20">
                       <div className="flex items-center gap-2.5 min-w-max">
-                          {seg.shots?.map((shot, shotIdx) => {
-                            const showVideo = !!shot.videoUrl;
-                            const showImage = !!shot.imageUrl;
-                            const imgSource = shot.imageUrl;
-                            const vidSource = shot.videoUrl;
+                        {seg.shots?.map((shot, shotIdx) => {
+                          const showVideo = !!shot.videoUrl;
+                          const showImage = !!shot.imageUrl;
+                          const imgSource = shot.imageUrl;
+                          const vidSource = shot.videoUrl;
 
-                            return (
-                              <div
-                                key={shotIdx}
-                                className="aspect-video w-28 shrink-0 rounded-lg overflow-hidden border border-border/60 bg-muted/30 relative group/shot shadow-sm"
-                              >
-                                {showVideo ? (
-                                  <>
-                                    <video
-                                      src={vidSource}
-                                      className="w-full h-full object-cover"
-                                      muted
-                                      autoPlay={false}
-                                    />
-                                    <div className="absolute top-1 left-1 bg-black/40 backdrop-blur-md p-1 rounded-sm border border-white/10">
-                                      <VideoIcon className="w-2.5 h-2.5 text-white" />
-                                    </div>
-                                    {shot.duration && (
-                                      <div className="absolute bottom-1 right-1 bg-black/60 backdrop-blur-md px-1.5 py-0.5 rounded-sm text-[9px] font-bold text-white tabular-nums border border-white/5">
-                                        {formatTime(shot.duration / 1000)}
-                                      </div>
-                                    )}
-                                  </>
-                                ) : showImage ? (
-                                  <>
-                                    <img
-                                      src={imgSource}
-                                      className="w-full h-full object-cover"
-                                      alt="Shot preview"
-                                    />
-                                    {shot.duration && (
-                                      <div className="absolute bottom-1 right-1 bg-black/60 backdrop-blur-md px-1.5 py-0.5 rounded-sm text-[9px] font-bold text-white tabular-nums border border-white/5">
-                                        {formatTime(shot.duration / 1000)}
-                                      </div>
-                                    )}
-                                  </>
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center bg-secondary/20">
-                                    <ImageIcon className="w-5 h-5 text-muted-foreground/20" />
+                          return (
+                            <div
+                              key={shotIdx}
+                              className="aspect-video w-28 shrink-0 rounded-lg overflow-hidden border border-border/60 bg-muted/30 relative group/shot shadow-sm"
+                            >
+                              {showVideo ? (
+                                <>
+                                  <video
+                                    src={vidSource}
+                                    className="w-full h-full object-cover"
+                                    muted
+                                    autoPlay={false}
+                                  />
+                                  <div className="absolute top-1 left-1 bg-black/40 backdrop-blur-md p-1 rounded-sm border border-white/10">
+                                    <VideoIcon className="w-2.5 h-2.5 text-white" />
                                   </div>
-                                )}
+                                  {shot.duration && (
+                                    <div className="absolute bottom-1 right-1 bg-black/60 backdrop-blur-md px-1.5 py-0.5 rounded-sm text-[9px] font-bold text-white tabular-nums border border-white/5">
+                                      {formatTime(shot.duration / 1000)}
+                                    </div>
+                                  )}
+                                </>
+                              ) : showImage ? (
+                                <>
+                                  <img
+                                    src={imgSource}
+                                    className="w-full h-full object-cover"
+                                    alt="Shot preview"
+                                  />
+                                  {shot.duration && (
+                                    <div className="absolute bottom-1 right-1 bg-black/60 backdrop-blur-md px-1.5 py-0.5 rounded-sm text-[9px] font-bold text-white tabular-nums border border-white/5">
+                                      {formatTime(shot.duration / 1000)}
+                                    </div>
+                                  )}
+                                </>
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-secondary/20">
+                                  <ImageIcon className="w-5 h-5 text-muted-foreground/20" />
+                                </div>
+                              )}
 
-                                {/* Overlay glow on hover */}
-                                <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/shot:opacity-100 transition-opacity pointer-events-none" />
-                              </div>
-                            );
-                          })}
-
-                          {/* Loading states appended to shots row */}
-                          {(generatingFrames?.[seg.id] || generatingVideos?.[seg.id]) && (
-                            <div className="aspect-video w-28 shrink-0 rounded-lg overflow-hidden border border-primary/20 bg-primary/5 animate-pulse flex flex-col items-center justify-center gap-2">
-                              <Loader2 className="w-4 h-4 text-primary animate-spin" />
-                              <span className="text-[8px] font-bold uppercase tracking-widest text-primary/60">
-                                Generating
-                              </span>
+                              {/* Overlay glow on hover */}
+                              <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/shot:opacity-100 transition-opacity pointer-events-none" />
                             </div>
-                          )}
-                        </div>
+                          );
+                        })}
+
+                        {/* Loading states appended to shots row */}
+                        {(generatingFrames?.[seg.id] || generatingVideos?.[seg.id]) && (
+                          <div className="aspect-video w-28 shrink-0 rounded-lg overflow-hidden border border-primary/20 bg-primary/5 animate-pulse flex flex-col items-center justify-center gap-2">
+                            <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                            <span className="text-[8px] font-bold uppercase tracking-widest text-primary/60">
+                              Generating
+                            </span>
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
+                  )}
                 </div>
               </div>
             );

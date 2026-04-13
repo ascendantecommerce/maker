@@ -34,8 +34,8 @@ export function initializeFakeUgcServices(): PipelineServices {
   const videoGenerator = new VideoGenerator({
     provider: "veo",
     params: {
-     geminiApiKey: config.gemini.key,
-     model: "veo-3.1-lite-generate-preview",
+      geminiApiKey: config.gemini.key,
+      model: "veo-3.1-lite-generate-preview",
     },
   });
 

@@ -7,8 +7,8 @@ import { type VisualShot, type VisualBroll } from "@/lib/schema-generator/types"
 
 /**
  * Stage 1: Generate Visual Prompts for Fake UGC
- * 
- * Unlike standard UGC, this focuses strictly on product imagery and lifestyle 
+ *
+ * Unlike standard UGC, this focuses strictly on product imagery and lifestyle
  * montages. It does NOT use an avatar image.
  */
 export async function generateFakeUgcPrompts(
@@ -44,11 +44,7 @@ export async function generateFakeUgcPrompts(
       assetLabels,
     );
 
-    const result = await services.gemini.generateFakeUGCUnifiedPrompts(
-      schema,
-      prompt,
-      assets
-    );
+    const result = await services.gemini.generateFakeUGCUnifiedPrompts(schema, prompt, assets);
 
     if (!result.prompts || result.prompts.length === 0) {
       throw new NonRetriableError("Failed to generate Fake UGC visual prompts");

@@ -57,14 +57,17 @@ export async function GET(req: NextRequest) {
     const accessToken = await getAccessToken(userId);
     if (!accessToken) return NextResponse.json({ error: "needs_drive_auth" }, { status: 403 });
 
-    const query = encodeURIComponent("mimeType='application/vnd.google-apps.folder' and trashed=false");
+    const query = encodeURIComponent(
+      "mimeType='application/vnd.google-apps.folder' and trashed=false",
+    );
     const searchRes = await fetch(
       `${DRIVE_API}/files?q=${query}&fields=files(id,name)&spaces=drive&orderBy=name`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
+      { headers: { Authorization: `Bearer ${accessToken}` } },
     );
 
     if (!searchRes.ok) {
-        if(searchRes.status === 401) return NextResponse.json({ error: "needs_drive_auth" }, { status: 403 });
+      if (searchRes.status === 401)
+        return NextResponse.json({ error: "needs_drive_auth" }, { status: 403 });
       throw new Error(`Drive search failed: ${await searchRes.text()}`);
     }
 

@@ -8,7 +8,6 @@ import { baseUrl, createMetadata } from "@/utils/metadata";
 import { Analytics } from "@vercel/analytics/next";
 import { cn } from "@/lib/utils";
 
-
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
@@ -26,8 +25,7 @@ export const metadata = createMetadata({
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
-
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export default function RootLayout({
   children,

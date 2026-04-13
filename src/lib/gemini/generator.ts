@@ -13,9 +13,9 @@ import {
   VIDEO_SFX_ANALYSIS_PROMPT,
   SCHEMA_OUTPUT_INSTRUCTIONS,
 } from "../prompts";
-import { 
-  ASSISTANT_SCRIPT_SYSTEM_PROMPT, 
-  ASSISTANT_SCRIPT_OUTPUT_SCHEMA 
+import {
+  ASSISTANT_SCRIPT_SYSTEM_PROMPT,
+  ASSISTANT_SCRIPT_OUTPUT_SCHEMA,
 } from "../prompts/assistant-script";
 
 export class GeminiService {
@@ -180,7 +180,7 @@ Apply these rules for the Character-Driven Ad blocks:
 
       const contents: any[] = [
         { text: input.systemPrompt || ASSISTANT_SCRIPT_SYSTEM_PROMPT },
-        { text: prompt }
+        { text: prompt },
       ];
 
       if (input.schema) {
@@ -188,7 +188,9 @@ Apply these rules for the Character-Driven Ad blocks:
       }
 
       if (input.productName || input.productDescription) {
-        contents.push({ text: `PRODUCT INFO: Name: ${input.productName || ""}, Description: ${input.productDescription || ""}` });
+        contents.push({
+          text: `PRODUCT INFO: Name: ${input.productName || ""}, Description: ${input.productDescription || ""}`,
+        });
       }
 
       if (input.imageUrls && input.imageUrls.length > 0) {
@@ -226,7 +228,7 @@ Apply these rules for the Character-Driven Ad blocks:
   async analyzeVideoForSfx(
     videoBuffer: Buffer,
     contentType: string,
-  ): Promise<{ effects: { prompt: string; start: number; end: number, volume?: number }[] }> {
+  ): Promise<{ effects: { prompt: string; start: number; end: number; volume?: number }[] }> {
     try {
       const base64Video = videoBuffer.toString("base64");
 
@@ -274,7 +276,6 @@ Apply these rules for the Character-Driven Ad blocks:
           };
         }),
       );
-
 
       const response = await this.gemini.models.generateContent({
         model: this.model,
@@ -696,7 +697,6 @@ Apply these rules for the Character-Driven Ad blocks:
     schema?: Schema,
   ): Promise<{ prompts: VisualPrompt[]; price: PriceItem }> {
     try {
-
       const response = await this.gemini.models.generateContent({
         model: this.model,
         contents: [{ text: prompt }],
@@ -742,7 +742,6 @@ Apply these rules for the Character-Driven Ad blocks:
           };
         }),
       );
-
 
       const response = await this.gemini.models.generateContent({
         model: this.model,

@@ -40,7 +40,7 @@ export function initializeServices(options?: { videoModel?: string }): PipelineS
     provider: "veo",
     params: {
       geminiApiKey: config.gemini.key,
-      model:  VEO_MODEL,
+      model: VEO_MODEL,
     },
   });
 

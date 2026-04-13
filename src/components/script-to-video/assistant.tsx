@@ -92,12 +92,9 @@ export const Assistant = () => {
           productImage: prev?.productImage || uploadedImages[0],
         }));
 
-        toast.success(
-          `${uploadedImages.length} image(s) added! Ready for script generation.`,
-          {
-            id: toastId,
-          },
-        );
+        toast.success(`${uploadedImages.length} image(s) added! Ready for script generation.`, {
+          id: toastId,
+        });
       } else {
         toast.dismiss(toastId);
       }
@@ -171,7 +168,9 @@ export const Assistant = () => {
           message: messageText,
           schemaId: schema?.id,
           previousSchema: schema,
-          imageUrls: params.productImages?.map((img: ProductImage) => img.url) || (params.productImage ? [params.productImage.url] : []),
+          imageUrls:
+            params.productImages?.map((img: ProductImage) => img.url) ||
+            (params.productImage ? [params.productImage.url] : []),
           productName: params.product?.name,
           productDescription: params.product?.description,
           visualStyle: params.visuals?.style || schema?.visuals?.style,
@@ -220,7 +219,9 @@ export const Assistant = () => {
             if (result.segments && result.segments.length > 0) {
               // New format: character-driven ad returns segments with character objects
               setParams((prev: any) => ({ ...prev, segments: result.segments, blocks: undefined }));
-              useSchemaStore.getState().updateSchema({ segments: result.segments, blocks: undefined });
+              useSchemaStore
+                .getState()
+                .updateSchema({ segments: result.segments, blocks: undefined });
             } else if (result.blocks) {
               // Legacy format: flat blocks array (kept for backward compatibility)
               setParams((prev: any) => ({ ...prev, blocks: result.blocks }));
@@ -232,7 +233,7 @@ export const Assistant = () => {
               {
                 role: "model",
                 content: result.reply || "I've updated the script and scenes for you.",
-                status: "complete"
+                status: "complete",
               },
             ]);
           }
@@ -242,7 +243,7 @@ export const Assistant = () => {
         }
 
         // Wait 2s and poll again
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 2000));
         return poll();
       };
 
@@ -419,11 +420,12 @@ export const Assistant = () => {
             />
             <div className="flex items-center gap-2 max-w-75 overflow-x-auto no-scrollbar py-1">
               {params.productImages?.map((img: ProductImage) => (
-                <div key={img.id} className="flex items-center gap-2 px-2 h-8 bg-muted/50 rounded-lg border border-border text-[10px] shrink-0 group">
+                <div
+                  key={img.id}
+                  className="flex items-center gap-2 px-2 h-8 bg-muted/50 rounded-lg border border-border text-[10px] shrink-0 group"
+                >
                   <ImageIcon className="w-3 h-3 text-primary shrink-0" />
-                  <span className="max-w-20 truncate font-medium">
-                    {img.name}
-                  </span>
+                  <span className="max-w-20 truncate font-medium">{img.name}</span>
                   <button
                     onClick={() => removeProductImage(img.id)}
                     className="p-0.5 hover:bg-background rounded-sm focus:outline-none focus:ring-1 focus:ring-ring transition-colors"

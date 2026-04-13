@@ -65,7 +65,7 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
             assets: scheme.assets,
             visuals: scheme.visuals,
           });
-          
+
           const updated = { ...scheme, ...mapped, id: schemeId };
 
           // Stage 0.5: Persist the generated schema to DB
@@ -74,7 +74,6 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
           return updated;
         });
       }
-
 
       // 1. Initial Status Update
       await step.run("mark-orchestration-start", async () => {
@@ -100,68 +99,58 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
 
       // 2. Stage 1: Generate Scene Composition Images per Shot
       // We generate one scene image per shot to use as firstFrameUrl/referenceImages in Stage 2.
-      const characterResults = await step.run(
-        "initialize-character-images",
-        async () => {
-          const shotUpdates = await generateCharacterSeedImages(
-            schemeId,
-            scheme,
-            services,
-            runToken,
-          );
+      const characterResults = await step.run("initialize-character-images", async () => {
+        const shotUpdates = await generateCharacterSeedImages(schemeId, scheme, services, runToken);
 
-          // 1. Update segments (shot imageUrl + segment firstFrameUrl)
-          const updatedSegments = scheme.segments.map((seg) => {
-            const shotUpdate = shotUpdates.find((u) => u.segmentId === seg.id && u.shotIndex === 0);
-            return {
-              ...seg,
-              firstFrameUrl: shotUpdate?.imageUrl || seg.firstFrameUrl,
-              imageUrl: shotUpdate?.imageUrl || seg.imageUrl,
-              shots: (seg.shots || []).map((shot, shotIndex) => {
-                const update = shotUpdates.find(
-                  (u) => u.segmentId === seg.id && u.shotIndex === shotIndex,
-                );
-                return update ? { ...shot, imageUrl: update.imageUrl } : shot;
-              }),
-            };
-          });
-
-          // 2. Update character baseImageUrl for global consistency
-          const updatedCharacters = (scheme.characters || []).map((char) => {
-            const firstAppearance = shotUpdates.find((u) => {
-              const seg = scheme.segments.find((s) => s.id === u.segmentId);
-              return seg?.characterId === char.id;
-            });
-            return firstAppearance
-              ? { ...char, baseImageUrl: firstAppearance.imageUrl }
-              : char;
-          });
-
-          const fullUpdatedScheme = {
-            ...scheme,
-            segments: updatedSegments,
-            characters: updatedCharacters,
+        // 1. Update segments (shot imageUrl + segment firstFrameUrl)
+        const updatedSegments = scheme.segments.map((seg) => {
+          const shotUpdate = shotUpdates.find((u) => u.segmentId === seg.id && u.shotIndex === 0);
+          return {
+            ...seg,
+            firstFrameUrl: shotUpdate?.imageUrl || seg.firstFrameUrl,
+            imageUrl: shotUpdate?.imageUrl || seg.imageUrl,
+            shots: (seg.shots || []).map((shot, shotIndex) => {
+              const update = shotUpdates.find(
+                (u) => u.segmentId === seg.id && u.shotIndex === shotIndex,
+              );
+              return update ? { ...shot, imageUrl: update.imageUrl } : shot;
+            }),
           };
+        });
 
-          // 3. Persist the full scheme back to DB metadata
-          await db
-            .updateTable("generations")
-            .set({ metadata: JSON.stringify(fullUpdatedScheme) })
-            .where("id", "=", schemeId)
-            .execute();
+        // 2. Update character baseImageUrl for global consistency
+        const updatedCharacters = (scheme.characters || []).map((char) => {
+          const firstAppearance = shotUpdates.find((u) => {
+            const seg = scheme.segments.find((s) => s.id === u.segmentId);
+            return seg?.characterId === char.id;
+          });
+          return firstAppearance ? { ...char, baseImageUrl: firstAppearance.imageUrl } : char;
+        });
 
-          return { 
-            segments: updatedSegments, 
-            characters: updatedCharacters,
-            count: shotUpdates.length 
-          };
-        },
-      );
+        const fullUpdatedScheme = {
+          ...scheme,
+          segments: updatedSegments,
+          characters: updatedCharacters,
+        };
+
+        // 3. Persist the full scheme back to DB metadata
+        await db
+          .updateTable("generations")
+          .set({ metadata: JSON.stringify(fullUpdatedScheme) })
+          .where("id", "=", schemeId)
+          .execute();
+
+        return {
+          segments: updatedSegments,
+          characters: updatedCharacters,
+          count: shotUpdates.length,
+        };
+      });
 
       // Update local state for subsequent stages
       scheme.segments = characterResults.segments as typeof scheme.segments;
       scheme.characters = characterResults.characters as typeof scheme.characters;
-      
+
       await step.run("publish-veo-start-toast", async () => {
         await publish({
           channel,
@@ -178,12 +167,7 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
       // 3. Stage 2: Generate Videos (Veo 3.1 Fast)
       // Every segment iterates through Veo 3.1 Fast with Dialogue + VoiceDescription.
       const videoResults = await step.run("generate-video-clips", async () => {
-        const results = await generateSegmentVideo(
-          schemeId,
-          scheme,
-          services,
-          runToken,
-        );
+        const results = await generateSegmentVideo(schemeId, scheme, services, runToken);
 
         return {
           clips: results.map((r) => ({ id: r.id, url: r.videoUrl })),
@@ -284,7 +268,7 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
               })
               .where("id", "=", segmentData.id)
               .execute();
-          })
+          }),
         );
       });
 

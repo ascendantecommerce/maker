@@ -4,13 +4,17 @@ import { ResolverStatus } from "@/utils/enum";
 import { getInngestApp } from "../../index";
 import { workflowChannel } from "../../utils/common";
 import { ToastType } from "../../utils/types";
-import { getCharacterAdSystemPrompt, CHARACTER_AD_SCRIPT_OUTPUT_SCHEMA, buildCharacterAdNegativePrompt } from "./prompts";
+import {
+  getCharacterAdSystemPrompt,
+  CHARACTER_AD_SCRIPT_OUTPUT_SCHEMA,
+  buildCharacterAdNegativePrompt,
+} from "./prompts";
 
 const inngest = getInngestApp();
 
 /**
  * Character-Driven Ad Script Generator
- * 
+ *
  * Generates a script as ordered `segments`, each with a nested `character` object —
  * matching the shape of other video types (UGC, narrative, etc.).
  * The orchestrator's scheme-creator step later expands these into full VideoSchema
@@ -20,20 +24,29 @@ export const generateCharacterAdScript = inngest.createFunction(
   { id: "character-ad-script-generator", concurrency: 5 },
   { event: "character-ad/script.request" },
   async ({ event, step, publish }) => {
-    const { message, imageUrls, schemaId, previousSchema, productName, productDescription, visualStyle, scriptTone } = event.data;
+    const {
+      message,
+      imageUrls,
+      schemaId,
+      previousSchema,
+      productName,
+      productDescription,
+      visualStyle,
+      scriptTone,
+    } = event.data;
     const channel = workflowChannel(schemaId);
 
     // 1. Initial Status Update
     await step.run("mark-scripting-start", async () => {
       await db
         .updateTable("generations")
-        .set({ 
-          status: ResolverStatus.PROGRESS, 
-          metadata: { message: "AI is writing your character-driven script..." } 
+        .set({
+          status: ResolverStatus.PROGRESS,
+          metadata: { message: "AI is writing your character-driven script..." },
         })
         .where("id", "=", schemaId)
         .execute();
-        
+
       await publish({
         channel,
         topic: "steps",
@@ -72,7 +85,8 @@ OUTPUT FORMAT — SEGMENTS WITH CHARACTER:
         schema: previousSchema,
         productName,
         productDescription,
-        systemPrompt: getCharacterAdSystemPrompt(visualStyle, scriptTone) + `\n\n${strictCharacterInstruction}`,
+        systemPrompt:
+          getCharacterAdSystemPrompt(visualStyle, scriptTone) + `\n\n${strictCharacterInstruction}`,
         outputSchema: CHARACTER_AD_SCRIPT_OUTPUT_SCHEMA,
       });
     });
@@ -81,10 +95,10 @@ OUTPUT FORMAT — SEGMENTS WITH CHARACTER:
     await step.run("save-script-result", async () => {
       await db
         .updateTable("generations")
-        .set({ 
-          input: result, 
+        .set({
+          input: result,
           status: ResolverStatus.COMPLETED,
-          metadata: { message: "Scripting complete." }
+          metadata: { message: "Scripting complete." },
         })
         .where("id", "=", schemaId)
         .execute();
@@ -113,5 +127,5 @@ OUTPUT FORMAT — SEGMENTS WITH CHARACTER:
     });
 
     return result;
-  }
+  },
 );

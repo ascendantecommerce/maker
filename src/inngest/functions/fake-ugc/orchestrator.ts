@@ -277,10 +277,7 @@ export const fakeUgcVideoOrchestrator = inngest.createFunction(
           scheme.segments.forEach((seg: any) => {
             if (seg.duration) totalDurationMs += seg.duration;
             if (seg.assets?.length) {
-              allSegmentAssets[seg.id] = [
-                ...(allSegmentAssets[seg.id] || []),
-                ...seg.assets,
-              ];
+              allSegmentAssets[seg.id] = [...(allSegmentAssets[seg.id] || []), ...seg.assets];
             }
           });
 

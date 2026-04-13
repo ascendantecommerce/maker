@@ -52,9 +52,7 @@ export async function refineCharacterClips(
       await new Promise<void>((resolve, reject) => {
         ffmpeg(inputVideoPath)
           .toFormat("mp3")
-          .on("error", (err) =>
-            reject(new Error(`Failed to extract audio: ${err.message}`)),
-          )
+          .on("error", (err) => reject(new Error(`Failed to extract audio: ${err.message}`)))
           .on("end", () => resolve())
           .save(inputAudioPath);
       });
@@ -69,11 +67,13 @@ export async function refineCharacterClips(
           });
         });
       } catch (e) {
-        console.warn("[Refinement] ffprobe failed to get duration, proceeding without padding check");
+        console.warn(
+          "[Refinement] ffprobe failed to get duration, proceeding without padding check",
+        );
       }
 
       let audioToIsolatePath = inputAudioPath;
-      
+
       if (durationMs > 0 && durationMs < 5000) {
         await new Promise<void>((resolve, reject) => {
           ffmpeg(inputAudioPath)
@@ -96,16 +96,8 @@ export async function refineCharacterClips(
         ffmpeg()
           .input(inputVideoPath)
           .input(cleanAudioPath)
-          .outputOptions([
-            "-map 0:v:0",
-            "-map 1:a:0",
-            "-c:v copy",
-            "-c:a aac",
-            "-shortest",
-          ])
-          .on("error", (err) =>
-            reject(new Error(`Failed to merge clean audio: ${err.message}`)),
-          )
+          .outputOptions(["-map 0:v:0", "-map 1:a:0", "-c:v copy", "-c:a aac", "-shortest"])
+          .on("error", (err) => reject(new Error(`Failed to merge clean audio: ${err.message}`)))
           .on("end", () => resolve())
           .save(outputVideoPath);
       });
@@ -113,11 +105,7 @@ export async function refineCharacterClips(
       // 6. Upload finalized video to R2 (no SFX included here)
       const finalVideoBuffer = fs.readFileSync(outputVideoPath);
       const fileName = `character-ads/${schemeId}/final-${clip.id}-${runToken}.mp4`;
-      const finalUrl = await services.r2.uploadData(
-        fileName,
-        finalVideoBuffer,
-        "video/mp4",
-      );
+      const finalUrl = await services.r2.uploadData(fileName, finalVideoBuffer, "video/mp4");
 
       refinedClips.push({
         ...clip,
@@ -130,15 +118,11 @@ export async function refineCharacterClips(
     } finally {
       // Cleanup temp files
       try {
-        [
-          inputVideoPath,
-          inputAudioPath,
-          paddedAudioPath,
-          cleanAudioPath,
-          outputVideoPath,
-        ].forEach((p) => {
-          if (fs.existsSync(p)) fs.unlinkSync(p);
-        });
+        [inputVideoPath, inputAudioPath, paddedAudioPath, cleanAudioPath, outputVideoPath].forEach(
+          (p) => {
+            if (fs.existsSync(p)) fs.unlinkSync(p);
+          },
+        );
       } catch (cleanupErr) {
         console.warn("[Refinement Cleanup Warning]:", cleanupErr);
       }

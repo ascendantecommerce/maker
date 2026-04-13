@@ -2,12 +2,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
-const DRIVE_SCOPES = [
-  "https://www.googleapis.com/auth/drive.file",
-  "openid",
-  "email",
-  "profile",
-];
+const DRIVE_SCOPES = ["https://www.googleapis.com/auth/drive.file", "openid", "email", "profile"];
 
 export async function GET(req: NextRequest) {
   try {

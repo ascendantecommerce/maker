@@ -33,7 +33,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ schemaId
   //   b) The project is public (regardless of auth state)
   const isOwner = !!userId && project.user_id === userId;
   if (!isOwner && !project.public) {
-    return Response.json({ error: !userId ? "Unauthorized" : "Access denied" }, { status: !userId ? 401 : 403 });
+    return Response.json(
+      { error: !userId ? "Unauthorized" : "Access denied" },
+      { status: !userId ? 401 : 403 },
+    );
   }
 
   // 3. Fetch related segments
