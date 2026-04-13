@@ -7,6 +7,7 @@ import { useSchemaStore } from "@/stores/schema-store";
 import { StoryboardEditor } from "@/components/storyboard-editor/storyboard-editor";
 import { usePostHog } from "posthog-js/react";
 import * as Sentry from "@sentry/nextjs";
+import { useStudioStore } from "@/stores/studio-store";
 import { Loader2, AlertCircle } from "lucide-react";
 import {
   Breadcrumb,
@@ -69,6 +70,8 @@ export default function StoryboardPage({ params }: StoryboardPageProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [schemaId, setSchemaId] = useState<string | null>(null);
   const [isOwner, setIsOwner] = useState(true);
+
+  const { studio } = useStudioStore();
 
   const schemaData = useSchemaStore((state) => state.schema);
 
@@ -203,6 +206,7 @@ export default function StoryboardPage({ params }: StoryboardPageProps) {
           </BreadcrumbList>
         </Breadcrumb>
         <div className="flex items-center gap-2">
+          <Button onClick={() => console.log(studio?.exportToJSON())}>To JSON</Button>
           <Button
             size={"sm"}
             className="rounded-full"

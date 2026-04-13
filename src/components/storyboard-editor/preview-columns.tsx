@@ -19,6 +19,7 @@ import {
 import { convertUgcSchemaToDesign } from "@/utils/ugc-schema-converter";
 import { convertSchemaToDesign } from "@/utils/schema-converter";
 import { formatTimeCode } from "@/lib/time";
+import { useStudioStore } from "@/stores/studio-store";
 
 interface ThumbnailStripProps {
   assets: any[]; // Changed to any to accommodate renamed clips if needed, but passing seg.clips works
@@ -111,6 +112,7 @@ export function VideoPlayerColumn({
   onDeleteAsset,
   isGenerating,
 }: VideoPlayerColumnProps) {
+  const setStudio = useStudioStore((state) => state.setStudio);
   const studioRef = useRef<Studio | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoadingDesign, setIsLoadingDesign] = useState(false);
@@ -137,6 +139,7 @@ export function VideoPlayerColumn({
       spacing: 20,
     });
     studioRef.current = studio;
+    setStudio(studio);
 
     studio.on("currentTime", ({ currentTime }: { currentTime: number }) => {
       setCurrentTimeUs(currentTime);

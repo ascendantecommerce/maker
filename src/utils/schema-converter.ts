@@ -371,10 +371,7 @@ export const convertSchemaToDesign = async (
 ): Promise<Design> => {
   const type = schemaType || schemaJson.type;
   console.log(`Converting schema of type: ${type}`);
-  if (type === "ugc-video") {
-    // Specific logic for UGC videos can go here if needed in the future
-  }
-
+  console.log({ schemaJson });
   const clips: any[] = [];
   const tracks: any[] = [];
 
@@ -490,7 +487,7 @@ export const convertSchemaToDesign = async (
           const imgSrc = shot.imageUrl || shot.firstFrame;
 
           if (videoSrc) {
-            const clipId = generateClipId();
+            const clipId = shot.id || generateClipId();
             segmentMediaClipId = clipId;
             videoClipIds.push(clipId);
 
@@ -569,7 +566,7 @@ export const convertSchemaToDesign = async (
               effects: [],
             });
           } else if (imgSrc) {
-            const clipId = generateClipId();
+            const clipId = shot.id || generateClipId();
             segmentMediaClipId = clipId;
             videoClipIds.push(clipId);
 

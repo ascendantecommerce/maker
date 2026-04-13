@@ -64,16 +64,14 @@ export default function FolderPage({ params }: { params: Promise<{ schemaId: str
 
       // // 1. If scene exists, load it directly
       if (projectData.scene) {
-        console.log("Loading existing scene:", projectData.scene);
-
-        // Ensure we parse scene_data if it's a string, or use directly if object
-        const sceneData =
-          typeof projectData.scene.scene_data === "string"
-            ? JSON.parse(projectData.scene.scene_data)
-            : projectData.scene.scene_data;
-
-        setDesign(sceneData);
-        return;
+        // console.log("Loading existing scene:", projectData.scene);
+        // // Ensure we parse scene_data if it's a string, or use directly if object
+        // const sceneData =
+        //   typeof projectData.scene.scene_data === "string"
+        //     ? JSON.parse(projectData.scene.scene_data)
+        //     : projectData.scene.scene_data;
+        // setDesign(sceneData);
+        // return;
       }
 
       // 2. If no scene, convert schema and save
