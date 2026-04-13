@@ -54,8 +54,8 @@ export function AIToolsPanel({ selectedClips }: { selectedClips: IClip[] }) {
   }, [shot]);
 
   useEffect(() => {
-    console.log("Prompt data:", { promptData, selectedClips });
-  }, [promptData]);
+    console.log("Prompt data:", { promptData, selectedClips, schema });
+  }, [promptData, schema]);
 
   const handleGenerateVideo = () => {
     console.log("Generating video with prompt:", promptData.videoPrompt);
