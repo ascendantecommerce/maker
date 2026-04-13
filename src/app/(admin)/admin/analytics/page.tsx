@@ -71,27 +71,24 @@ export default function AdminAnalyticsPage() {
       : 0;
 
   return (
-    <div className="flex-1 overflow-y-auto bg-card">
-      <div className="h-14 flex items-center p-4 bg-card/80 backdrop-blur-3xl justify-between text-sm font-medium border-b sticky top-0 z-10 transition-all duration-300">
+    <div className="flex-1 overflow-y-auto">
+      {/* Compact Header Bar */}
+      <div className="h-11 flex items-center px-4 bg-background/80 backdrop-blur-3xl justify-between text-xs font-semibold border-b sticky top-0 z-10 transition-all duration-300">
         <div className="flex items-center gap-2">
-          <span>Analytics</span>
+          <span className="">Analytics</span>
         </div>
       </div>
 
-      <div className="p-6 space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">System Trends</h1>
-          <p className="text-muted-foreground text-sm mt-1">Platform usage trends and insights</p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="p-4 space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* New Users Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">New Users (30d)</CardTitle>
-              <CardDescription>Daily user registrations</CardDescription>
+          <Card className="rounded-sm border-border/50 shadow-none">
+            <CardHeader className="p-4 pb-2">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                New Users (30d)
+              </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 pt-0">
               {loading ? (
                 <Skeleton className="h-52 w-full" />
               ) : (

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
+import { cn } from "@/lib/utils";
 
 interface Stats {
   totalUsers: number;
@@ -105,28 +106,23 @@ export default function AdminDashboardPage() {
   const chartData = stats ? mergeChartData(stats.recentUsers, stats.recentGenerations) : [];
 
   return (
-    <div className="flex-1 overflow-y-auto bg-card">
-      {/* Header Bar - matching home layout */}
-      <div className="h-14 flex items-center p-4 bg-card/80 backdrop-blur-3xl justify-between text-sm font-medium border-b sticky top-0 z-10 transition-all duration-300">
+    <div className="flex-1 overflow-y-auto">
+      {/* Compact Header Bar */}
+      <div className="h-11 flex items-center px-4 bg-background/80 backdrop-blur-3xl justify-between text-xs font-semibold border-b sticky top-0 z-10 transition-all duration-300">
         <div className="flex items-center gap-2">
-          {loading ? <Skeleton className="h-5 w-24" /> : <span>Dashboard</span>}
+          {loading ? <Skeleton className="h-4 w-20" /> : <span className="">Dashboard</span>}
         </div>
       </div>
 
-      <div className="p-6 space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">System Overview</h1>
-          <p className="text-muted-foreground text-sm mt-1">Platform overview and key metrics</p>
-        </div>
-
+      <div className="p-4 space-y-4">
         {/* Stat Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
           {loading
             ? Array.from({ length: 6 }).map((_, i) => (
-                <Card key={i}>
-                  <CardContent className="p-4">
-                    <Skeleton className="h-8 w-16 mb-2" />
-                    <Skeleton className="h-4 w-24" />
+                <Card key={i} className="rounded-sm border-border/50">
+                  <CardContent className="p-3">
+                    <Skeleton className="h-6 w-12 mb-1" />
+                    <Skeleton className="h-3 w-16" />
                   </CardContent>
                 </Card>
               ))
@@ -134,13 +130,18 @@ export default function AdminDashboardPage() {
               statCards(stats).map((card) => {
                 const Icon = card.icon;
                 return (
-                  <Card key={card.label} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-4">
-                      <div className={`inline-flex p-2 rounded-lg ${card.bg} mb-3`}>
-                        <Icon className={`size-4 ${card.color}`} />
+                  <Card
+                    key={card.label}
+                    className="rounded-sm border-border/50 hover:bg-muted/30 transition-colors shadow-none"
+                  >
+                    <CardContent className="p-3 font-mono">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-tight">
+                          {card.label}
+                        </p>
+                        <Icon className={cn("size-3.5", card.color)} />
                       </div>
-                      <p className="text-2xl font-bold tracking-tight">{card.value}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{card.label}</p>
+                      <p className="text-xl font-bold tracking-tight">{card.value}</p>
                     </CardContent>
                   </Card>
                 );

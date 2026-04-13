@@ -7,7 +7,9 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <SidebarProvider defaultOpen={false}>
       <AdminSidebar />
-      <main className="w-full h-screen bg-card flex relative overflow-hidden">{children}</main>
+      <main className="w-full h-screen bg-background flex relative overflow-hidden">
+        {children}
+      </main>
     </SidebarProvider>
   );
 };

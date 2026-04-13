@@ -1,14 +1,21 @@
 import { useEffect, useState } from "react";
 
+/**
+ * useDebounce hook to delay updating a value until after a specified delay.
+ * Useful for limiting API calls on search inputs.
+ */
 export function useDebounce<T>(value: T, delay: number): T {
-  const [debounced, setDebounced] = useState<T>(value);
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebounced(value);
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
     }, delay);
-    return () => clearTimeout(timer);
+
+    return () => {
+      clearTimeout(handler);
+    };
   }, [value, delay]);
 
-  return debounced;
+  return debouncedValue;
 }

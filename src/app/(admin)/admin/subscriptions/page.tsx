@@ -105,41 +105,40 @@ export default function AdminSubscriptionsPage() {
   }, [fetchSubs]);
 
   return (
-    <div className="flex-1 overflow-y-auto bg-card">
-      <div className="h-14 flex items-center p-4 bg-card/80 backdrop-blur-3xl justify-between text-sm font-medium border-b sticky top-0 z-10 transition-all duration-300">
+    <div className="flex-1 overflow-y-auto">
+      {/* Compact Header Bar */}
+      <div className="h-11 flex items-center px-4 bg-background/80 backdrop-blur-3xl justify-between text-xs font-semibold border-b sticky top-0 z-10 transition-all duration-300">
         <div className="flex items-center gap-2">
-          <span>Subscriptions</span>
+          <span className="">Subscriptions</span>
         </div>
       </div>
 
-      <div className="p-6 space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Subscriptions</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {data
-              ? `${data.total.toLocaleString()} active/cancelled records`
-              : "Monitor user plans and records"}
-          </p>
+      <div className="p-4 space-y-4">
+        {/* Compact Toolbar Row */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-2 h-8 bg-muted/40 border-border/50 rounded-sm">
+            <Filter className="size-3 text-muted-foreground" />
+            <Select value={plan || "all"} onValueChange={(v) => setPlan(v === "all" ? "" : v)}>
+              <SelectTrigger className="w-40 border-0 bg-transparent h-7 text-xs focus:ring-0">
+                <SelectValue placeholder="All Plans" />
+              </SelectTrigger>
+              <SelectContent>
+                {PLAN_FILTERS.map((f) => (
+                  <SelectItem key={f.value || "all"} value={f.value || "all"} className="text-xs">
+                    {f.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {data && (
+            <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-tight">
+              {data.total.toLocaleString()} records
+            </span>
+          )}
         </div>
 
-        <Card>
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-3">
-              <Filter className="size-4 text-muted-foreground" />
-              <Select value={plan || "all"} onValueChange={(v) => setPlan(v === "all" ? "" : v)}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Filter by plan" />
-                </SelectTrigger>
-                <SelectContent>
-                  {PLAN_FILTERS.map((f) => (
-                    <SelectItem key={f.value || "all"} value={f.value || "all"}>
-                      {f.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </CardHeader>
+        <Card className="rounded-sm border-border/50 shadow-none overflow-hidden">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
