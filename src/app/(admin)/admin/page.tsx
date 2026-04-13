@@ -106,9 +106,9 @@ export default function AdminDashboardPage() {
   const chartData = stats ? mergeChartData(stats.recentUsers, stats.recentGenerations) : [];
 
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div className="flex-1 overflow-y-auto bg-card">
       {/* Compact Header Bar */}
-      <div className="h-11 flex items-center px-4 bg-background/80 backdrop-blur-3xl justify-between text-xs font-semibold border-b sticky top-0 z-10 transition-all duration-300">
+      <div className="h-14 flex items-center px-4 bg-card backdrop-blur-3xl justify-between text-xs font-semibold border-b sticky top-0 z-10 transition-all duration-300">
         <div className="flex items-center gap-2">
           {loading ? <Skeleton className="h-4 w-20" /> : <span className="">Dashboard</span>}
         </div>
@@ -119,33 +119,33 @@ export default function AdminDashboardPage() {
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
           {loading
             ? Array.from({ length: 6 }).map((_, i) => (
-                <Card key={i} className="rounded-sm border-border/50">
-                  <CardContent className="p-3">
-                    <Skeleton className="h-6 w-12 mb-1" />
-                    <Skeleton className="h-3 w-16" />
+              <Card key={i} className="rounded-sm border-border/50">
+                <CardContent className="p-3">
+                  <Skeleton className="h-6 w-12 mb-1" />
+                  <Skeleton className="h-3 w-16" />
+                </CardContent>
+              </Card>
+            ))
+            : stats &&
+            statCards(stats).map((card) => {
+              const Icon = card.icon;
+              return (
+                <Card
+                  key={card.label}
+                  className="rounded-sm border-border/50 hover:bg-muted/30 transition-colors shadow-none"
+                >
+                  <CardContent className="p-3 font-mono">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-tight">
+                        {card.label}
+                      </p>
+                      <Icon className={cn("size-3.5", card.color)} />
+                    </div>
+                    <p className="text-xl font-bold tracking-tight">{card.value}</p>
                   </CardContent>
                 </Card>
-              ))
-            : stats &&
-              statCards(stats).map((card) => {
-                const Icon = card.icon;
-                return (
-                  <Card
-                    key={card.label}
-                    className="rounded-sm border-border/50 hover:bg-muted/30 transition-colors shadow-none"
-                  >
-                    <CardContent className="p-3 font-mono">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-tight">
-                          {card.label}
-                        </p>
-                        <Icon className={cn("size-3.5", card.color)} />
-                      </div>
-                      <p className="text-xl font-bold tracking-tight">{card.value}</p>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+              );
+            })}
         </div>
 
         {/* Chart */}

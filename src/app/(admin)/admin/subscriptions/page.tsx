@@ -1,7 +1,9 @@
 "use client";
 
+import { cn } from "@/lib/utils";
+
 import { useEffect, useState, useCallback } from "react";
-import { ChevronLeft, ChevronRight, Filter } from "lucide-react";
+import { ChevronLeft, ChevronRight, Filter, RefreshCcw, ArrowUpDown } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,32 +42,40 @@ const PLAN_FILTERS = [
   { value: "pro", label: "Pro" },
 ];
 
-function PlanBadge({ plan }: { plan: string }) {
-  const lower = plan.toLowerCase();
-  if (lower === "free")
-    return (
-      <Badge variant="secondary" className="capitalize">
-        Free
-      </Badge>
-    );
+function StatusDot({ status }: { status: string | null }) {
+  if (!status) return <span className="text-muted-foreground text-xs">—</span>;
+  const isActive = status === "active";
   return (
-    <Badge className="bg-amber-500/10 text-amber-500 border border-amber-500/30 hover:bg-amber-500/20 capitalize">
-      {plan}
-    </Badge>
+    <div className="flex items-center gap-2">
+      <div className={`size-1.5 rounded-full ${isActive ? "bg-green-500" : "bg-muted-foreground"}`} />
+      <span className="text-[13px] font-medium capitalize">{status.toLowerCase()}</span>
+    </div>
   );
 }
 
-function StatusBadge({ status }: { status: string | null }) {
-  if (!status) return <span className="text-muted-foreground text-xs">—</span>;
-  const color =
-    status === "active"
-      ? "bg-green-500/10 text-green-500 border-green-500/30"
-      : "bg-muted text-muted-foreground";
+function PlanStatus({ plan }: { plan: string }) {
+  const isFree = plan.toLowerCase() === "free";
   return (
-    <Badge variant="outline" className={`capitalize text-[11px] ${color}`}>
-      {status}
-    </Badge>
+    <div className="flex items-center gap-2">
+      <div className={`size-1.5 rounded-full ${isFree ? "bg-muted-foreground" : "bg-amber-500"}`} />
+      <span className="text-[13px] font-medium capitalize">{plan.toLowerCase()}</span>
+    </div>
   );
+}
+
+function formatRelativeTime(date: string) {
+  const now = new Date();
+  const then = new Date(date);
+  const diffInMs = now.getTime() - then.getTime();
+  const diffInMins = Math.floor(diffInMs / (1000 * 60));
+  const diffInHours = Math.floor(diffInMins / 60);
+  const diffInDays = Math.floor(diffInHours / 24);
+
+  if (diffInMins < 1) return "just now";
+  if (diffInMins < 60) return `${diffInMins}m ago`;
+  if (diffInHours < 24) return `${diffInHours}h ago`;
+  if (diffInDays < 7) return `${diffInDays}d ago`;
+  return then.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 function formatDate(d: string | null) {
@@ -107,10 +117,19 @@ export default function AdminSubscriptionsPage() {
   return (
     <div className="flex-1 overflow-y-auto">
       {/* Compact Header Bar */}
-      <div className="h-11 flex items-center px-4 bg-background/80 backdrop-blur-3xl justify-between text-xs font-semibold border-b sticky top-0 z-10 transition-all duration-300">
+      <div className="h-14 flex items-center px-4 bg-card backdrop-blur-3xl justify-between text-xs font-semibold border-b sticky top-0 z-10 transition-all duration-300">
         <div className="flex items-center gap-2">
           <span className="">Subscriptions</span>
         </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8 text-muted-foreground hover:text-foreground transition-colors"
+          onClick={() => fetchSubs()}
+          disabled={loading}
+        >
+          <RefreshCcw className={cn("size-3.5", loading && "animate-spin")} />
+        </Button>
       </div>
 
       <div className="p-4 space-y-4">
@@ -119,8 +138,8 @@ export default function AdminSubscriptionsPage() {
           <div className="flex items-center gap-2 px-2 h-8 bg-muted/40 border-border/50 rounded-sm">
             <Filter className="size-3 text-muted-foreground" />
             <Select value={plan || "all"} onValueChange={(v) => setPlan(v === "all" ? "" : v)}>
-              <SelectTrigger className="w-40 border-0 bg-transparent h-7 text-xs focus:ring-0">
-                <SelectValue placeholder="All Plans" />
+              <SelectTrigger className="w-32 border-0 bg-transparent h-7 text-xs focus:ring-0">
+                <SelectValue placeholder="Plan" />
               </SelectTrigger>
               <SelectContent>
                 {PLAN_FILTERS.map((f) => (
@@ -131,96 +150,118 @@ export default function AdminSubscriptionsPage() {
               </SelectContent>
             </Select>
           </div>
-          {data && (
-            <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-tight">
-              {data.total.toLocaleString()} records
-            </span>
-          )}
+
+          <div className="flex items-center gap-2 px-2 h-8 bg-muted/40 border-border/50 rounded-sm">
+            <RefreshCcw className="size-3 text-muted-foreground" />
+            <Select defaultValue="all">
+              <SelectTrigger className="w-32 border-0 bg-transparent h-7 text-xs focus:ring-0">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" className="text-xs">All Statuses</SelectItem>
+                <SelectItem value="active" className="text-xs">Active</SelectItem>
+                <SelectItem value="canceled" className="text-xs">Canceled</SelectItem>
+                <SelectItem value="past_due" className="text-xs">Past Due</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-2 px-2 h-8 bg-muted/40 border-border/50 rounded-sm">
+            <ArrowUpDown className="size-3 text-muted-foreground" />
+            <Select defaultValue="desc">
+              <SelectTrigger className="w-32 border-0 bg-transparent h-7 text-xs focus:ring-0">
+                <SelectValue placeholder="Sort" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="desc" className="text-xs">Newest</SelectItem>
+                <SelectItem value="asc" className="text-xs">Oldest</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="ml-auto">
+            {data && (
+              <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-tight bg-muted/40 px-2 py-1 rounded-sm border border-border/50">
+                {data.total.toLocaleString()} records
+              </span>
+            )}
+          </div>
         </div>
 
-        <Card className="rounded-sm border-border/50 shadow-none overflow-hidden">
+        <Card className="rounded-sm border-border/50 shadow-none overflow-hidden bg-card">
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/40">
-                    <th className="text-left font-medium text-muted-foreground px-4 py-3">User</th>
-                    <th className="text-left font-medium text-muted-foreground px-4 py-3">Plan</th>
-                    <th className="text-left font-medium text-muted-foreground px-4 py-3">
-                      Status
-                    </th>
-                    <th className="text-left font-medium text-muted-foreground px-4 py-3">
-                      Credits
-                    </th>
-                    <th className="text-left font-medium text-muted-foreground px-4 py-3">
-                      Period Start
-                    </th>
-                    <th className="text-left font-medium text-muted-foreground px-4 py-3">
-                      Period End
-                    </th>
-                    <th className="text-left font-medium text-muted-foreground px-4 py-3">
-                      Stripe ID
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading
-                    ? Array.from({ length: 8 }).map((_, i) => (
-                        <tr key={i} className="border-b border-border">
-                          {Array.from({ length: 7 }).map((_, j) => (
-                            <td key={j} className="px-4 py-3">
-                              <Skeleton className="h-4 w-full max-w-[100px]" />
-                            </td>
-                          ))}
-                        </tr>
-                      ))
-                    : data?.subscriptions.map((sub) => (
-                        <tr
-                          key={sub.id}
-                          className="border-b border-border hover:bg-muted/30 transition-colors"
-                        >
-                          <td className="px-4 py-3">
-                            <div>
-                              <p className="font-medium truncate max-w-[160px]">
-                                {sub.user_name || (
-                                  <span className="text-muted-foreground">Unknown</span>
-                                )}
-                              </p>
-                              {sub.user_email && (
-                                <p className="text-xs text-muted-foreground truncate max-w-[160px]">
-                                  {sub.user_email}
-                                </p>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <PlanBadge plan={sub.plan} />
-                          </td>
-                          <td className="px-4 py-3">
-                            <StatusBadge status={sub.status} />
-                          </td>
-                          <td className="px-4 py-3 text-muted-foreground">
-                            {sub.credits?.toLocaleString() ?? "—"}
-                          </td>
-                          <td className="px-4 py-3 text-xs text-muted-foreground">
-                            {formatDate(sub.period_start)}
-                          </td>
-                          <td className="px-4 py-3 text-xs text-muted-foreground">
-                            {formatDate(sub.period_end)}
-                          </td>
-                          <td className="px-4 py-3">
-                            {sub.stripe_subscription_id ? (
-                              <code className="text-xs font-mono text-muted-foreground">
-                                {sub.stripe_subscription_id.slice(0, 14)}…
-                              </code>
-                            ) : (
-                              <span className="text-muted-foreground text-xs">—</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                </tbody>
-              </table>
+            <div className="min-w-[800px]">
+              {/* Header Row */}
+              <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1.5fr] px-4 py-2 bg-muted/20 border-b border-border/40 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                <div>User</div>
+                <div>Plan / Status</div>
+                <div>Credits</div>
+                <div>Period</div>
+                <div className="text-right">Stripe ID / Created</div>
+              </div>
+
+              <div className="divide-y divide-border/40">
+                {loading
+                  ? Array.from({ length: 8 }).map((_, i) => (
+                    <div key={i} className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1.5fr] px-4 py-4 items-center">
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-40" />
+                      </div>
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-20" />
+                        <Skeleton className="h-3 w-16" />
+                      </div>
+                      <Skeleton className="h-4 w-12" />
+                      <Skeleton className="h-4 w-32" />
+                      <div className="flex justify-end">
+                        <Skeleton className="h-4 w-36" />
+                      </div>
+                    </div>
+                  ))
+                  : data?.subscriptions.map((sub) => (
+                    <div
+                      key={sub.id}
+                      className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1.5fr] px-4 py-3.5 items-center hover:bg-muted/30 transition-colors group"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-bold tracking-tight truncate">
+                          {sub.user_name || "Unknown"}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground truncate font-mono mt-0.5">
+                          {sub.user_email}
+                        </p>
+                      </div>
+
+                      <div className="space-y-0.5">
+                        <PlanStatus plan={sub.plan} />
+                        <StatusDot status={sub.status} />
+                      </div>
+
+                      <div className="text-[13px] font-mono text-muted-foreground">
+                        {sub.credits?.toLocaleString() ?? "—"}
+                      </div>
+
+                      <div className="text-[12px] text-muted-foreground">
+                        <p>{formatDate(sub.period_start)}</p>
+                        <p className="text-[10px] opacity-70">to {formatDate(sub.period_end)}</p>
+                      </div>
+
+                      <div className="text-right min-w-0">
+                        {sub.stripe_subscription_id ? (
+                          <p className="text-[11px] font-mono text-muted-foreground mb-0.5 truncate">
+                            {sub.stripe_subscription_id}
+                          </p>
+                        ) : (
+                          <p className="text-[11px] text-muted-foreground italic mb-0.5">No Stripe ID</p>
+                        )}
+                        <p className="text-[10px] text-muted-foreground uppercase opacity-70 tracking-tighter">
+                          {formatRelativeTime(sub.created_at)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+              </div>
             </div>
 
             {data && data.totalPages > 1 && (

@@ -52,12 +52,7 @@ const navItems = [
     label: "Analytics",
     href: "/admin/analytics",
     icon: LineChart,
-  },
-  {
-    label: "Subscriptions",
-    href: "/admin/subscriptions",
-    icon: CreditCard,
-  },
+  }
 ];
 
 export function AdminSidebar() {
@@ -132,7 +127,7 @@ export function AdminSidebar() {
                     {withTooltip(
                       <SidebarMenuButton className={menuButtonClasses} isActive={active} asChild>
                         <Link href={item.href} onClick={handleMobileClose}>
-                          <Icon className="size-10" />
+                          <Icon strokeWidth={1.5} className="size-10" />
                           {shouldShowLabels && <span>{item.label}</span>}
                         </Link>
                       </SidebarMenuButton>,
@@ -163,7 +158,7 @@ export function AdminSidebar() {
                 {withTooltip(
                   <SidebarMenuButton className={menuButtonClasses} asChild>
                     <Link href="/home" onClick={handleMobileClose}>
-                      <Icons.home className="size-10" />
+                      <Icons.home strokeWidth={1.5} className="size-10" />
                       {shouldShowLabels && <span>Back to App</span>}
                     </Link>
                   </SidebarMenuButton>,
