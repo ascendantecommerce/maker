@@ -140,8 +140,10 @@ VOICE: ${character.voiceDescription || "natural, friendly"}`.trim();
 
       return {
         id: segment.id,
-        videoUrl: updatedShots[0]?.videoUrl,
         success: true,
+        shots: updatedShots,
+        duration: totalDurationMs,
+        characterName: character.name,
       };
     }),
   );

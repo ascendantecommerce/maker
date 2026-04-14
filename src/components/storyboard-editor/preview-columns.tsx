@@ -164,7 +164,7 @@ export function VideoPlayerColumn({
       setIsLoadingDesign(true);
       try {
         let design: any;
-        if (schema.type === "ugc-video-ad" || schema.type === "ugc-video") {
+        if (schema.type === "ugc-video-ad" || schema.type === "character-driven-ad") {
           design = await convertUgcSchemaToDesign(schema);
         } else {
           design = await convertSchemaToDesign(schema);
