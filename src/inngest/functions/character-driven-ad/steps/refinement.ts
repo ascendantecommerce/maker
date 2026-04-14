@@ -13,8 +13,10 @@ if (ffmpegStatic) {
 }
 
 interface Clip {
-  id: string;
+  id: string; // The physical shot string ID
   url: string;
+  segmentId: string;
+  shotIndex: number;
   refined?: boolean;
   effects?: { prompt: string; start: number; end: number }[];
   soundEffects?: { start: number; url: string; duration?: number }[];
@@ -124,14 +126,23 @@ export async function refineCharacterClips(
       const segmentRecord = await db
         .selectFrom("segments")
         .select("segment_data")
-        .where("id", "=", clip.id)
+        .where("id", "=", clip.segmentId)
         .executeTakeFirst();
 
       if (segmentRecord) {
         const segData = segmentRecord.segment_data as any;
+        const updatedShots = [...(segData.shots || [])];
+
+        if (updatedShots[clip.shotIndex]) {
+          updatedShots[clip.shotIndex] = {
+            ...updatedShots[clip.shotIndex],
+            videoUrl: finalUrl,
+          };
+        }
+
         const updatedSegData = {
           ...segData,
-          shots: (segData.shots || []).map((s: any) => ({ ...s, videoUrl: finalUrl })),
+          shots: updatedShots,
         };
 
         await db
@@ -140,7 +151,7 @@ export async function refineCharacterClips(
             segment_data: updatedSegData,
             updated_at: new Date(),
           })
-          .where("id", "=", clip.id)
+          .where("id", "=", clip.segmentId)
           .execute();
       }
 

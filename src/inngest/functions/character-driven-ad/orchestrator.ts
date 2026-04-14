@@ -6,6 +6,8 @@ import {
   generateSegmentVideo,
   refineCharacterClips,
   generateCharacterSoundEffects,
+  generateCharacterAdShots,
+  mapShotsToSegments,
 } from "./steps";
 import { mapInputToSchema } from "./utils/mapping";
 import { saveSchema } from "../common/steps";
@@ -47,8 +49,15 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
 
             const gemini = new GeminiService(apiKey, "gemini-3.1-flash-lite-preview");
             const systemPrompt = getCharacterAdParserSystemPrompt(scheme.visuals?.style);
+
+            // Extract visual asset urls so the LLM can use them for product/character analysis
+            const imageUrls = (scheme.assets || [])
+              .filter((a) => a.type === "image" && a.url)
+              .map((a) => a.url as string);
+
             const result = await gemini.generateScriptAssistant({
               message: `Parse this script into structured segments: \n\n${scheme.script}`,
+              imageUrls,
               productName: scheme.product?.name,
               productDescription: scheme.product?.description,
               systemPrompt,
@@ -74,6 +83,34 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
           return updated;
         });
       }
+
+      // 0.5. Stage 0.5: Smart LLM Shot Prompts Generation
+      // The segments' shots are already pre-split deterministically by mapInputToSchema
+      // (ensuring strict duration boundaries <= 8 seconds per shot).
+      // Here, we take those shots and ask the LLM to write continuous "smart" Prompts and Emotions
+      // specific to each shot.
+      scheme = await step.run("generate-smart-shots-stage-0-5", async () => {
+        await publish({
+          channel,
+          topic: "steps",
+          data: {
+            type: ToastType.STEP_START,
+            step: "Planning Shots",
+            stepIndex: 0,
+            message: `Applying smart AI prompts to ${scheme.segments.length} auto-split scenes...`,
+          },
+        });
+
+        const shotResults = await generateCharacterAdShots(scheme);
+        const updatedScheme = { ...scheme, segments: mapShotsToSegments(scheme, shotResults) };
+
+        // Save schema so downstream steps see the enhanced videoPrompts
+        await saveSchema(schemeId, updatedScheme, ResolverStatus.PROGRESS);
+        return updatedScheme;
+      });
+
+      // Temporary return to debug the output JSON before generation costs hit
+      // return { scheme };
 
       // 1. Initial Status Update
       await step.run("mark-orchestration-start", async () => {
@@ -200,32 +237,37 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
       });
 
       scheme = await step.run("refine-generated-videos", async () => {
-        // Collect current clips from segments
-        const clipsToRefine = scheme.segments.map((seg) => ({
-          id: seg.id,
-          url: (seg.shots?.[0] as any)?.videoUrl || seg.imageUrl, // Use first shot URL
-        }));
+        // Collect current clips from ALL shots in ALL segments
+        const clipsToRefine = scheme.segments
+          .flatMap((seg) =>
+            (seg.shots || []).map((shot: any, index: number) => ({
+              id: `${seg.id}-shot-${index}`,
+              url: shot.videoUrl || seg.imageUrl,
+              segmentId: seg.id,
+              shotIndex: index,
+            })),
+          )
+          .filter((c) => !!c.url);
 
         const refinedClips = await refineCharacterClips(
           schemeId,
-          clipsToRefine,
+          clipsToRefine as any[],
           services,
           runToken,
         );
 
-        // Update with refined URLs
+        // Update with refined URLs strictly matching the shot index
         const updatedSegments = scheme.segments.map((seg) => {
-          const refined = refinedClips.find((c: any) => c.id === seg.id);
-          if (refined) {
-            return {
-              ...seg,
-              shots: (seg.shots || []).map((shot) => ({
+          return {
+            ...seg,
+            shots: (seg.shots || []).map((shot: any, index: number) => {
+              const refined = refinedClips.find((c) => c.id === `${seg.id}-shot-${index}`);
+              return {
                 ...shot,
-                videoUrl: refined.url,
-              })),
-            };
-          }
-          return seg;
+                videoUrl: refined && refined.url ? refined.url : shot.videoUrl,
+              };
+            }),
+          };
         });
 
         return { ...scheme, segments: updatedSegments };
@@ -264,14 +306,14 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
         // For now, let's assume we can find them if we were careful.
         // Actually, the previous implementation tried to find it in `videoResults`.
         // I'll make sure it's available or accessible.
-        
+
         const clipsForSfx = scheme.segments.map((seg) => {
-            return {
-              id: seg.id,
-              url: (seg.shots?.[0] as any)?.videoUrl,
-              // We'll use the current URL for analysis if we don't have the original
-              originalUrl: (seg.shots?.[0] as any)?.videoUrl, 
-            };
+          return {
+            id: seg.id,
+            url: (seg.shots?.[0] as any)?.videoUrl,
+            // We'll use the current URL for analysis if we don't have the original
+            originalUrl: (seg.shots?.[0] as any)?.videoUrl,
+          };
         });
 
         const finalClips = await generateCharacterSoundEffects(
@@ -311,7 +353,6 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
           .execute();
         return scheme;
       });
-
 
       // 5. Final Status Update
       await step.run("mark-orchestration-complete", async () => {

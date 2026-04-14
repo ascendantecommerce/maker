@@ -6,7 +6,8 @@ import { CharacterAdServices } from "../services";
 import { db } from "@/lib/database";
 import { fileUrlToBuffer } from "../../common/utils/common";
 import { generateId } from "@/utils/id";
-import { getVideoDuration } from "../../../services/ffmpeg";
+import { nanoid } from "nanoid";
+import { getVideoDuration, getLastFrameFromVideo } from "../../../services/ffmpeg";
 import { buildCharacterAdNegativePrompt } from "../prompts";
 
 /**
@@ -14,6 +15,38 @@ import { buildCharacterAdNegativePrompt } from "../prompts";
  * Each segment contains dialogue and a link to a character with a base image.
  * Image-to-Video is used to maintain character consistency based on the seed image.
  */
+/**
+ * Extracts the last frame of a video from a given URL and uploads it to R2.
+ */
+export const extractLastFrameFromVideoUrl = async (
+  videoUrl: string,
+  schemaId: string,
+  segmentId: string,
+  r2: any,
+) => {
+  console.log(`[Veo] Extracting last frame from: ${videoUrl}`);
+
+  const response = await fetch(videoUrl);
+  const buffer = Buffer.from(await response.arrayBuffer());
+
+  const tempDir = os.tmpdir();
+  const downloadedFileName = `temp-extract-${nanoid()}.mp4`;
+  const downloadedPath = path.join(tempDir, downloadedFileName);
+  fs.writeFileSync(downloadedPath, buffer);
+
+  try {
+    const lastFrameBuffer = await getLastFrameFromVideo(downloadedPath, tempDir);
+    const lastFrameR2Name = `character-driven-ad/${schemaId}/videos/${segmentId}/last-frame-${nanoid()}.png`;
+    const lastFrameUrl = await r2.uploadData(lastFrameR2Name, lastFrameBuffer, "image/png");
+
+    return { lastFrameUrl };
+  } finally {
+    if (fs.existsSync(downloadedPath)) {
+      fs.unlinkSync(downloadedPath);
+    }
+  }
+};
+
 export const generateSegmentVideo = async (
   schemeId: string,
   scheme: VideoSchema,
@@ -37,43 +70,44 @@ export const generateSegmentVideo = async (
 
       console.log(`Generating Veo 3.1 clips for: ${segment.id} (Character: ${character.name})`);
 
-      const updatedShots = await Promise.all(
-        (segment.shots || []).map(async (shot: any) => {
-          const rawDuration = shot.duration ? shot.duration / 1000 : 8;
-          // Snap to Veo 3.1 Fast supported values: [4, 6, 8]
-          let requestedDuration = 8;
-          if (rawDuration <= 4) requestedDuration = 4;
-          else if (rawDuration <= 6) requestedDuration = 6;
-          else requestedDuration = 8;
+      const updatedShots = [];
+      let previousLastFrameUrl: string | undefined = undefined;
 
-          // Use the pre-built shot.videoPrompt from mapping (includes product interaction type)
-          // Fall back to a simple segment prompt if missing
-          const characterDesc =
-            character.visualDescription?.trim() || `${character.role} character`;
-          const shotPrompt =
-            shot.videoPrompt ||
-            `${globalStyle}, ${characterDesc}, ${segment.emotion || "natural"} expression, cinematic lighting`;
+      // Generate shots sequentially so we can extract the last frame of shot[n-1] to use for shot[n]
+      for (let shotIndex = 0; shotIndex < (segment.shots || []).length; shotIndex++) {
+        const shot = segment.shots![shotIndex];
+        const rawDuration = shot.duration ? shot.duration / 1000 : 8;
+        // Snap to Veo 3.1 Fast supported values: [4, 6, 8]
+        let requestedDuration = 8;
+        if (rawDuration <= 4) requestedDuration = 4;
+        else if (rawDuration <= 6) requestedDuration = 6;
+        else requestedDuration = 8;
 
-          const finalPrompt = `${shotPrompt}
+        const characterDesc = character.visualDescription?.trim() || `${character.role} character`;
+        const shotPrompt =
+          shot.videoPrompt ||
+          `${globalStyle}, ${characterDesc}, ${segment.emotion || "natural"} expression, cinematic lighting`;
 
-DIALOGUE: "${segment.text}"
+        const finalPrompt = `${shotPrompt}
+
+DIALOGUE: "${shot.words}"
 VOICE: ${character.voiceDescription || "natural, friendly"}`.trim();
 
-          console.log(
-            `Generating Veo 3.1 clip for shot: ${shot.words?.slice(0, 30)}... (${requestedDuration}s)`,
-          );
+        console.log(
+          `Generating Veo 3.1 clip for shot ${shotIndex}: ${shot.words?.slice(0, 30)}... (${requestedDuration}s)`,
+        );
+        console.log("final prompt", finalPrompt);
+        let generatorParams: any = {
+          prompt: finalPrompt,
+          negativePrompt: buildCharacterAdNegativePrompt(),
+          style: globalStyle,
+          aspectRatio: scheme.aspectRatio,
+          durationSeconds: requestedDuration,
+        };
 
-          let generatorParams: any = {
-            prompt: finalPrompt,
-            negativePrompt: buildCharacterAdNegativePrompt(),
-            style: globalStyle,
-            aspectRatio: scheme.aspectRatio,
-            durationSeconds: requestedDuration,
-          };
-
+        if (shotIndex === 0) {
+          // First shot in the segment: Use the generated seed image or Product Assets.
           if (shot.type === "product") {
-            // Product shot: product asset is the primary reference (exact packaging).
-            // Scene composition image (shot.imageUrl) is secondary context.
             const productAssetUrl = scheme.assets?.[0]?.url;
             const productAssetUrl2 = scheme.assets?.[1]?.url;
             const refs = [productAssetUrl, productAssetUrl2, shot.imageUrl].filter(
@@ -82,42 +116,52 @@ VOICE: ${character.voiceDescription || "natural, friendly"}`.trim();
             if (refs.length > 0) {
               generatorParams.referenceImageUrls = refs;
             } else {
-              // No references available, fall back to firstFrameUrl
               generatorParams.firstFrameUrl = shot.imageUrl;
             }
           } else {
-            // Non-product shot: use shot.imageUrl as the locked first frame.
             generatorParams.firstFrameUrl = shot.imageUrl;
           }
+        } else {
+          // Continuation shot: Strictly use the extracted last frame of the previous video.
+          // This ensures perfect visual continuity aligned with the smart prompts we generated.
+          generatorParams.firstFrameUrl = previousLastFrameUrl;
+        }
 
-          const generatorOutput = await services.videoGenerator.create(generatorParams);
-          const finalVideoUrl =
-            typeof generatorOutput === "string" ? generatorOutput : generatorOutput.url;
+        const generatorOutput = await services.videoGenerator.create(generatorParams);
+        const finalVideoUrl =
+          typeof generatorOutput === "string" ? generatorOutput : generatorOutput.url;
 
-          // Convert output to buffer and upload to R2
-          const { buffer, contentType } = await fileUrlToBuffer(finalVideoUrl);
+        // Convert output to buffer and upload to R2
+        const { buffer, contentType } = await fileUrlToBuffer(finalVideoUrl);
 
-          // Accurate duration calculation using FFprobe
-          const tempPath = path.join(os.tmpdir(), `veo-clip-${generateId(8)}.mp4`);
-          fs.writeFileSync(tempPath, buffer);
-          const realDuration = await getVideoDuration(tempPath);
-          const realDurationMs = Math.round(realDuration * 1000);
-          if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath); // Cleanup
+        const tempPath = path.join(os.tmpdir(), `veo-clip-${generateId(8)}.mp4`);
+        fs.writeFileSync(tempPath, buffer);
+        const realDuration = await getVideoDuration(tempPath);
+        const realDurationMs = Math.round(realDuration * 1000);
+        if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
 
-          const storagePath = `character-driven-ad/${schemeId}/videos/${segment.id}-${generateId(4)}.mp4`;
-          const videoUrl = await services.r2.uploadData(storagePath, buffer, contentType);
+        const storagePath = `character-driven-ad/${schemeId}/videos/${segment.id}-${generateId(4)}.mp4`;
+        const videoUrl = await services.r2.uploadData(storagePath, buffer, contentType);
 
-          return {
-            ...shot,
-            videoUrl,
-            duration: realDurationMs,
-            display: {
-              from: shot.display?.from || 0,
-              to: (shot.display?.from || 0) + realDurationMs,
-            },
-          };
-        }),
-      );
+        // Extract the last frame for the NEXT shot to use
+        const { lastFrameUrl } = await extractLastFrameFromVideoUrl(
+          videoUrl,
+          schemeId,
+          segment.id,
+          services.r2,
+        );
+        previousLastFrameUrl = lastFrameUrl;
+
+        updatedShots.push({
+          ...shot,
+          videoUrl,
+          duration: realDurationMs,
+          display: {
+            from: shot.display?.from || 0,
+            to: (shot.display?.from || 0) + realDurationMs,
+          },
+        });
+      }
 
       // Calculate total segment duration from individual shots
       const totalDurationMs = updatedShots.reduce((acc, s: any) => acc + (s.duration || 0), 0);

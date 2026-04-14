@@ -54,6 +54,49 @@ const calculateEstimatedDuration = (text: string): number => {
   return Math.ceil(words / 2.5);
 };
 
+/**
+ * Splits text deterministically into ≤8-second (~20 words) shots.
+ * Prefers splitting sentences at periods, then commas if still too long.
+ * Continuously merges them to be as close to 20 words as possible without exceeding.
+ */
+function splitTextIntoShots(text: string): string[] {
+  // Capture chunks of text + optional trailing punctuation
+  const atomicChunks = text.match(/[^.!?,\u2014\u2013;:]+[.!?,\u2014\u2013;:]*/g) || [text];
+
+  const mergedShots: string[] = [];
+  let currentShot = "";
+
+  for (const chunk of atomicChunks) {
+    const trimmedChunk = chunk.trim();
+    if (!trimmedChunk) continue;
+
+    const currentWords = currentShot.trim().split(/\s+/).filter(Boolean).length;
+    const chunkWords = trimmedChunk.split(/\s+/).filter(Boolean).length;
+
+    if (currentShot === "") {
+      currentShot = trimmedChunk;
+    } else if (currentWords + chunkWords <= 20) {
+      currentShot += " " + trimmedChunk;
+    } else {
+      mergedShots.push(currentShot);
+      currentShot = trimmedChunk;
+    }
+  }
+
+  if (currentShot) mergedShots.push(currentShot);
+
+  // Hard fallback for long strings without any punctuation: strict 20-word split
+  const finalShots: string[] = [];
+  for (const shot of mergedShots) {
+    const words = shot.split(/\s+/).filter(Boolean);
+    for (let i = 0; i < words.length; i += 20) {
+      finalShots.push(words.slice(i, i + 20).join(" "));
+    }
+  }
+
+  return finalShots;
+}
+
 /** Build a product-action prefix for a given interaction type */
 function buildProductActionPrefix(
   interaction: string,
@@ -154,7 +197,7 @@ function buildMappedSegment(
     .filter(Boolean)
     .join(", ");
 
-  return {
+  const result = {
     id: segmentId,
     title: data.title,
     description: data.videoDescription || data.sceneDescription || "",
@@ -164,22 +207,41 @@ function buildMappedSegment(
     emotion: data.emotion,
     tags: [character.name, character.role, data.emotion || ""],
     prompt_preview: `${promptPrefix}, ${character.visualDescription} in ${sceneVisual}`,
-    shots: [
-      {
+    shots: splitTextIntoShots(data.text).map((words, shotIndex) => {
+      const shotDurationS = calculateEstimatedDuration(words);
+      let snappedDurationS = 8;
+      if (shotDurationS <= 4) snappedDurationS = 4;
+      else if (shotDurationS <= 6) snappedDurationS = 6;
+      else snappedDurationS = 8;
+      const durationMs = snappedDurationS * 1000;
+
+      return {
         type: isProductShot ? "product" : "generic",
         category: character.role,
         characterId: character.id,
-        words: data.text,
+        words,
         emotion: data.emotion,
-        firstFramePrompt,
+        firstFramePrompt: shotIndex === 0 ? firstFramePrompt : undefined,
         videoPrompt: finalVideoPrompt,
-        display: { from: 0, to: durationMs },
+        display: { from: 0, to: durationMs }, // To be fixed in loop below
         duration: durationMs,
-      },
-    ],
+      };
+    }),
     duration: durationMs,
     estimatedDuration: calculatedDuration,
   };
+
+  // Fix consecutive display timings and recalculate parent segment duration
+  let cumulativeMs = 0;
+  for (const shot of result.shots) {
+    shot.display.from = cumulativeMs;
+    shot.display.to = cumulativeMs + shot.duration;
+    cumulativeMs += shot.duration;
+  }
+  result.duration = cumulativeMs;
+  result.estimatedDuration = cumulativeMs / 1000;
+
+  return result as Segment & { character: CharacterConfig };
 }
 
 /**
