@@ -34,6 +34,22 @@ export async function POST(req: Request) {
     );
   }
 
+  const user = await db
+    .selectFrom("user")
+    .select("role")
+    .where("id", "=", userId)
+    .executeTakeFirst();
+
+  const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "").split(",").map((e) => e.trim());
+  const isAdmin = session.user.email ? ADMIN_EMAILS.includes(session.user.email) : false;
+
+  if (user?.role !== "editor" && !isAdmin) {
+    return Response.json(
+      { error: "Your account is not approved to generate videos. Please contact an admin." },
+      { status: 403 },
+    );
+  }
+
   const requestedFolderId: string | null = body.folderId || null;
   let folderId: string | null = null;
   if (requestedFolderId) {

@@ -44,6 +44,7 @@ export interface UserTable {
   email_verified: boolean;
   name: string | null;
   image: string | null;
+  role: string | null;
   stripe_customer_id: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;

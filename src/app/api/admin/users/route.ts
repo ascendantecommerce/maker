@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
       "user.email",
       "user.name",
       "user.image",
+      "user.role",
       "user.email_verified",
       "user.created_at",
       "subscription.plan",

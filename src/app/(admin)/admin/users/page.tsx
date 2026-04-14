@@ -33,6 +33,7 @@ interface UserRow {
   email: string;
   name: string | null;
   image: string | null;
+  role: string | null;
   email_verified: boolean;
   created_at: string;
   plan: string | null;
@@ -90,6 +91,31 @@ export default function AdminUsersPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 350);
+  const [updating, setUpdating] = useState<string | null>(null);
+
+  const handleRoleChange = async (userId: string, newRole: string) => {
+    setUpdating(userId);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: newRole }),
+      });
+      if (!res.ok) throw new Error("Failed to update role");
+
+      setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          users: prev.users.map((u) => (u.id === userId ? { ...u, role: newRole } : u)),
+        };
+      });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setUpdating(null);
+    }
+  };
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -193,10 +219,11 @@ export default function AdminUsersPage() {
           <CardContent className="p-0">
             <div className="min-w-[800px]">
               {/* Header Row */}
-              <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1.2fr] px-4 py-2 bg-muted/20 border-b border-border/40 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+              <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1.2fr] px-4 py-2 bg-muted/20 border-b border-border/40 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                 <div>User</div>
                 <div>Plan</div>
                 <div>Credits</div>
+                <div>Role</div>
                 <div>Verification</div>
                 <div className="text-right">Joined</div>
               </div>
@@ -206,7 +233,7 @@ export default function AdminUsersPage() {
                   ? Array.from({ length: 8 }).map((_, i) => (
                       <div
                         key={i}
-                        className="grid grid-cols-[2fr_1fr_1fr_1fr_1.2fr] px-4 py-4 items-center"
+                        className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1.2fr] px-4 py-4 items-center"
                       >
                         <div className="flex items-center gap-3">
                           <Skeleton className="size-8 rounded-full" />
@@ -217,6 +244,7 @@ export default function AdminUsersPage() {
                         </div>
                         <Skeleton className="h-4 w-20" />
                         <Skeleton className="h-4 w-12" />
+                        <Skeleton className="h-4 w-20" />
                         <Skeleton className="h-4 w-24" />
                         <div className="flex justify-end">
                           <Skeleton className="h-4 w-24" />
@@ -226,7 +254,7 @@ export default function AdminUsersPage() {
                   : data?.users.map((user) => (
                       <div
                         key={user.id}
-                        className="grid grid-cols-[2fr_1fr_1fr_1fr_1.2fr] px-4 py-3.5 items-center hover:bg-muted/30 transition-colors group"
+                        className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1.2fr] px-4 py-3.5 items-center hover:bg-muted/30 transition-colors group"
                       >
                         <div className="flex items-center gap-3 min-w-0">
                           <Avatar className="size-8 border border-border/50">
@@ -259,6 +287,32 @@ export default function AdminUsersPage() {
 
                         <div className="text-[13px] font-mono text-muted-foreground">
                           {user.credits?.toLocaleString() ?? "0"}
+                        </div>
+
+                        <div>
+                          <Select
+                            value={user.role || "viewer"}
+                            onValueChange={(val) => handleRoleChange(user.id, val)}
+                            disabled={updating === user.id}
+                          >
+                            <SelectTrigger className="w-24 h-7 text-xs border-border/50 bg-transparent">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem
+                                value="editor"
+                                className="text-xs font-semibold text-green-500"
+                              >
+                                Editor
+                              </SelectItem>
+                              <SelectItem value="viewer" className="text-xs">
+                                Viewer
+                              </SelectItem>
+                              <SelectItem value="guest" className="text-xs text-muted-foreground">
+                                Guest
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
 
                         <div>

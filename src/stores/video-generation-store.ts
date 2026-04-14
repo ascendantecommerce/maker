@@ -153,7 +153,6 @@ export const useVideoGenerationStore = create<VideoGenerationStoreState>((set, g
 
       return realJobId;
     } catch (error) {
-      console.error("Video generation error:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to generate video";
 
       // Remove the temp job and mark as failed
@@ -164,7 +163,7 @@ export const useVideoGenerationStore = create<VideoGenerationStoreState>((set, g
         generationStep: null,
       });
 
-      return null;
+      throw error;
     }
   },
 
