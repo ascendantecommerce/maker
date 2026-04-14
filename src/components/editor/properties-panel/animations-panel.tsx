@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
   animationOptionsIn,
@@ -118,16 +119,18 @@ function AnimationsPanelInner({ clip }: { clip: any }) {
   const isVideo = clip.type === "Video";
   const isTextLike = clip.type === "Text" || clip.type === "Caption";
 
-  const inPresets = [
+  const inPresetsRaw = [
     ...BASE_IN_PRESETS,
     ...(isImage || isVideo ? animationOptionsIn : []),
     ...(isTextLike ? TEXT_LIKE_PRESETS : []),
   ];
+  const inPresets = Array.from(new Map(inPresetsRaw.map(item => [item.value, item])).values());
 
-  const outPresets = [
+  const outPresetsRaw = [
     ...BASE_OUT_PRESETS,
     ...(isImage || isVideo ? animationOptionsOut : []),
   ];
+  const outPresets = Array.from(new Map(outPresetsRaw.map(item => [item.value, item])).values());
 
   const presets =
     activeTab === "in"
@@ -198,7 +201,7 @@ function AnimationsPanelInner({ clip }: { clip: any }) {
       const outAnim = otherAnims.find(a => Math.abs(a.options.delay + a.options.duration - clipDurationUs) < 100000);
       const minStart = inAnim ? inAnim.options.duration : 0;
       const maxEnd = outAnim ? outAnim.options.delay : clipDurationUs;
-      
+
       safeDelay = minStart;
       safeDur = Math.max(0, maxEnd - minStart);
     }
@@ -224,24 +227,14 @@ function AnimationsPanelInner({ clip }: { clip: any }) {
 
   return (
     <div className="flex flex-col h-full font-space-grotesk overflow-hidden">
-      {/* Tab Switcher - Premium Design matching image */}
       <div className="p-4 flex-shrink-0">
-        <div className="flex bg-input-primary p-1 rounded-xl w-full border border-white/5">
-          {(["in", "out", "combo"] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={cn(
-                "flex-1 py-1.5 text-[11px] font-bold rounded-lg transition-all capitalize",
-                activeTab === tab
-                  ? "bg-gray-300 dark:bg-[#4a4a4a] shadow-lg"
-                  : "text-muted-foreground hover:text-muted-foreground/80",
-              )}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+          <TabsList className="w-full flex">
+            <TabsTrigger className="flex-1 capitalize text-xs" value="in">In</TabsTrigger>
+            <TabsTrigger className="flex-1 capitalize text-xs" value="out">Out</TabsTrigger>
+            <TabsTrigger className="flex-1 capitalize text-xs" value="combo">Combo</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       <ScrollArea className="flex-1 px-4">
@@ -416,7 +409,7 @@ function AnimationConfigControls({
       const finalStart = Math.min(clampedStart, clampedEnd);
       const finalEnd = Math.max(clampedStart, clampedEnd);
       finalVals = [finalStart, finalEnd];
-      
+
       const newDelay = finalVals[0] * 1000;
       const newDuration = (finalVals[1] - finalVals[0]) * 1000;
       handleUpdate({ options: { delay: newDelay, duration: newDuration } });
@@ -470,10 +463,10 @@ function AnimationConfigControls({
   } else if (activeTab === "combo") {
     const inAnim = otherAnimations.find((a: any) => a.options.delay === 0);
     const outAnim = otherAnimations.find((a: any) => Math.abs(a.options.delay + a.options.duration - clip.duration) < 50000);
-    
+
     sliderMin = inAnim ? inAnim.options.duration / 1000 : 0;
     sliderMax = outAnim ? outAnim.options.delay / 1000 : clipDurationMs;
-    
+
     if (sliderMin >= sliderMax) sliderMax = sliderMin + 0.1; // Safety fallback
 
     let safeDelay = Math.max(sliderMin, localDelay);
@@ -487,7 +480,7 @@ function AnimationConfigControls({
   };
 
   // Determine label for the duration badge based on tab
-  const badgeLabel = activeTab === "combo" 
+  const badgeLabel = activeTab === "combo"
     ? `${formatSecs(sliderValue[0])} - ${formatSecs(sliderValue[1])}`
     : formatSecs(sliderValue[0]);
 
