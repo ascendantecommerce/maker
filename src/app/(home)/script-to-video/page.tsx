@@ -8,6 +8,15 @@ import { type GenerateScriptParams } from "@/lib/generation/constants";
 import type { Schema } from "@/lib/schema-generator/types";
 import { useEffect, useState, Suspense } from "react";
 import { Assistant } from "@/components/script-to-video/assistant";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { calculateVideoCreditCost } from "@/lib/generation/costs";
 import { VideoType } from "@/utils/enum";
@@ -26,6 +35,7 @@ function ScriptToVideoContent() {
   const generationParams = (useSchemaStore((state) => state.schema) || {}) as Partial<Schema>;
   const setGenerationParams = useSchemaStore((state) => state.updateSchema);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
 
   // Initialize mode from query param
   useEffect(() => {
@@ -69,7 +79,11 @@ function ScriptToVideoContent() {
         router.push(`/storyboard/${jobId}`);
       }
     } catch (error) {
-      console.error("Error starting video generation:", error);
+      setGenerationError(
+        error instanceof Error
+          ? error.message
+          : "An unexpected error occurred while starting the generation.",
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -123,6 +137,21 @@ function ScriptToVideoContent() {
           setGenerationParams={setGenerationParams}
         />
       </div>
+
+      <AlertDialog
+        open={!!generationError}
+        onOpenChange={(open) => !open && setGenerationError(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Generation Failed</AlertDialogTitle>
+            <AlertDialogDescription>{generationError}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setGenerationError(null)}>Ok</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

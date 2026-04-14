@@ -97,13 +97,20 @@ export default function AdminDashboardPage() {
     fetch("/api/admin/stats")
       .then((r) => r.json())
       .then((data) => {
-        setStats(data);
+        if (data.error) {
+          console.error(data.error);
+        } else {
+          setStats(data);
+        }
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, []);
 
-  const chartData = stats ? mergeChartData(stats.recentUsers, stats.recentGenerations) : [];
+  const chartData =
+    stats && stats.recentUsers && stats.recentGenerations
+      ? mergeChartData(stats.recentUsers, stats.recentGenerations)
+      : [];
 
   return (
     <div className="flex-1 overflow-y-auto bg-card">
