@@ -245,7 +245,7 @@ export function ImageProperties({ clip }: ImagePropertiesProps) {
       </div>
 
       {/* Animations Section */}
-      <div className="flex flex-col gap-2">
+      {/* <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
             Animations
@@ -305,7 +305,7 @@ export function ImageProperties({ clip }: ImagePropertiesProps) {
             ))
           )}
         </div>
-      </div>
+      </div> */}
 
       {/* Radius Section */}
       <div className="flex flex-col gap-2">

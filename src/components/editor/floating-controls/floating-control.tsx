@@ -9,9 +9,9 @@ export default function FloatingControl() {
     return <CaptionPresetPicker />;
   }
 
-  if (floatingControl === "animation-properties-picker") {
-    return <AnimationPropertiesPicker />;
-  }
+  // if (floatingControl === "animation-properties-picker") {
+  //   return <AnimationPropertiesPicker />;
+  // }
 
   return null;
 }

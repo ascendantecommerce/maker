@@ -228,8 +228,16 @@ export const Icons = {
           strokeWidth="1.5"
           d="M2.5 12c0-4.478 0-6.718 1.391-8.109S7.521 2.5 12 2.5c4.478 0 6.718 0 8.109 1.391S21.5 7.521 21.5 12c0 4.478 0 6.718-1.391 8.109S16.479 21.5 12 21.5c-4.478 0-6.718 0-8.109-1.391S2.5 16.479 2.5 12Z"
         />
-        <path strokeWidth="1.5" d="M16.5 12a4.5 4.5 0 1 1-9 0a4.5 4.5 0 0 1 9 0Z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.508 6.5h-.01" />
+        <path
+          strokeWidth="1.5"
+          d="M16.5 12a4.5 4.5 0 1 1-9 0a4.5 4.5 0 0 1 9 0Z"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+          d="M17.508 6.5h-.01"
+        />
       </g>
     </svg>
   ),
@@ -304,7 +312,12 @@ export const Icons = {
   thumbsDown: ThumbsDown,
   tiktok: (props: LucideProps) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" {...props}>
-      <g fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.5">
+      <g
+        fill="none"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth="1.5"
+      >
         <path d="M2.5 12c0-4.478 0-6.718 1.391-8.109S7.521 2.5 12 2.5c4.478 0 6.718 0 8.109 1.391S21.5 7.521 21.5 12c0 4.478 0 6.718-1.391 8.109S16.479 21.5 12 21.5c-4.478 0-6.718 0-8.109-1.391S2.5 16.479 2.5 12Z" />
         <path
           strokeLinecap="round"
@@ -337,7 +350,11 @@ export const Icons = {
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" {...props}>
       <g fill="none" stroke="currentColor" strokeWidth="1.5">
         <path d="M2.5 12c0-4.478 0-6.718 1.391-8.109S7.521 2.5 12 2.5c4.478 0 6.718 0 8.109 1.391S21.5 7.521 21.5 12c0 4.478 0 6.718-1.391 8.109S16.479 21.5 12 21.5c-4.478 0-6.718 0-8.109-1.391S2.5 16.479 2.5 12Z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v8m-3-6v4m-3-3v2m9-3v4m3-3v2" />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M12 8v8m-3-6v4m-3-3v2m9-3v4m3-3v2"
+        />
       </g>
     </svg>
   ),
@@ -353,4 +370,42 @@ export const Icons = {
     </svg>
   ),
   xCircle: XCircle,
+  animations: ({ ...props }: LucideProps) => (
+    <svg
+      width="1em"
+      height="1em"
+      viewBox="0 0 24 24"
+      preserveAspectRatio="xMidYMid meet"
+      fill="none"
+      role="presentation"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <g>
+        <path
+          data-follow-fill="currentColor"
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M14.727 14.546a5.273 5.273 0 1 0 0-10.546 5.273 5.273 0 0 0 0 10.546Zm0 2a7.273 7.273 0 1 0 0-14.546 7.273 7.273 0 0 0 0 14.546Z"
+          fill="currentColor"
+        ></path>
+        <path
+          data-follow-fill="currentColor"
+          opacity=".5"
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M8.404 5.677a7.273 7.273 0 1 0 9.919 9.919 7.233 7.233 0 0 1-3.298.944A5.455 5.455 0 0 1 7.46 8.974a7.233 7.233 0 0 1 .944-3.298Z"
+          fill="currentColor"
+        ></path>
+        <path
+          data-follow-fill="currentColor"
+          opacity=".3"
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M5.677 8.404a7.273 7.273 0 1 0 9.918 9.92 7.233 7.233 0 0 1-3.298.943 5.455 5.455 0 0 1-7.564-7.565 7.232 7.232 0 0 1 .944-3.298Z"
+          fill="currentColor"
+        ></path>
+      </g>
+    </svg>
+  ),
 };
