@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { CharacterAdServices } from "../services";
+import { db } from "@/lib/database";
 
 interface Clip {
   id: string;
@@ -81,6 +82,31 @@ export async function generateCharacterSoundEffects(
             console.error(`[SFX] Failed to regenerate SFX: "${effect.prompt}"`, e);
           }
         }
+      }
+
+      // 4. Update segments table immediately
+      const segmentRecord = await db
+        .selectFrom("segments")
+        .select("segment_data")
+        .where("id", "=", clip.id)
+        .executeTakeFirst();
+
+      if (segmentRecord) {
+        const segData = segmentRecord.segment_data as any;
+        const updatedSegData = {
+          ...segData,
+          soundEffects: generatedSoundEffects,
+          effects, // Visual analysis results
+        };
+
+        await db
+          .updateTable("segments")
+          .set({
+            segment_data: updatedSegData,
+            updated_at: new Date(),
+          })
+          .where("id", "=", clip.id)
+          .execute();
       }
 
       finalClips.push({

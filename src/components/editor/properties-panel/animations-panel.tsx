@@ -91,9 +91,7 @@ export function AnimationsPanel({ selectedClips }: AnimationsPanelProps) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-4 text-muted-foreground">
         <IconMovie className="size-8 mb-2 opacity-20" />
-        <span className="text-sm font-space-grotesk">
-          Select a clip to animate
-        </span>
+        <span className="text-sm font-space-grotesk">Select a clip to animate</span>
       </div>
     );
   }
@@ -124,26 +122,16 @@ function AnimationsPanelInner({ clip }: { clip: any }) {
     ...(isImage || isVideo ? animationOptionsIn : []),
     ...(isTextLike ? TEXT_LIKE_PRESETS : []),
   ];
-  const inPresets = Array.from(new Map(inPresetsRaw.map(item => [item.value, item])).values());
+  const inPresets = Array.from(new Map(inPresetsRaw.map((item) => [item.value, item])).values());
 
-  const outPresetsRaw = [
-    ...BASE_OUT_PRESETS,
-    ...(isImage || isVideo ? animationOptionsOut : []),
-  ];
-  const outPresets = Array.from(new Map(outPresetsRaw.map(item => [item.value, item])).values());
+  const outPresetsRaw = [...BASE_OUT_PRESETS, ...(isImage || isVideo ? animationOptionsOut : [])];
+  const outPresets = Array.from(new Map(outPresetsRaw.map((item) => [item.value, item])).values());
 
-  const presets =
-    activeTab === "in"
-      ? inPresets
-      : activeTab === "out"
-        ? outPresets
-        : COMBO_PRESETS;
+  const presets = activeTab === "in" ? inPresets : activeTab === "out" ? outPresets : COMBO_PRESETS;
 
   const currentAnimation = useMemo(() => {
     const clipDuration = clip.duration || 0;
-    const sorted = [...animations].sort(
-      (a, b) => a.options.delay - b.options.delay,
-    );
+    const sorted = [...animations].sort((a, b) => a.options.delay - b.options.delay);
 
     if (activeTab === "in") {
       return sorted.find(
@@ -155,16 +143,14 @@ function AnimationsPanelInner({ clip }: { clip: any }) {
     }
     if (activeTab === "out") {
       return sorted.find(
-        (a) =>
-          Math.abs(a.options.delay + a.options.duration - clipDuration) < 50000,
+        (a) => Math.abs(a.options.delay + a.options.duration - clipDuration) < 50000,
       ); // 50ms tolerance
     }
     if (activeTab === "combo") {
       return sorted.find(
         (a) =>
           a.type.toLowerCase().startsWith("combo") ||
-          (a.options.delay === 0 &&
-            Math.abs(a.options.duration - clipDuration) < 50000),
+          (a.options.delay === 0 && Math.abs(a.options.duration - clipDuration) < 50000),
       );
     }
     return null;
@@ -182,23 +168,33 @@ function AnimationsPanelInner({ clip }: { clip: any }) {
     }
 
     const clipDurationUs = clip.duration || 0;
-    const otherAnims = [...animations].filter((a) => !currentAnimation || a.id !== currentAnimation.id);
+    const otherAnims = [...animations].filter(
+      (a) => !currentAnimation || a.id !== currentAnimation.id,
+    );
 
     let defaultDur = 1000 * 1000; // 1s default in microseconds
     let safeDelay = 0;
     let safeDur = clipDurationUs;
 
     if (activeTab === "in") {
-      const earliestStart = otherAnims.reduce((min, a) => Math.min(min, a.options.delay), clipDurationUs);
+      const earliestStart = otherAnims.reduce(
+        (min, a) => Math.min(min, a.options.delay),
+        clipDurationUs,
+      );
       safeDur = Math.max(0, Math.min(defaultDur, earliestStart));
       safeDelay = 0;
     } else if (activeTab === "out") {
-      const latestEnd = otherAnims.reduce((max, a) => Math.max(max, a.options.delay + a.options.duration), 0);
+      const latestEnd = otherAnims.reduce(
+        (max, a) => Math.max(max, a.options.delay + a.options.duration),
+        0,
+      );
       safeDur = Math.max(0, Math.min(defaultDur, clipDurationUs - latestEnd));
       safeDelay = Math.max(0, clipDurationUs - safeDur);
     } else if (activeTab === "combo") {
-      const inAnim = otherAnims.find(a => a.options.delay === 0);
-      const outAnim = otherAnims.find(a => Math.abs(a.options.delay + a.options.duration - clipDurationUs) < 100000);
+      const inAnim = otherAnims.find((a) => a.options.delay === 0);
+      const outAnim = otherAnims.find(
+        (a) => Math.abs(a.options.delay + a.options.duration - clipDurationUs) < 100000,
+      );
       const minStart = inAnim ? inAnim.options.duration : 0;
       const maxEnd = outAnim ? outAnim.options.delay : clipDurationUs;
 
@@ -224,15 +220,20 @@ function AnimationsPanelInner({ clip }: { clip: any }) {
     clip.emit?.("propsChange", {});
   };
 
-
   return (
     <div className="flex flex-col h-full font-space-grotesk overflow-hidden">
       <div className="p-4 flex-shrink-0">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
           <TabsList className="w-full flex">
-            <TabsTrigger className="flex-1 capitalize text-xs" value="in">In</TabsTrigger>
-            <TabsTrigger className="flex-1 capitalize text-xs" value="out">Out</TabsTrigger>
-            <TabsTrigger className="flex-1 capitalize text-xs" value="combo">Combo</TabsTrigger>
+            <TabsTrigger className="flex-1 capitalize text-xs" value="in">
+              In
+            </TabsTrigger>
+            <TabsTrigger className="flex-1 capitalize text-xs" value="out">
+              Out
+            </TabsTrigger>
+            <TabsTrigger className="flex-1 capitalize text-xs" value="combo">
+              Combo
+            </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
@@ -281,19 +282,11 @@ interface PresetCardProps {
 }
 
 const PresetCard = React.memo(
-  ({
-    label,
-    previewStatic,
-    previewDynamic,
-    isSelected,
-    onClick,
-    isNone,
-  }: PresetCardProps) => {
+  ({ label, previewStatic, previewDynamic, isSelected, onClick, isNone }: PresetCardProps) => {
     const [isHovered, setIsHovered] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
 
-    const currentSrc =
-      isHovered && previewDynamic ? previewDynamic : previewStatic;
+    const currentSrc = isHovered && previewDynamic ? previewDynamic : previewStatic;
 
     return (
       <div
@@ -342,9 +335,7 @@ const PresetCard = React.memo(
         <span
           className={cn(
             "text-[10px] text-center font-medium leading-[1.2] truncate px-0.5 transition-colors duration-200",
-            isSelected
-              ? "text-white font-bold"
-              : "text-[#888] group-hover:text-muted-foreground",
+            isSelected ? "text-white font-bold" : "text-[#888] group-hover:text-muted-foreground",
           )}
         >
           {label}
@@ -439,9 +430,7 @@ function AnimationConfigControls({
     handleUpdate({ options: { easing: val } });
   };
 
-  const hasMirror = Object.values(animation.params || {}).some(
-    (p: any) => p && p.mirror > 0,
-  );
+  const hasMirror = Object.values(animation.params || {}).some((p: any) => p && p.mirror > 0);
 
   const otherAnimations = (clip.animations || []).filter((a: any) => a.id !== animation.id);
 
@@ -452,17 +441,25 @@ function AnimationConfigControls({
 
   // Calculate safe bounds
   if (activeTab === "in") {
-    const earliestOtherStart = otherAnimations.reduce((min: number, a: any) => Math.min(min, a.options.delay / 1000), clipDurationMs);
+    const earliestOtherStart = otherAnimations.reduce(
+      (min: number, a: any) => Math.min(min, a.options.delay / 1000),
+      clipDurationMs,
+    );
     sliderMax = earliestOtherStart;
     sliderValue = [Math.min(localDuration, sliderMax)];
   } else if (activeTab === "out") {
     dir = "rtl";
-    const latestOtherEnd = otherAnimations.reduce((max: number, a: any) => Math.max(max, (a.options.delay + a.options.duration) / 1000), 0);
+    const latestOtherEnd = otherAnimations.reduce(
+      (max: number, a: any) => Math.max(max, (a.options.delay + a.options.duration) / 1000),
+      0,
+    );
     sliderMax = clipDurationMs - latestOtherEnd;
     sliderValue = [Math.min(localDuration, sliderMax)];
   } else if (activeTab === "combo") {
     const inAnim = otherAnimations.find((a: any) => a.options.delay === 0);
-    const outAnim = otherAnimations.find((a: any) => Math.abs(a.options.delay + a.options.duration - clip.duration) < 50000);
+    const outAnim = otherAnimations.find(
+      (a: any) => Math.abs(a.options.delay + a.options.duration - clip.duration) < 50000,
+    );
 
     sliderMin = inAnim ? inAnim.options.duration / 1000 : 0;
     sliderMax = outAnim ? outAnim.options.delay / 1000 : clipDurationMs;
@@ -480,15 +477,16 @@ function AnimationConfigControls({
   };
 
   // Determine label for the duration badge based on tab
-  const badgeLabel = activeTab === "combo"
-    ? `${formatSecs(sliderValue[0])} - ${formatSecs(sliderValue[1])}`
-    : formatSecs(sliderValue[0]);
+  const badgeLabel =
+    activeTab === "combo"
+      ? `${formatSecs(sliderValue[0])} - ${formatSecs(sliderValue[1])}`
+      : formatSecs(sliderValue[0]);
 
   const trackOverlay = (
     <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-full z-10 opacity-70">
       {otherAnimations.map((a: any) => {
-        const startPct = ((a.options.delay / 1000) / clipDurationMs) * 100;
-        const durPct = ((a.options.duration / 1000) / clipDurationMs) * 100;
+        const startPct = (a.options.delay / 1000 / clipDurationMs) * 100;
+        const durPct = (a.options.duration / 1000 / clipDurationMs) * 100;
         return (
           <div
             key={a.id}
@@ -502,14 +500,11 @@ function AnimationConfigControls({
 
   return (
     <div className="flex-shrink-0 p-4 border-t border-white/5 pb-6 bg-input-primary rounded-b-sm">
-
       <div className="flex flex-col gap-4">
         {/* Slider */}
         <div className="flex flex-col gap-3">
           <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
-            {activeTab === "combo"
-              ? "Motion range"
-              : "In and out motion duration"}
+            {activeTab === "combo" ? "Motion range" : "In and out motion duration"}
           </label>
           <div className="flex items-center gap-3">
             <Slider
@@ -552,9 +547,7 @@ function AnimationConfigControls({
                 <SelectItem value="easeInOutQuad">Ease In Out Quad</SelectItem>
                 <SelectItem value="easeInCubic">Ease In Cubic</SelectItem>
                 <SelectItem value="easeOutCubic">Ease Out Cubic</SelectItem>
-                <SelectItem value="easeInOutCubic">
-                  Ease In Out Cubic
-                </SelectItem>
+                <SelectItem value="easeInOutCubic">Ease In Out Cubic</SelectItem>
                 <SelectItem value="easeInBack">Ease In Back</SelectItem>
                 <SelectItem value="easeOutBack">Ease Out Back</SelectItem>
               </SelectContent>

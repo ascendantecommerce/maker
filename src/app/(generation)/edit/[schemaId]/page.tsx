@@ -95,7 +95,7 @@ export default function FolderPage({ params }: { params: Promise<{ schemaId: str
         console.log({ schemaWithSegments });
 
         let exportedSchema: Design;
-        if (mainSchema?.type === "ugc-video-ad") {
+        if (mainSchema?.type === "ugc-video-ad" || mainSchema?.type === "character-driven-ad") {
           console.log("Using UGC schema converter");
           exportedSchema = await convertUgcSchemaToDesign(schemaWithSegments);
         } else {

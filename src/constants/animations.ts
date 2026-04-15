@@ -1,120 +1,90 @@
 export const ANIMATIONS = [
   {
     key: "slideRotateIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/slideRotateIn_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/slideRotateIn_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/slideRotateIn_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/slideRotateIn_dynamic.webp",
   },
   {
     key: "slideRotateOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/slideRotateOut_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/slideRotateOut_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/slideRotateOut_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/slideRotateOut_dynamic.webp",
   },
   {
     key: "slideBlurIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/slideBlurIn_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/slideBlurIn_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/slideBlurIn_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/slideBlurIn_dynamic.webp",
   },
   {
     key: "slideBlurOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/slideBlurOut_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/slideBlurOut_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/slideBlurOut_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/slideBlurOut_dynamic.webp",
   },
   {
     key: "zoomRotateIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/zoomRotateIn_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/zoomRotateIn_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/zoomRotateIn_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/zoomRotateIn_dynamic.webp",
   },
   {
     key: "zoomRotateOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/zoomRotateOut_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/zoomRotateOut_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/zoomRotateOut_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/zoomRotateOut_dynamic.webp",
   },
   {
     key: "zoomBlurIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/zoomBlurIn_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/zoomBlurIn_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/zoomBlurIn_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/zoomBlurIn_dynamic.webp",
   },
   {
     key: "zoomBlurOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/zoomBlurOut_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/zoomBlurOut_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/zoomBlurOut_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/zoomBlurOut_dynamic.webp",
   },
   {
     key: "slideZoomIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/slideZoomIn_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/slideZoomIn_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/slideZoomIn_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/slideZoomIn_dynamic.webp",
   },
   {
     key: "slideZoomOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/slideZoomOut_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/slideZoomOut_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/slideZoomOut_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/slideZoomOut_dynamic.webp",
   },
   {
     key: "verticalBlurIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/verticalBlurIn_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/verticalBlurIn_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/verticalBlurIn_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/verticalBlurIn_dynamic.webp",
   },
   {
     key: "verticalBlurOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/verticalBlurOut_static.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/verticalBlurOut_static.webp",
     previewDynamic:
       "https://cdn.subgen.co/previews/animations/dynamic/verticalBlurOut_dynamic.webp",
   },
   {
     key: "rotateBlurIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/rotateBlurIn_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/rotateBlurIn_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/rotateBlurIn_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/rotateBlurIn_dynamic.webp",
   },
   {
     key: "rotateBlurOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/rotateBlurOut_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/rotateBlurOut_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/rotateBlurOut_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/rotateBlurOut_dynamic.webp",
   },
   {
     key: "brightnessZoomIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/brightnessZoomIn_static.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/brightnessZoomIn_static.webp",
     previewDynamic:
       "https://cdn.subgen.co/previews/animations/dynamic/brightnessZoomIn_dynamic.webp",
   },
   {
     key: "brightnessZoomOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/brightnessZoomOut_static.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/brightnessZoomOut_static.webp",
     previewDynamic:
       "https://cdn.subgen.co/previews/animations/dynamic/brightnessZoomOut_dynamic.webp",
   },
   {
     key: "brightnessSlideIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/brightnessSlideIn_static.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/brightnessSlideIn_static.webp",
     previewDynamic:
       "https://cdn.subgen.co/previews/animations/dynamic/brightnessSlideIn_dynamic.webp",
   },
@@ -127,71 +97,54 @@ export const ANIMATIONS = [
   },
   {
     key: "tiltZoomBlurIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/tiltZoomBlurIn_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/tiltZoomBlurIn_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/tiltZoomBlurIn_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/tiltZoomBlurIn_dynamic.webp",
   },
   {
     key: "tiltZoomBlurOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/tiltZoomBlurOut_static.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/tiltZoomBlurOut_static.webp",
     previewDynamic:
       "https://cdn.subgen.co/previews/animations/dynamic/tiltZoomBlurOut_dynamic.webp",
   },
   {
     key: "dropRotateIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/dropRotateIn_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/dropRotateIn_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/dropRotateIn_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/dropRotateIn_dynamic.webp",
   },
   {
     key: "dropRotateOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/dropRotateOut_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/dropRotateOut_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/dropRotateOut_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/dropRotateOut_dynamic.webp",
   },
   {
     key: "spiralIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/spiralIn_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/spiralIn_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/spiralIn_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/spiralIn_dynamic.webp",
   },
   {
     key: "spiralOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/spiralOut_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/spiralOut_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/spiralOut_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/spiralOut_dynamic.webp",
   },
   {
     key: "flashSlideIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/flashSlideIn_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/flashSlideIn_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/flashSlideIn_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/flashSlideIn_dynamic.webp",
   },
   {
     key: "flashSlideOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/flashSlideOut_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/flashSlideOut_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/flashSlideOut_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/flashSlideOut_dynamic.webp",
   },
   {
     key: "heavyCinematicIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/heavyCinematicIn_static.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/heavyCinematicIn_static.webp",
     previewDynamic:
       "https://cdn.subgen.co/previews/animations/dynamic/heavyCinematicIn_dynamic.webp",
   },
   {
     key: "heavyCinematicOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/heavyCinematicOut_static.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/heavyCinematicOut_static.webp",
     previewDynamic:
       "https://cdn.subgen.co/previews/animations/dynamic/heavyCinematicOut_dynamic.webp",
   },
@@ -267,22 +220,19 @@ export const ANIMATIONS = [
   },
   {
     key: "fallBlurRotateIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/fallBlurRotateIn_static.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/fallBlurRotateIn_static.webp",
     previewDynamic:
       "https://cdn.subgen.co/previews/animations/dynamic/fallBlurRotateIn_dynamic.webp",
   },
   {
     key: "fallBlurRotateOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/fallBlurRotateOut_static.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/fallBlurRotateOut_static.webp",
     previewDynamic:
       "https://cdn.subgen.co/previews/animations/dynamic/fallBlurRotateOut_dynamic.webp",
   },
   {
     key: "sideStretchZoomIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/sideStretchZoomIn_static.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/sideStretchZoomIn_static.webp",
     previewDynamic:
       "https://cdn.subgen.co/previews/animations/dynamic/sideStretchZoomIn_dynamic.webp",
   },
@@ -295,36 +245,31 @@ export const ANIMATIONS = [
   },
   {
     key: "darkSlideBlurIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/darkSlideBlurIn_static.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/darkSlideBlurIn_static.webp",
     previewDynamic:
       "https://cdn.subgen.co/previews/animations/dynamic/darkSlideBlurIn_dynamic.webp",
   },
   {
     key: "darkSlideBlurOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/darkSlideBlurOut_static.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/darkSlideBlurOut_static.webp",
     previewDynamic:
       "https://cdn.subgen.co/previews/animations/dynamic/darkSlideBlurOut_dynamic.webp",
   },
   {
     key: "liftZoomRotateIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/liftZoomRotateIn_static.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/liftZoomRotateIn_static.webp",
     previewDynamic:
       "https://cdn.subgen.co/previews/animations/dynamic/liftZoomRotateIn_dynamic.webp",
   },
   {
     key: "liftZoomRotateOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/liftZoomRotateOut_static.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/liftZoomRotateOut_static.webp",
     previewDynamic:
       "https://cdn.subgen.co/previews/animations/dynamic/liftZoomRotateOut_dynamic.webp",
   },
   {
     key: "overexposedZoomIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/overexposedZoomIn_static.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/overexposedZoomIn_static.webp",
     previewDynamic:
       "https://cdn.subgen.co/previews/animations/dynamic/overexposedZoomIn_dynamic.webp",
   },
@@ -379,43 +324,35 @@ export const ANIMATIONS = [
   },
   {
     key: "ultraCinematicIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/ultraCinematicIn_static.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/ultraCinematicIn_static.webp",
     previewDynamic:
       "https://cdn.subgen.co/previews/animations/dynamic/ultraCinematicIn_dynamic.webp",
   },
   {
     key: "ultraCinematicOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/ultraCinematicOut_static.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/ultraCinematicOut_static.webp",
     previewDynamic:
       "https://cdn.subgen.co/previews/animations/dynamic/ultraCinematicOut_dynamic.webp",
   },
   {
     key: "blurSlideRightIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/blurSlideRightIn_static.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/blurSlideRightIn_static.webp",
     previewDynamic:
       "https://cdn.subgen.co/previews/animations/dynamic/blurSlideRightIn_dynamic.webp",
   },
   {
     key: "wobbleZoomIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/wobbleZoomIn_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/wobbleZoomIn_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/wobbleZoomIn_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/wobbleZoomIn_dynamic.webp",
   },
   {
     key: "spinZoomIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/spinZoomIn_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/spinZoomIn_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/spinZoomIn_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/spinZoomIn_dynamic.webp",
   },
   {
     key: "blurSlideLeftIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/blurSlideLeftIn_static.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/blurSlideLeftIn_static.webp",
     previewDynamic:
       "https://cdn.subgen.co/previews/animations/dynamic/blurSlideLeftIn_dynamic.webp",
   },
@@ -435,66 +372,49 @@ export const ANIMATIONS = [
   },
   {
     key: "elasticTwistIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/elasticTwistIn_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/elasticTwistIn_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/elasticTwistIn_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/elasticTwistIn_dynamic.webp",
   },
   {
     key: "spinFadeIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/spinFadeIn_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/spinFadeIn_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/spinFadeIn_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/spinFadeIn_dynamic.webp",
   },
   {
     key: "flashZoomIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/flashZoomIn_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/flashZoomIn_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/flashZoomIn_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/flashZoomIn_dynamic.webp",
   },
   {
     key: "tiltSlideRightIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/tiltSlideRightIn_static.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/tiltSlideRightIn_static.webp",
     previewDynamic:
       "https://cdn.subgen.co/previews/animations/dynamic/tiltSlideRightIn_dynamic.webp",
   },
   {
     key: "tiltZoomIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/tiltZoomIn_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/tiltZoomIn_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/tiltZoomIn_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/tiltZoomIn_dynamic.webp",
   },
   {
     key: "glitchSlideIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/glitchSlideIn_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/glitchSlideIn_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/glitchSlideIn_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/glitchSlideIn_dynamic.webp",
   },
   {
     key: "dropBlurIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/dropBlurIn_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/dropBlurIn_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/dropBlurIn_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/dropBlurIn_dynamic.webp",
   },
   {
     key: "fallZoomIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/fallZoomIn_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/fallZoomIn_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/fallZoomIn_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/fallZoomIn_dynamic.webp",
   },
   {
     key: "zoomSpinIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/zoomSpinIn_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/zoomSpinIn_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/zoomSpinIn_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/zoomSpinIn_dynamic.webp",
   },
   {
     key: "dramaticSpinSlideIn",
@@ -505,45 +425,34 @@ export const ANIMATIONS = [
   },
   {
     key: "tiltSlideRightOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/tiltSlideRightOut_static.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/tiltSlideRightOut_static.webp",
     previewDynamic:
       "https://cdn.subgen.co/previews/animations/dynamic/tiltSlideRightOut_dynamic.webp",
   },
   {
     key: "tiltZoomOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/tiltZoomOut_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/tiltZoomOut_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/tiltZoomOut_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/tiltZoomOut_dynamic.webp",
   },
   {
     key: "glitchSlideOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/glitchSlideOut_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/glitchSlideOut_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/glitchSlideOut_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/glitchSlideOut_dynamic.webp",
   },
   {
     key: "dropBlurOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/dropBlurOut_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/dropBlurOut_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/dropBlurOut_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/dropBlurOut_dynamic.webp",
   },
   {
     key: "fallZoomOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/fallZoomOut_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/fallZoomOut_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/fallZoomOut_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/fallZoomOut_dynamic.webp",
   },
   {
     key: "zoomSpinOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/zoomSpinOut_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/zoomSpinOut_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/zoomSpinOut_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/zoomSpinOut_dynamic.webp",
   },
   {
     key: "dramaticSpinSlideOut",
@@ -554,29 +463,23 @@ export const ANIMATIONS = [
   },
   {
     key: "blurSlideRightOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/blurSlideRightOut_static.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/blurSlideRightOut_static.webp",
     previewDynamic:
       "https://cdn.subgen.co/previews/animations/dynamic/blurSlideRightOut_dynamic.webp",
   },
   {
     key: "wobbleZoomOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/wobbleZoomOut_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/wobbleZoomOut_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/wobbleZoomOut_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/wobbleZoomOut_dynamic.webp",
   },
   {
     key: "spinZoomOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/spinZoomOut_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/spinZoomOut_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/spinZoomOut_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/spinZoomOut_dynamic.webp",
   },
   {
     key: "blurSlideLeftOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/blurSlideLeftOut_static.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/blurSlideLeftOut_static.webp",
     previewDynamic:
       "https://cdn.subgen.co/previews/animations/dynamic/blurSlideLeftOut_dynamic.webp",
   },
@@ -596,63 +499,57 @@ export const ANIMATIONS = [
   },
   {
     key: "elasticTwistOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/elasticTwistOut_static.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/elasticTwistOut_static.webp",
     previewDynamic:
       "https://cdn.subgen.co/previews/animations/dynamic/elasticTwistOut_dynamic.webp",
   },
   {
     key: "spinFadeOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/spinFadeOut_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/spinFadeOut_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/spinFadeOut_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/spinFadeOut_dynamic.webp",
   },
   {
     key: "flashZoomOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/flashZoomOut_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/flashZoomOut_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/flashZoomOut_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/flashZoomOut_dynamic.webp",
   },
   {
-    key: "sideToSideLeftToRightIn"
+    key: "sideToSideLeftToRightIn",
   },
   {
-    key: "sideToSideRightToLeftIn"
+    key: "sideToSideRightToLeftIn",
   },
   {
-    key: "rotateClockwiseIn"
+    key: "rotateClockwiseIn",
   },
   {
-    key: "rotateCounterClockwiseIn"
+    key: "rotateCounterClockwiseIn",
   },
   {
-    key: "shakeIn"
+    key: "shakeIn",
   },
   {
-    key: "zoomIn"
+    key: "zoomIn",
   },
   {
-    key: "zoomOut"
+    key: "zoomOut",
   },
   {
-    key: "sideToSideLeftToRightOut"
+    key: "sideToSideLeftToRightOut",
   },
   {
-    key: "sideToSideRightToLeftOut"
+    key: "sideToSideRightToLeftOut",
   },
   {
-    key: "rotateClockwiseOut"
+    key: "rotateClockwiseOut",
   },
   {
-    key: "rotateCounterClockwiseOut"
+    key: "rotateCounterClockwiseOut",
   },
   {
-    key: "shakeOut"
-  }
+    key: "shakeOut",
+  },
 ];
-
 
 const baseParams = { mirror: 1 };
 
@@ -1489,29 +1386,29 @@ export const presetParamsMap = Object.fromEntries(
       ...baseParams,
       ...(overrides[item.key] || {}),
     },
-  ])
+  ]),
 );
 
 const formatLabel = (key: string) =>
   key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase());
 
-export const animationOptionsIn = ANIMATIONS.filter((item) =>
-  item.key.endsWith("In"),
-).map((item) => ({
-  value: item.key,
-  label: formatLabel(item.key),
-  previewStatic: item.previewStatic,
-  previewDynamic: item.previewDynamic,
-}));
+export const animationOptionsIn = ANIMATIONS.filter((item) => item.key.endsWith("In")).map(
+  (item) => ({
+    value: item.key,
+    label: formatLabel(item.key),
+    previewStatic: item.previewStatic,
+    previewDynamic: item.previewDynamic,
+  }),
+);
 
-export const animationOptionsOut = ANIMATIONS.filter((item) =>
-  item.key.endsWith("Out"),
-).map((item) => ({
-  value: item.key,
-  label: formatLabel(item.key),
-  previewStatic: item.previewStatic,
-  previewDynamic: item.previewDynamic,
-}));
+export const animationOptionsOut = ANIMATIONS.filter((item) => item.key.endsWith("Out")).map(
+  (item) => ({
+    value: item.key,
+    label: formatLabel(item.key),
+    previewStatic: item.previewStatic,
+    previewDynamic: item.previewDynamic,
+  }),
+);
 
 export const getPresetCustom = (type: string) => {
   switch (type) {
@@ -1605,83 +1502,63 @@ export const BASE_IN_PRESETS = [
   {
     label: "Fade In",
     value: "fadeIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/fadeIn_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/fadeIn_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/fadeIn_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/fadeIn_dynamic.webp",
   },
   {
     label: "Zoom In",
     value: "zoomIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/zoomIn_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/zoomIn_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/zoomIn_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/zoomIn_dynamic.webp",
   },
   {
     label: "Slide In",
     value: "slideIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/slideIn_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/slideIn_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/slideIn_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/slideIn_dynamic.webp",
   },
   {
     label: "Blur In",
     value: "blurIn",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/blurIn_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/blurIn_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/blurIn_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/blurIn_dynamic.webp",
   },
   {
     label: "Pulse",
     value: "pulse",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/pulse_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/pulse_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/pulse_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/pulse_dynamic.webp",
   },
 ];
 export const BASE_OUT_PRESETS = [
   {
     label: "Fade Out",
     value: "fadeOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/fadeOut_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/fadeOut_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/fadeOut_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/fadeOut_dynamic.webp",
   },
   {
     label: "Zoom Out",
     value: "zoomOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/zoomOut_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/zoomOut_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/zoomOut_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/zoomOut_dynamic.webp",
   },
   {
     label: "Slide Out",
     value: "slideOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/slideOut_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/slideOut_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/slideOut_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/slideOut_dynamic.webp",
   },
   {
     label: "Blur Out",
     value: "blurOut",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/blurOut_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/blurOut_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/blurOut_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/blurOut_dynamic.webp",
   },
   {
     label: "Pulse",
     value: "pulse",
-    previewStatic:
-      "https://cdn.subgen.co/previews/animations/static/pulse_static.webp",
-    previewDynamic:
-      "https://cdn.subgen.co/previews/animations/dynamic/pulse_dynamic.webp",
+    previewStatic: "https://cdn.subgen.co/previews/animations/static/pulse_static.webp",
+    previewDynamic: "https://cdn.subgen.co/previews/animations/dynamic/pulse_dynamic.webp",
   },
 ];

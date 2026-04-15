@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegStatic from "ffmpeg-static";
 import { CharacterAdServices } from "../services";
+import { db } from "@/lib/database";
 
 // Set ffmpeg path
 if (ffmpegStatic) {
@@ -12,8 +13,11 @@ if (ffmpegStatic) {
 }
 
 interface Clip {
-  id: string;
+  id: string; // The physical shot string ID
   url: string;
+  segmentId: string;
+  shotIndex: number;
+  refined?: boolean;
   effects?: { prompt: string; start: number; end: number }[];
   soundEffects?: { start: number; url: string; duration?: number }[];
 }
@@ -87,9 +91,18 @@ export async function refineCharacterClips(
       }
 
       // 4. Isolate audio using ElevenLabs
+      console.log(`[Refinement] Isolating audio for clip ${clip.id}...`);
       const audioBuffer = fs.readFileSync(audioToIsolatePath);
       const cleanAudioBuffer = await services.tts.isolateAudio(audioBuffer);
+
+      if (!cleanAudioBuffer || cleanAudioBuffer.length < 100) {
+        throw new Error("Isolated audio buffer is empty or too small");
+      }
+
       fs.writeFileSync(cleanAudioPath, cleanAudioBuffer);
+      console.log(
+        `[Refinement] Audio isolated for ${clip.id}. Size: ${cleanAudioBuffer.length} bytes`,
+      );
 
       // 5. Merge clean audio to synced visuals
       await new Promise<void>((resolve, reject) => {
@@ -107,9 +120,45 @@ export async function refineCharacterClips(
       const fileName = `character-ads/${schemeId}/final-${clip.id}-${runToken}.mp4`;
       const finalUrl = await services.r2.uploadData(fileName, finalVideoBuffer, "video/mp4");
 
+      console.log(`[Refinement] Successfully refined clip ${clip.id}. Final URL: ${finalUrl}`);
+
+      // 7. Update segments table immediately so UI can show progress
+      const segmentRecord = await db
+        .selectFrom("segments")
+        .select("segment_data")
+        .where("id", "=", clip.segmentId)
+        .executeTakeFirst();
+
+      if (segmentRecord) {
+        const segData = segmentRecord.segment_data as any;
+        const updatedShots = [...(segData.shots || [])];
+
+        if (updatedShots[clip.shotIndex]) {
+          updatedShots[clip.shotIndex] = {
+            ...updatedShots[clip.shotIndex],
+            videoUrl: finalUrl,
+          };
+        }
+
+        const updatedSegData = {
+          ...segData,
+          shots: updatedShots,
+        };
+
+        await db
+          .updateTable("segments")
+          .set({
+            segment_data: updatedSegData,
+            updated_at: new Date(),
+          })
+          .where("id", "=", clip.segmentId)
+          .execute();
+      }
+
       refinedClips.push({
         ...clip,
         url: finalUrl,
+        refined: true,
       });
     } catch (error) {
       console.error(`[Refinement/SFX Error] Clip ${clip.id}:`, error);

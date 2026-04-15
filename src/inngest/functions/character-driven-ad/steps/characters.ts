@@ -62,7 +62,7 @@ export const generateCharacterSeedImages = async (
           const storagePath = `character-driven-ad/${schemeId}/scenes/${segment.id}-shot-${shotIndex}.png`;
           const persistentUrl = await services.r2.uploadData(storagePath, buffer, contentType);
 
-          return { segmentId: segment.id, shotIndex, imageUrl: persistentUrl };
+          return { segmentId: segment.id, shotIndex, imageUrl: persistentUrl, prompt };
         })(),
       );
     }

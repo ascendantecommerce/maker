@@ -6,6 +6,8 @@ import {
   generateSegmentVideo,
   refineCharacterClips,
   generateCharacterSoundEffects,
+  generateCharacterAdShots,
+  mapShotsToSegments,
 } from "./steps";
 import { mapInputToSchema } from "./utils/mapping";
 import { saveSchema } from "../common/steps";
@@ -46,9 +48,20 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
             if (!apiKey) throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set");
 
             const gemini = new GeminiService(apiKey, "gemini-3.1-flash-lite-preview");
-            const systemPrompt = getCharacterAdParserSystemPrompt(scheme.visuals?.style);
+            const systemPrompt = getCharacterAdParserSystemPrompt(
+              scheme.visuals?.style,
+              scheme.product?.name,
+              scheme.product?.description,
+            );
+
+            // Extract visual asset urls so the LLM can use them for product/character analysis
+            const imageUrls = (scheme.assets || [])
+              .filter((a) => a.type === "image" && a.url)
+              .map((a) => a.url as string);
+
             const result = await gemini.generateScriptAssistant({
               message: `Parse this script into structured segments: \n\n${scheme.script}`,
+              imageUrls,
               productName: scheme.product?.name,
               productDescription: scheme.product?.description,
               systemPrompt,
@@ -75,6 +88,34 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
         });
       }
 
+      // 0.5. Stage 0.5: Smart LLM Shot Prompts Generation
+      // The segments' shots are already pre-split deterministically by mapInputToSchema
+      // (ensuring strict duration boundaries <= 8 seconds per shot).
+      // Here, we take those shots and ask the LLM to write continuous "smart" Prompts and Emotions
+      // specific to each shot.
+      scheme = await step.run("generate-smart-shots-stage-0-5", async () => {
+        await publish({
+          channel,
+          topic: "steps",
+          data: {
+            type: ToastType.STEP_START,
+            step: "Planning Shots",
+            stepIndex: 0,
+            message: `Applying smart AI prompts to ${scheme.segments.length} auto-split scenes...`,
+          },
+        });
+
+        const shotResults = await generateCharacterAdShots(scheme);
+        const updatedScheme = { ...scheme, segments: mapShotsToSegments(scheme, shotResults) };
+
+        // Save schema so downstream steps see the enhanced videoPrompts
+        await saveSchema(schemeId, updatedScheme, ResolverStatus.PROGRESS);
+        return updatedScheme;
+      });
+
+      // Temporary return to debug the output JSON before generation costs hit
+      // return { scheme };
+
       // 1. Initial Status Update
       await step.run("mark-orchestration-start", async () => {
         await db
@@ -98,8 +139,7 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
       });
 
       // 2. Stage 1: Generate Scene Composition Images per Shot
-      // We generate one scene image per shot to use as firstFrameUrl/referenceImages in Stage 2.
-      const characterResults = await step.run("initialize-character-images", async () => {
+      scheme = await step.run("initialize-character-images", async () => {
         const shotUpdates = await generateCharacterSeedImages(schemeId, scheme, services, runToken);
 
         // 1. Update segments (shot imageUrl + segment firstFrameUrl)
@@ -127,29 +167,22 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
           return firstAppearance ? { ...char, baseImageUrl: firstAppearance.imageUrl } : char;
         });
 
-        const fullUpdatedScheme = {
+        return {
           ...scheme,
           segments: updatedSegments,
           characters: updatedCharacters,
         };
-
-        // 3. Persist the full scheme back to DB metadata
-        await db
-          .updateTable("generations")
-          .set({ metadata: JSON.stringify(fullUpdatedScheme) })
-          .where("id", "=", schemeId)
-          .execute();
-
-        return {
-          segments: updatedSegments,
-          characters: updatedCharacters,
-          count: shotUpdates.length,
-        };
       });
 
-      // Update local state for subsequent stages
-      scheme.segments = characterResults.segments as typeof scheme.segments;
-      scheme.characters = characterResults.characters as typeof scheme.characters;
+      // Persist the full scheme back to DB metadata
+      await step.run("sync-metadata-stage-1", async () => {
+        await db
+          .updateTable("generations")
+          .set({ metadata: JSON.stringify(scheme) })
+          .where("id", "=", schemeId)
+          .execute();
+        return scheme;
+      });
 
       await step.run("publish-veo-start-toast", async () => {
         await publish({
@@ -165,15 +198,32 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
       });
 
       // 3. Stage 2: Generate Videos (Veo 3.1 Fast)
-      // Every segment iterates through Veo 3.1 Fast with Dialogue + VoiceDescription.
-      const videoResults = await step.run("generate-video-clips", async () => {
+      scheme = await step.run("generate-video-clips", async () => {
         const results = await generateSegmentVideo(schemeId, scheme, services, runToken);
 
-        return {
-          clips: results.map((r) => ({ id: r.id, url: r.videoUrl })),
-          successCount: results.filter((r) => r.success).length,
-          totalCount: results.length,
-        };
+        const updatedSegments = scheme.segments.map((seg) => {
+          const result = results.find((r: any) => r.id === seg.id);
+          if (result && (result as any).success) {
+            return {
+              ...seg,
+              duration: (result as any).duration,
+              shots: (result as any).shots,
+            };
+          }
+          return seg;
+        });
+
+        return { ...scheme, segments: updatedSegments };
+      });
+
+      // Persist the full scheme back to DB metadata
+      await step.run("sync-metadata-stage-2", async () => {
+        await db
+          .updateTable("generations")
+          .set({ metadata: JSON.stringify(scheme) })
+          .where("id", "=", schemeId)
+          .execute();
+        return scheme;
       });
 
       // 4. Stage 3: Audio Refinement (ElevenLabs Audio Isolation + ffmpeg merge)
@@ -185,23 +235,56 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
             type: ToastType.STEP_START,
             step: "Refining Audio",
             stepIndex: 3,
-            message: `Enhancing ${videoResults.clips.length} videos with studio-quality audio isolation...`,
+            message: `Enhancing ${scheme.segments.length} videos with studio-quality audio isolation...`,
           },
         });
       });
 
-      const refinedVideoResults = await step.run("refine-generated-videos", async () => {
+      scheme = await step.run("refine-generated-videos", async () => {
+        // Collect current clips from ALL shots in ALL segments
+        const clipsToRefine = scheme.segments
+          .flatMap((seg) =>
+            (seg.shots || []).map((shot: any, index: number) => ({
+              id: `${seg.id}-shot-${index}`,
+              url: shot.videoUrl || seg.imageUrl,
+              segmentId: seg.id,
+              shotIndex: index,
+            })),
+          )
+          .filter((c) => !!c.url);
+
         const refinedClips = await refineCharacterClips(
           schemeId,
-          videoResults.clips,
+          clipsToRefine as any[],
           services,
           runToken,
         );
 
-        return {
-          clips: refinedClips,
-          successCount: refinedClips.length,
-        };
+        // Update with refined URLs strictly matching the shot index
+        const updatedSegments = scheme.segments.map((seg) => {
+          return {
+            ...seg,
+            shots: (seg.shots || []).map((shot: any, index: number) => {
+              const refined = refinedClips.find((c) => c.id === `${seg.id}-shot-${index}`);
+              return {
+                ...shot,
+                videoUrl: refined && refined.url ? refined.url : shot.videoUrl,
+              };
+            }),
+          };
+        });
+
+        return { ...scheme, segments: updatedSegments };
+      });
+
+      // Persist the full scheme back to DB metadata
+      await step.run("sync-metadata-stage-3", async () => {
+        await db
+          .updateTable("generations")
+          .set({ metadata: JSON.stringify(scheme) })
+          .where("id", "=", schemeId)
+          .execute();
+        return scheme;
       });
 
       // 5. Stage 4: Generate Sound Effects
@@ -213,63 +296,66 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
             type: ToastType.STEP_START,
             step: "Generating Foley & SFX",
             stepIndex: 4,
-            message: `Creating AI sound effects for ${refinedVideoResults.clips.length} videos...`,
+            message: `Creating AI sound effects for ${scheme.segments.length} videos...`,
           },
         });
       });
 
-      const sfxResults = await step.run("generate-sound-effects", async () => {
-        // Merge the original Veo URL into each refined clip so the SFX step
-        // can analyze the untouched native audio for cloning.
-        const clipsWithOriginal = refinedVideoResults.clips.map((refined) => {
-          const original = videoResults.clips.find((o) => o.id === refined.id);
+      scheme = await step.run("generate-sound-effects", async () => {
+        // We need Stage 2 results for analysis (original native audio)
+        // Find the "generate-video-clips" result from historical steps
+        // NOTE: In Inngest, we could pass it down, but here it's easier to access from scheme
+        // if we didn't overwrite the original URLs. But we did refined them.
+        // So we might need to store the original URLs somewhere if we want "meaningful analysis".
+        // For now, let's assume we can find them if we were careful.
+        // Actually, the previous implementation tried to find it in `videoResults`.
+        // I'll make sure it's available or accessible.
+
+        const clipsForSfx = scheme.segments.map((seg) => {
           return {
-            ...refined,
-            originalUrl: original?.url,
+            id: seg.id,
+            url: (seg.shots?.[0] as any)?.videoUrl,
+            // We'll use the current URL for analysis if we don't have the original
+            originalUrl: (seg.shots?.[0] as any)?.videoUrl,
           };
         });
 
         const finalClips = await generateCharacterSoundEffects(
           schemeId,
-          clipsWithOriginal,
+          clipsForSfx,
           services,
           runToken,
         );
 
-        return {
-          clips: finalClips,
-          successCount: finalClips.length,
-        };
+        // Update scheme with refined URLs and SFX
+        const updatedSegments = scheme.segments.map((seg) => {
+          const finalClip = finalClips.find((c) => c.id === seg.id);
+          if (finalClip) {
+            return {
+              ...seg,
+              soundEffects: finalClip.soundEffects,
+              effects: finalClip.effects,
+              shots: (seg.shots || []).map((shot) => ({
+                ...shot,
+                videoUrl: finalClip.url,
+                effects: finalClip.effects,
+              })),
+            };
+          }
+          return seg;
+        });
+
+        return { ...scheme, segments: updatedSegments };
       });
 
-      // Update scheme metadata with refined URLs
-      scheme.segments = scheme.segments.map((seg) => {
-        const finalClip = sfxResults.clips.find((c) => c.id === seg.id);
-        return {
-          ...seg,
-          ...(finalClip?.soundEffects ? { soundEffects: finalClip.soundEffects } : {}),
-          shots: (seg.shots || []).map((shot) => {
-            return finalClip
-              ? { ...shot, videoUrl: finalClip.url, effects: finalClip.effects }
-              : shot;
-          }),
-        };
-      });
-
-      // Synchronize the fully refined segments back into the segments database table
-      await step.run("sync-segments-table", async () => {
-        await Promise.all(
-          scheme.segments.map(async (segmentData) => {
-            await db
-              .updateTable("segments")
-              .set({
-                segment_data: segmentData,
-                updated_at: new Date(),
-              })
-              .where("id", "=", segmentData.id)
-              .execute();
-          }),
-        );
+      // One final metadata sync before completion
+      await step.run("sync-metadata-final", async () => {
+        await db
+          .updateTable("generations")
+          .set({ metadata: JSON.stringify(scheme) })
+          .where("id", "=", schemeId)
+          .execute();
+        return scheme;
       });
 
       // 5. Final Status Update

@@ -156,7 +156,13 @@ export const CHARACTER_AD_SCRIPT_OUTPUT_SCHEMA = {
 
 export const getCharacterAdParserSystemPrompt = (
   visualStyle: string = "High-end 3D Pixar/Illumination animation style",
+  productName?: string,
+  productDescription?: string,
 ) => `You are a script-to-schema parser for character-driven ads.
+You are currently generating a video ad for the following product:
+- Product Name: ${productName || "Unknown Product"}
+- Product Description: ${productDescription || "No description provided"}
+
 Your task is to take a raw script string and split it into structured segments according to the provided JSON schema.
 
 RULES:
@@ -165,14 +171,22 @@ RULES:
 3. CHARACTER ATTRIBUTION:
    - Identify the character's Name and Role (villain, hero, human, or narrator).
    - Identify the character's current Emotion (e.g., "mischievous", "empowered", "frustrated").
-   - Generate a detailed "visualDescription" in a beautiful ${visualStyle}.
    - Generate a "voiceDescription" (e.g., "Raspy, sneaky" for villains, "Warm, confident" for heroes).
-4. BRANDING: Keep 'productName' and 'productDescription' consistent with the provided context.
-5. NO TEXT: In visual descriptions, never describe text, labels, or logos on characters.
+   
+4. CHARACTER VISUAL DESIGN (CRITICAL - 3D ANIMATION FOCUS):
+   - You are designing characters for a high-end 3D animated Pixar/Illumination style video.
+   - HERO CHARACTERS: The Hero MUST be a direct ANTHROPOMORPHIC 3D representation of the actual 'productName' and 'productDescription' provided in the context, along with the analyzed product images. If the product is a gummy bear, the hero is an animated, living gummy bear. If the product is an elegant golden serum, the hero is a living, expressive elegant golden bottle. They must have eyes, expressions, and the ability to gesture.
+   - VILLAIN CHARACTERS: Villains MUST NOT be the product. They must be distinct physical 3D animated objects or embodiments of the specific broken alternatives/messy problems they describe in their dialogue (e.g., if they say "I stain your sheets," they should look like a messy, leaky, sinister 3D bronzing lotion bottle character. If they say "I smell like chemicals," they should look like a living toxic spray can.)
+   - Generate a detailed "visualDescription" matching these rules in a beautiful 3D ${visualStyle}. Ensure materials are described with 3D terms (e.g. subsurface scattering, glossy, matte, clay-like, hyper-detailed textures).
 
-SCENE SETTING:
-- All scenes must be cleanly lit, modern interiors matching the ${visualStyle}.
-- Human background characters must be soft-focused and silent.
+5. BRANDING & TEXT:
+   - Keep 'productName' and 'productDescription' consistent with the provided context.
+   - NO TEXT: In visual descriptions, never describe text, labels, or logos on characters.
+
+SCENE SETTING & ACTIONS:
+- All scenes must be cleanly lit, modern 3D interiors matching the ${visualStyle}.
+- IF THE DIALOGUE describes an action happening to a human or an effect on a human body (e.g., "you rub me all over your body", "streaky legs", "orange palms"), you MUST explicitly include a stylized 3D human experiencing that effect or performing that action in the 'description' field alongside the main character.
+- Human characters must be stylized 3D humans matching the Pixar/Illumination aesthetic.
 
 Do not modify the original dialogue text. Only structure it into the requested JSON segments.`;
 
