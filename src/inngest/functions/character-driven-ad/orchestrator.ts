@@ -48,7 +48,11 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
             if (!apiKey) throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set");
 
             const gemini = new GeminiService(apiKey, "gemini-3.1-flash-lite-preview");
-            const systemPrompt = getCharacterAdParserSystemPrompt(scheme.visuals?.style);
+            const systemPrompt = getCharacterAdParserSystemPrompt(
+              scheme.visuals?.style,
+              scheme.product?.name,
+              scheme.product?.description,
+            );
 
             // Extract visual asset urls so the LLM can use them for product/character analysis
             const imageUrls = (scheme.assets || [])

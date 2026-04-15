@@ -54,8 +54,15 @@ const SMART_SHOTS_OUTPUT_SCHEMA = {
   required: ["segments"],
 };
 
-const getSmartShotsSystemPrompt = (visualStyle: string) =>
+const getSmartShotsSystemPrompt = (
+  visualStyle: string,
+  productName?: string,
+  productDescription?: string,
+) =>
   `You are a director of photography and character animator for ads rendered in ${visualStyle}.
+You are currently generating a video ad for the following product:
+- Product Name: ${productName || "Unknown Product"}
+- Product Description: ${productDescription || "No description provided"}
 
 Your task: Given a script broken down into specific pre-timed video shots, generate a highly descriptive \`videoPrompt\` and \`emotion\` for EACH shot.
 
@@ -66,7 +73,8 @@ RULES:
    - DO NOT make jarring camera cuts or completely change the character's core action between consecutive shots.
    - Maintain the same general framing (e.g. Mid-shot) and tone across the continuous shots.
    - Describe the CONTINUATION of the movement smoothly (e.g. "Shot 1: character begins lifting arms... Shot 2: character finishes lifting arms and points").
-3. NO TEXT overlays: Always specify that the character has no empty text or labels.
+3. HUMAN INTERACTION & LIVE ACTION: If the dialogue specific to THIS shot describes an effect on a human body or an action involving the product, the prompt MUST describe a stylized 3D human actively doing that action or experiencing that effect alongside the speaking character. The visual action MUST strictly match the exact words spoken in this shot slice. Generalize this to whatever the actual product is.
+4. NO TEXT overlays: Always specify that the character has no empty text or labels.
 
 EXAMPLE:
 INPUT SHOTS:
@@ -77,11 +85,11 @@ OUTPUT:
 Shot 1: 
   words="Hi, I'm Self-Tanner. You rub me all over your body hoping for that perfect glow,"
   emotion="smug, confident"
-  videoPrompt="Mid-shot, character gestures grandly with both arms toward the camera, smoothly talking, bokeh bathroom background, ${visualStyle}"
+  videoPrompt="Mid-shot, a messy lotion bottle character speaks smugly while a stylized 3D woman in the background is shown enthusiastically rubbing lotion onto her arms, bokeh bathroom background, ${visualStyle}"
 Shot 2:
   words="but what you usually get is streaky legs, orange palms, and a strong chemical smell that sticks around for hours."
   emotion="gleefully evil"
-  videoPrompt="Mid-shot, continuous shot, character smoothly lowers arms and spins playfully revealing streaks, bokeh bathroom background, ${visualStyle}"
+  videoPrompt="Mid-shot, continuous shot, bottle character spins playfully as the camera shifts to show the woman behind looking disappointed at her newly streaky, violently orange legs and palms, bokeh bathroom background, ${visualStyle}"
 `;
 
 // ---------------------------------------------------------------------------
@@ -129,11 +137,22 @@ export const generateCharacterAdShots = async (
     })
     .join("\n\n");
 
+  const imageUrls = (scheme.assets || [])
+    .filter((a) => a.type === "image" && a.url)
+    .map((a) => a.url as string);
+
   const result: { segments: EnhancedSegmentResult[] } = await gemini.generateScriptAssistant({
     message:
       `Generate unique \`videoPrompt\` and \`emotion\` for each of these pre-split shots.\n\n` +
       `INPUT SEGMENTS AND SHOTS:\n${segmentList}`,
-    systemPrompt: getSmartShotsSystemPrompt(visualStyle),
+    systemPrompt: getSmartShotsSystemPrompt(
+      visualStyle,
+      scheme.product?.name,
+      scheme.product?.description,
+    ),
+    productName: scheme.product?.name,
+    productDescription: scheme.product?.description,
+    imageUrls,
     outputSchema: SMART_SHOTS_OUTPUT_SCHEMA,
   });
 

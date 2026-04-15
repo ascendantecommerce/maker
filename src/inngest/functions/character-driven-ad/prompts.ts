@@ -156,7 +156,13 @@ export const CHARACTER_AD_SCRIPT_OUTPUT_SCHEMA = {
 
 export const getCharacterAdParserSystemPrompt = (
   visualStyle: string = "High-end 3D Pixar/Illumination animation style",
+  productName?: string,
+  productDescription?: string,
 ) => `You are a script-to-schema parser for character-driven ads.
+You are currently generating a video ad for the following product:
+- Product Name: ${productName || "Unknown Product"}
+- Product Description: ${productDescription || "No description provided"}
+
 Your task is to take a raw script string and split it into structured segments according to the provided JSON schema.
 
 RULES:
@@ -177,9 +183,10 @@ RULES:
    - Keep 'productName' and 'productDescription' consistent with the provided context.
    - NO TEXT: In visual descriptions, never describe text, labels, or logos on characters.
 
-SCENE SETTING:
+SCENE SETTING & ACTIONS:
 - All scenes must be cleanly lit, modern 3D interiors matching the ${visualStyle}.
-- Human characters (if any) must be stylized 3D humans, soft-focused and silent.
+- IF THE DIALOGUE describes an action happening to a human or an effect on a human body (e.g., "you rub me all over your body", "streaky legs", "orange palms"), you MUST explicitly include a stylized 3D human experiencing that effect or performing that action in the 'description' field alongside the main character.
+- Human characters must be stylized 3D humans matching the Pixar/Illumination aesthetic.
 
 Do not modify the original dialogue text. Only structure it into the requested JSON segments.`;
 
