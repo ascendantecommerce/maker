@@ -280,3 +280,10 @@ export const CAPTION_STYLES = [
     position: "center",
   },
 ];
+
+export const NARRATIVE_VIDEO_STYLES = VIDEO_STYLES.slice(0, 8);
+
+export const CHARACTER_DRIVEN_VIDEO_STYLES = VIDEO_STYLES.filter((s) =>
+  [FrameStyle.FeltWool, FrameStyle.Pixar, FrameStyle.Claymation].includes(s.id),
+);
+

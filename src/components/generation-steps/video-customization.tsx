@@ -12,8 +12,7 @@ import type { Schema } from "@/lib/schema-generator/types";
 import { VideoType, FrameStyle } from "@/utils/enum";
 import { Separator } from "@/components/ui/separator";
 import { ScriptEditing } from "./script-editing";
-import { useScriptStore } from "@/stores/script-store";
-import { VIDEO_STYLES } from "@/constants/video-styles";
+import { NARRATIVE_VIDEO_STYLES, CHARACTER_DRIVEN_VIDEO_STYLES, VIDEO_STYLES } from "@/constants/video-styles";
 import { AssetsConfig } from "./assets-config";
 import { ProductConfig } from "./product-config";
 import { AvatarConfig } from "./avatar-config";
@@ -30,7 +29,6 @@ export function VideoCustomization({
   setGenerationParams,
 }: VideoCustomizationProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const script = useScriptStore((state) => state.script);
 
   const isRealUGC = generationParams.type === "ugc-video-ad";
   const isFakeUGC = generationParams.type === "fake-ugc-video-ad";
@@ -38,6 +36,13 @@ export function VideoCustomization({
     generationParams.type === "product-video-ad" || generationParams.type === "product-image-ad";
   const isCharacterAd = generationParams.type === "character-driven-ad";
   const isNarrative = !isRealUGC && !isFakeUGC && !isProduct && !isCharacterAd;
+
+  // Available Visual Styles
+  let availableStyles = NARRATIVE_VIDEO_STYLES;
+  if (isCharacterAd) {
+    availableStyles = CHARACTER_DRIVEN_VIDEO_STYLES;
+  }
+
   // Voice state
   const [voices, setVoices] = useState<Voice[]>([]);
   const [isLoadingVoices, setIsLoadingVoices] = useState(true);
@@ -310,6 +315,7 @@ export function VideoCustomization({
                   onStyleIdChange={setSelectedStyleId}
                   scriptTone={selectedScriptTone}
                   onScriptToneChange={setSelectedScriptTone}
+                  availableStyles={availableStyles}
                 />
                 <Separator />
               </>

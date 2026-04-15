@@ -18,6 +18,7 @@ interface VisualsConfigProps {
   onStyleIdChange: (styleId: FrameStyle) => void;
   scriptTone: string;
   onScriptToneChange: (tone: string) => void;
+  availableStyles: typeof VIDEO_STYLES;
 }
 
 export function VisualsConfig({
@@ -29,6 +30,7 @@ export function VisualsConfig({
   onStyleIdChange,
   scriptTone,
   onScriptToneChange,
+  availableStyles,
 }: VisualsConfigProps) {
   const [localVisualType, setLocalVisualType] = useState<VideoType>(selectedVisualType);
   const [localStyleId, setLocalStyleId] = useState<FrameStyle>(
@@ -173,8 +175,8 @@ export function VisualsConfig({
             </span>
           </SelectableCard> */}
 
-          {/* Style Presets (First 8) */}
-          {VIDEO_STYLES.slice(0, 8).map((style) => (
+          {/* Style Presets */}
+          {availableStyles.map((style) => (
             <div
               key={style.id}
               onClick={() => handleStyleChange(style.id)}
