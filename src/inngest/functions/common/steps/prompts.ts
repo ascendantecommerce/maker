@@ -1,7 +1,7 @@
 import { VideoType } from "@/utils/enum";
 import { GeminiService } from "@/lib/gemini/generator";
 import type { Schema, VisualShot, VisualBroll } from "@/lib/schema-generator/types";
-import * as productPrompts from "../../product/prompts";
+import * as productPrompts from "../../product-image-ads/prompts";
 import * as narrativePrompts from "../../narrative/prompts";
 import { buildVideoGenerationSchemaContext, buildVideoGenerationPrompt } from "@/lib/prompts";
 

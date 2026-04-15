@@ -34,7 +34,8 @@ export function VideoCustomization({
 
   const isRealUGC = generationParams.type === "ugc-video-ad";
   const isFakeUGC = generationParams.type === "fake-ugc-video-ad";
-  const isProduct = generationParams.type === "product-video-ad";
+  const isProduct =
+    generationParams.type === "product-video-ad" || generationParams.type === "product-image-ad";
   const isCharacterAd = generationParams.type === "character-driven-ad";
   const isNarrative = !isRealUGC && !isFakeUGC && !isProduct && !isCharacterAd;
   // Voice state
@@ -297,8 +298,8 @@ export function VideoCustomization({
               </>
             )}
 
-            {/* Narrative, Product & Character Ads: Visuals Style */}
-            {(isNarrative || isProduct || isCharacterAd) && (
+            {/* Narrative & Character Ads: Visuals Style */}
+            {(isNarrative || isCharacterAd) && (
               <>
                 <VisualsConfig
                   selectedVisualType={selectedVisualType}

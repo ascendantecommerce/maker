@@ -10,6 +10,7 @@ const MODE_TO_EVENT: Record<string, string> = {
   "ugc-video-ad": "ugc/video.orchestrate",
   "fake-ugc-video-ad": "video/fake-ugc.orchestrate",
   "product-video-ad": "video/product.orchestrate",
+  "product-image-ad": "image/product.orchestrate",
   "narrative-video": "video/narrative.orchestrate",
   "character-driven-ad": "character-ad/video.orchestrate",
 };
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
     .executeTakeFirst();
 
   const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "").split(",").map((e) => e.trim());
-  const isAdmin = session.user.email ? ADMIN_EMAILS.includes(session.user.email) : false;
+  const isAdmin = session?.user?.email ? ADMIN_EMAILS.includes(session.user.email) : false;
 
   if (user?.role !== "editor" && !isAdmin) {
     return Response.json(

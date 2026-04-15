@@ -13,7 +13,7 @@ import {
   PRODUCT_IMAGE_ANALYSIS_STEP,
   PRODUCT_SHOT_RULES,
   GENERIC_SHOT_RULES,
-} from "../../inngest/functions/product/prompts";
+} from "../../inngest/functions/product-image-ads/prompts";
 
 export const VIDEO_SFX_ANALYSIS_PROMPT = `You are a cinematic sound designer. You are analyzing the ORIGINAL AI-generated video, which contains native audio with sound effects baked in by the video model.
 

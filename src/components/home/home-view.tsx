@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Sparkles, Brain, Scissors, Video, Users } from "lucide-react";
+import { Sparkles, Brain, Scissors, Video, Users, Image as ImageIcon } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
 
@@ -164,6 +164,14 @@ export default function HomeView() {
             description="Generate high-converting promo videos from your product assets and descriptions."
             icon={Scissors}
             href="/script-to-video?mode=product-video-ad"
+          />
+
+          <ModeCard
+            index={3}
+            title="Product Image Ads"
+            description="Generate dynamic, fast-pacing promo videos from your product image assets."
+            icon={ImageIcon}
+            href="/script-to-video?mode=product-image-ad"
           />
 
           <ModeCard

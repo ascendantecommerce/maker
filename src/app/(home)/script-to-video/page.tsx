@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { calculateVideoCreditCost } from "@/lib/generation/costs";
-import { VideoType } from "@/utils/enum";
+import { VideoType, FrameStyle } from "@/utils/enum";
 
 function ScriptToVideoContent() {
   const router = useRouter();
@@ -27,7 +27,9 @@ function ScriptToVideoContent() {
   const mode = searchParams.get("mode") as
     | "narrative-video"
     | "product-video-ad"
+    | "product-image-ad"
     | "ugc-video-ad"
+    | "fake-ugc-video-ad"
     | "character-driven-ad"
     | null;
 
@@ -40,7 +42,19 @@ function ScriptToVideoContent() {
   // Initialize mode from query param
   useEffect(() => {
     if (mode) {
-      setGenerationParams({ type: mode });
+      if (mode === "product-image-ad") {
+        setGenerationParams({
+          type: mode,
+          visuals: { type: VideoType.AI_IMAGES, style: FrameStyle.Cinematic },
+        });
+      } else if (mode === "product-video-ad") {
+        setGenerationParams({
+          type: mode,
+          visuals: { type: VideoType.AI_VIDEOS, style: FrameStyle.Realism },
+        });
+      } else {
+        setGenerationParams({ type: mode });
+      }
     }
   }, [mode, setGenerationParams]);
 
@@ -85,9 +99,11 @@ function ScriptToVideoContent() {
       ? "Character-Driven Ad"
       : generationParams.type === "product-video-ad"
         ? "Product Video Ad"
-        : isUGC
-          ? "UGC Video"
-          : "Narrative Video";
+        : generationParams.type === "product-image-ad"
+          ? "Product Image Ad"
+          : isUGC
+            ? "UGC Video"
+            : "Narrative Video";
 
   return (
     <div className="flex flex-col h-screen w-full bg-zinc-950">

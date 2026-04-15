@@ -239,6 +239,7 @@ export interface Schema {
   type?:
     | "narrative-video"
     | "product-video-ad"
+    | "product-image-ad"
     | "ugc-video-ad"
     | "fake-ugc-video-ad"
     | "character-driven-ad";
