@@ -12,7 +12,7 @@ import type { Schema } from "@/lib/schema-generator/types";
 import { VideoType, FrameStyle } from "@/utils/enum";
 import { Separator } from "@/components/ui/separator";
 import { ScriptEditing } from "./script-editing";
-import { NARRATIVE_VIDEO_STYLES, CHARACTER_DRIVEN_VIDEO_STYLES, VIDEO_STYLES } from "@/constants/video-styles";
+import { NARRATIVE_VIDEO_STYLES, CHARACTER_DRIVEN_VIDEO_STYLES, PRODUCT_IMAGE_VIDEO_STYLES, PRODUCT_VIDEO_STYLES, VIDEO_STYLES } from "@/constants/video-styles";
 import { AssetsConfig } from "./assets-config";
 import { ProductConfig } from "./product-config";
 import { AvatarConfig } from "./avatar-config";
@@ -41,6 +41,10 @@ export function VideoCustomization({
   let availableStyles = NARRATIVE_VIDEO_STYLES;
   if (isCharacterAd) {
     availableStyles = CHARACTER_DRIVEN_VIDEO_STYLES;
+  } else if (generationParams.type === "product-image-ad") {
+    availableStyles = PRODUCT_IMAGE_VIDEO_STYLES;
+  } else if (generationParams.type === "product-video-ad") {
+    availableStyles = PRODUCT_VIDEO_STYLES;
   }
 
   // Voice state
@@ -183,9 +187,9 @@ export function VideoCustomization({
       aspectRatio !== generationParams.aspectRatio ||
       selectedVisualType !== generationParams.visuals?.type ||
       selectedDescription !== generationParams.visuals?.style ||
-      selectedScriptTone !== generationParams.scriptTone ||
-      JSON.stringify(caption) !== JSON.stringify(generationParams.caption) ||
-      JSON.stringify(assets) !== JSON.stringify(generationParams.assets) ||
+      selectedScriptTone !== (generationParams.scriptTone || "") ||
+      JSON.stringify(caption || {}) !== JSON.stringify(generationParams.caption || {}) ||
+      JSON.stringify(assets || []) !== JSON.stringify(generationParams.assets || []) ||
       JSON.stringify(product) !== JSON.stringify(generationParams.product) ||
       JSON.stringify(avatar) !== JSON.stringify(generationParams.avatar) ||
       pacing !== generationParams.pacing ||
@@ -303,8 +307,8 @@ export function VideoCustomization({
               </>
             )}
 
-            {/* Narrative & Character Ads: Visuals Style */}
-            {(isNarrative || isCharacterAd) && (
+            {/* Narrative, Product & Character Ads: Visuals Style */}
+            {(isNarrative || isCharacterAd || isProduct) && (
               <>
                 <VisualsConfig
                   selectedVisualType={selectedVisualType}

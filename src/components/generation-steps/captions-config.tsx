@@ -149,9 +149,9 @@ export function CaptionsConfig({ caption, onCaptionChange }: CaptionsConfigProps
                 <span className="truncate font-bold text-foreground">
                   {selectedCaptionObj && selectedCaptionObj.id !== "caption-none"
                     ? selectedCaptionObj.id
-                        .replace("caption-", "")
-                        .replace(/-/g, " ")
-                        .replace(/\b\w/g, (l) => l.toUpperCase())
+                      .replace("caption-", "")
+                      .replace(/-/g, " ")
+                      .replace(/\b\w/g, (l) => l.toUpperCase())
                     : "Select style"}
                 </span>
                 <ChevronDown className="h-4 w-4 text-muted-foreground/50 transition-transform duration-200 group-data-[state=open]:rotate-180" />

@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { Sparkles, Brain, Scissors, Video, Users, Image as ImageIcon } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
+import { useSchemaStore } from "@/stores/schema-store";
 
 interface ModeCardProps {
   title: string;
@@ -88,6 +89,10 @@ export default function HomeView() {
   const router = useRouter();
   const { isMobile, toggleSidebar } = useSidebar();
   const [isCreating, setIsCreating] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    useSchemaStore.getState().reset();
+  }, []);
 
   const handleCreateProject = async (type: string) => {
     setIsCreating(type);

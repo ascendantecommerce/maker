@@ -287,3 +287,11 @@ export const CHARACTER_DRIVEN_VIDEO_STYLES = VIDEO_STYLES.filter((s) =>
   [FrameStyle.FeltWool, FrameStyle.Pixar, FrameStyle.Claymation].includes(s.id),
 );
 
+export const PRODUCT_IMAGE_VIDEO_STYLES = VIDEO_STYLES.filter((s) =>
+  [FrameStyle.Realism, FrameStyle.Cinematic].includes(s.id),
+);
+
+export const PRODUCT_VIDEO_STYLES = VIDEO_STYLES.filter((s) =>
+  [FrameStyle.Realism, FrameStyle.Cinematic].includes(s.id),
+);
+
