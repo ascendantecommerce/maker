@@ -8,10 +8,18 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Sparkles, Brain, Scissors, Video, Users, Image as ImageIcon } from "lucide-react";
+import {
+  Sparkles,
+  Brain,
+  Scissors,
+  Video,
+  Users,
+  Image as ImageIcon,
+} from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
 import { useSchemaStore } from "@/stores/schema-store";
+import { ViralVideosDialog } from "./viral-videos-dialog";
 
 interface ModeCardProps {
   title: string;
@@ -89,6 +97,7 @@ export default function HomeView() {
   const router = useRouter();
   const { isMobile, toggleSidebar } = useSidebar();
   const [isCreating, setIsCreating] = React.useState<string | null>(null);
+  const [isViralDialogOpen, setIsViralDialogOpen] = React.useState(false);
 
   React.useEffect(() => {
     useSchemaStore.getState().reset();
@@ -130,14 +139,23 @@ export default function HomeView() {
       <div className="h-14 flex items-center p-4 justify-between text-sm font-medium border-b sticky top-0 z-10 bg-card backdrop-blur-md">
         <div className="flex items-center gap-2">
           {isMobile && (
-            <Button className="rounded-full" size="icon" variant="ghost" onClick={toggleSidebar}>
+            <Button
+              className="rounded-full"
+              size="icon"
+              variant="ghost"
+              onClick={toggleSidebar}
+            >
               <Icons.menu className="size-5" />
             </Button>
           )}
           Home
         </div>
       </div>
-      <div className={cn("max-w-300 mx-auto transition-all duration-500 p-6 lg:p-8")}>
+      <div
+        className={cn(
+          "max-w-300 mx-auto transition-all duration-500 p-6 lg:p-8",
+        )}
+      >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
           <ModeCard
             index={0}
@@ -195,6 +213,20 @@ export default function HomeView() {
             isCreating={isCreating === "ai-editor"}
             onClick={() => handleCreateProject("ai-editor")}
           />
+
+          <ModeCard
+            index={4}
+            title="Viral Videos"
+            description="Discover the most viral videos trending across platforms in real time."
+            icon={Sparkles}
+            isCreating={isCreating === "viral-videos"}
+            onClick={() => setIsViralDialogOpen(true)}
+          />
+
+          <ViralVideosDialog 
+            open={isViralDialogOpen} 
+            onOpenChange={setIsViralDialogOpen} 
+          />
         </div>
       </div>
     </main>
@@ -213,7 +245,12 @@ export function PromptPanelHeader({
   return (
     <div className="h-16 flex items-center p-6 shrink-0 bg-transparent border-b border-border sticky top-0 z-50 backdrop-blur-xl">
       {isMobile && (
-        <Button className="rounded-full mr-4" size="icon" variant="ghost" onClick={onToggleSidebar}>
+        <Button
+          className="rounded-full mr-4"
+          size="icon"
+          variant="ghost"
+          onClick={onToggleSidebar}
+        >
           <Icons.menu className="size-6 text-foreground" />
         </Button>
       )}
