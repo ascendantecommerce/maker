@@ -8,6 +8,8 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { generateSceneFromCuts } from "@/lib/video-editor/scene-generator";
 import { v4 as uuidv4 } from "uuid";
+import { R2StorageService } from "@/lib/r2-storage";
+import { config as appConfig } from "@/app/api/uploads/socials/config";
 
 const inngest = getInngestApp();
 
@@ -82,16 +84,39 @@ export const viralVideoEditOrchestrator = inngest.createFunction(
       return await GeminiService.analyzeForEcommerceEdit(cacheKey);
     });
 
-    // 4. Generate the Scenify JSON based on suggested cuts
+    // 4. Download original video and upload to R2
+    const r2VideoUrl = await step.run("upload-to-r2", async () => {
+      console.log(`Downloading viral video: ${video.url}`);
+      const response = await fetch(video.url);
+      if (!response.ok) {
+        throw new NonRetriableError(`Failed to download video from origin: ${response.statusText}`);
+      }
+      
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      
+      const r2Service = new R2StorageService({
+        ...appConfig.r2,
+        bucketName: appConfig.r2.bucket
+      });
+      const r2FileName = `viral_edits/${videoId}_${Date.now()}.mp4`;
+      
+      console.log(`Uploading to R2 as ${r2FileName}`);
+      const uploadedUrl = await r2Service.uploadData(r2FileName, buffer, "video/mp4");
+      return uploadedUrl;
+    });
+
+    // 5. Generate the Scenify JSON based on suggested cuts using the R2 URL
     const generatedScene = await step.run("generate-scene", async () => {
       const durationMs = asset.duration ? asset.duration * 1000 : 15000;
       return generateSceneFromCuts(
-        video.url,
+        r2VideoUrl, // Use the uploaded R2 URL here!
         durationMs,
         analysis.cuts || [],
         `viraledit_${videoId}.mp4`
       );
     });
+
 
 
     // 5. Create Project & Scene in DB for immediate editing
