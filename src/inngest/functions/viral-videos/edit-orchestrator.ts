@@ -44,11 +44,11 @@ export const viralVideoEditOrchestrator = inngest.createFunction(
     // 2. Index the video (Download -> Upload to Gemini)
     // We'll create a temporary asset or check if one exists
     const asset = await step.run("index-video", async () => {
-      // Check if we already have an asset for this URL
+      // Check if we already have an asset for this URL/ID
       let existingAsset = await db
         .selectFrom("assets")
         .selectAll()
-        .where("public_url", "=", video.url)
+        .where("id", "=", `viral_${videoId}`)
         .executeTakeFirst();
       
       if (existingAsset && existingAsset.gemini_file_uri) {
@@ -70,6 +70,11 @@ export const viralVideoEditOrchestrator = inngest.createFunction(
             public_url: video.url,
             mime_type: "video/mp4",
           })
+          .onConflict((oc) => 
+            oc.column("id").doUpdateSet({
+              public_url: video.url,
+            })
+          )
           .returningAll()
           .executeTakeFirstOrThrow();
       }
