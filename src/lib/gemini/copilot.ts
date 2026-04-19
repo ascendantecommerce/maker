@@ -15,7 +15,7 @@ if (!apiKey) {
 const genAI = new GoogleGenAI({ apiKey });
 
 // Using gemini-2.5-flash-image for reliable tool calling
-const MODEL_NAME = "gemini-2.5-flash";
+const MODEL_NAME = "gemini-2.5-flash-image";
 const MODEL_NAME_EDIT = "gemini-2.5-flash";
 
 export const TOOL_DEFINITIONS = [
@@ -566,7 +566,7 @@ Maintain the same language as the user's input in all your responses.`;
     try {
       // Create cache using the raw SDK
       const cache = await genAI.caches.create({
-        model: MODEL_NAME,
+        model: MODEL_NAME_EDIT,
         config: {
           ttl: `${ttlSeconds}s`,
           contents: [
