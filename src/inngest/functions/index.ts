@@ -14,6 +14,8 @@ import { generateProductImageAdScript } from "./product-image-ads/script-generat
 import { generateUGCScript } from "./ugc/script-generator";
 import { generateFakeUGCScript } from "./fake-ugc/script-generator";
 import { viralVideosOrchestrator } from "./viral-videos/orchestrator";
+import { viralVideoEditOrchestrator } from "./viral-videos/edit-orchestrator";
+
 
 export const functions = [
   narrativeVideoOrchestrator,
@@ -32,4 +34,6 @@ export const functions = [
   generateUGCScript,
   generateFakeUGCScript,
   viralVideosOrchestrator,
+  viralVideoEditOrchestrator,
 ];
+

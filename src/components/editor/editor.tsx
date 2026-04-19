@@ -94,6 +94,7 @@ export default function Editor({
   useEffect(() => {
     if (!studio || !design || !isReady) return;
     try {
+      console.log("design", design);
       studio.loadFromJSON(design);
     } catch (error) {
       console.error("Failed to load design:", error);

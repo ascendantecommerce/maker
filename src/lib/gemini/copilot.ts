@@ -15,7 +15,9 @@ if (!apiKey) {
 const genAI = new GoogleGenAI({ apiKey });
 
 // Using gemini-2.5-flash-image for reliable tool calling
-const MODEL_NAME = "gemini-2.5-flash-image";
+const MODEL_NAME = "gemini-2.5-flash";
+const MODEL_NAME_EDIT = "gemini-2.5-flash";
+
 export const TOOL_DEFINITIONS = [
   {
     name: "process_video_workflow",
@@ -57,10 +59,17 @@ export const TOOL_DEFINITIONS = [
               },
               preset: {
                 type: "STRING",
-                description: "The name of the preset used (e.g., '@viral_clips'), if applicable.",
+                description:
+                  "The name of the preset used (e.g., '@viral_clips'), if applicable.",
               },
             },
-            required: ["start_time", "end_time", "hook_score", "retention_score", "title"],
+            required: [
+              "start_time",
+              "end_time",
+              "hook_score",
+              "retention_score",
+              "title",
+            ],
           },
         },
         apply_reframe: {
@@ -82,22 +91,26 @@ export const TOOL_DEFINITIONS = [
         },
         apply_b_roll: {
           type: "BOOLEAN",
-          description: "Whether to search for and add b-roll media from Pexels.",
+          description:
+            "Whether to search for and add b-roll media from Pexels.",
           default: false,
         },
         sfx_prompts: {
           type: "ARRAY",
-          description: "Optional specific sound effect prompts if apply_sound_effects is true.",
+          description:
+            "Optional specific sound effect prompts if apply_sound_effects is true.",
           items: {
             type: "OBJECT",
             properties: {
               clip_index: {
                 type: "NUMBER",
-                description: "The index of the clip (0-based) to add the sound to.",
+                description:
+                  "The index of the clip (0-based) to add the sound to.",
               },
               text: {
                 type: "STRING",
-                description: "Description of the sound (e.g., 'Ding', 'Whoosh').",
+                description:
+                  "Description of the sound (e.g., 'Ding', 'Whoosh').",
               },
               time: {
                 type: "NUMBER",
@@ -109,13 +122,15 @@ export const TOOL_DEFINITIONS = [
         },
         b_roll_prompts: {
           type: "ARRAY",
-          description: "Optional specific b-roll prompts if apply_b_roll is true.",
+          description:
+            "Optional specific b-roll prompts if apply_b_roll is true.",
           items: {
             type: "OBJECT",
             properties: {
               clip_index: {
                 type: "NUMBER",
-                description: "The index of the clip (0-based) to add the b-roll to.",
+                description:
+                  "The index of the clip (0-based) to add the b-roll to.",
               },
               keyword: {
                 type: "STRING",
@@ -154,7 +169,8 @@ export const TOOL_DEFINITIONS = [
             properties: {
               start_time: {
                 type: "STRING",
-                description: "The start time of the clip (e.g., '0:05', '1:20').",
+                description:
+                  "The start time of the clip (e.g., '0:05', '1:20').",
               },
               end_time: {
                 type: "STRING",
@@ -162,7 +178,8 @@ export const TOOL_DEFINITIONS = [
               },
               description: {
                 type: "STRING",
-                description: "A short description of what happens in this clip.",
+                description:
+                  "A short description of what happens in this clip.",
               },
               hook_score: {
                 type: "NUMBER",
@@ -178,10 +195,17 @@ export const TOOL_DEFINITIONS = [
               },
               preset: {
                 type: "STRING",
-                description: "The name of the preset used (e.g., '@viral_clips'), if applicable.",
+                description:
+                  "The name of the preset used (e.g., '@viral_clips'), if applicable.",
               },
             },
-            required: ["start_time", "end_time", "hook_score", "retention_score", "title"],
+            required: [
+              "start_time",
+              "end_time",
+              "hook_score",
+              "retention_score",
+              "title",
+            ],
           },
         },
       },
@@ -250,17 +274,20 @@ export const TOOL_DEFINITIONS = [
               },
               prompts: {
                 type: "ARRAY",
-                description: "The list of sound effect descriptions and timestamps.",
+                description:
+                  "The list of sound effect descriptions and timestamps.",
                 items: {
                   type: "OBJECT",
                   properties: {
                     text: {
                       type: "STRING",
-                      description: "Description of the sound (e.g., 'whoosh', 'ding').",
+                      description:
+                        "Description of the sound (e.g., 'whoosh', 'ding').",
                     },
                     time: {
                       type: "NUMBER",
-                      description: "Time in seconds from the start of the clip.",
+                      description:
+                        "Time in seconds from the start of the clip.",
                     },
                   },
                   required: ["text", "time"],
@@ -348,7 +375,9 @@ export class GeminiService {
         throw new Error("Upload failed: No name returned");
       }
 
-      console.log(`Uploaded file ${uploadResult.displayName} as: ${uploadResult.name}`);
+      console.log(
+        `Uploaded file ${uploadResult.displayName} as: ${uploadResult.name}`,
+      );
 
       // Wait for file to be active (Videos need processing)
       let file = await genAI.files.get({ name: uploadResult.name });
@@ -427,7 +456,9 @@ export class GeminiService {
       return updatedAsset;
     } finally {
       // 5. Clean up temporary file
-      await unlink(tempFilePath).catch((err) => console.error("Failed to delete temp file:", err));
+      await unlink(tempFilePath).catch((err) =>
+        console.error("Failed to delete temp file:", err),
+      );
     }
   }
 
@@ -598,10 +629,15 @@ Maintain the same language as the user's input in all your responses.`;
     }
   }
 
-  static async streamContent(messages: any[], cacheKey?: string, tools: any[] = TOOL_DEFINITIONS) {
+  static async streamContent(
+    messages: any[],
+    cacheKey?: string,
+    tools: any[] = TOOL_DEFINITIONS,
+  ) {
     try {
       const genaiMessages = messages.map((msg) => {
-        const role = msg.role === "assistant" || msg.role === "model" ? "model" : "user";
+        const role =
+          msg.role === "assistant" || msg.role === "model" ? "model" : "user";
 
         if (msg.parts) {
           return { role, parts: msg.parts };
@@ -634,7 +670,8 @@ Maintain the same language as the user's input in all your responses.`;
           ...config,
           // ONLY pass tools if NO cacheKey is present.
           // If cacheKey is present, tools MUST be baked into the cache itself.
-          tools: !cacheKey && tools ? [{ functionDeclarations: tools }] : undefined,
+          tools:
+            !cacheKey && tools ? [{ functionDeclarations: tools }] : undefined,
         },
       });
 
@@ -645,10 +682,15 @@ Maintain the same language as the user's input in all your responses.`;
     }
   }
 
-  static async generateContent(message: string, cacheKey: string, history: any[] = []) {
+  static async generateContent(
+    message: string,
+    cacheKey: string,
+    history: any[] = [],
+  ) {
     try {
       const genaiMessages = history.map((msg: any) => ({
-        role: msg.role === "assistant" || msg.role === "model" ? "model" : "user",
+        role:
+          msg.role === "assistant" || msg.role === "model" ? "model" : "user",
         parts: [{ text: msg.parts?.[0]?.text || msg.content || "" }],
       }));
 
@@ -742,6 +784,62 @@ Maintain the same language as the user's input in all your responses.`;
     } catch (error) {
       console.error("Error generating name:", error);
       return "Untitled Project";
+    }
+  }
+
+  static async analyzeForEcommerceEdit(cacheKey: string) {
+    try {
+      const response = await genAI.models.generateContent({
+        model: MODEL_NAME_EDIT,
+        contents: [
+          {
+            role: "user",
+            parts: [
+              {
+                text: `Act as a professional product video editor for e-commerce. Your task is to analyze and modify the provided video to make it clean, timeless, and focused solely on the product.
+
+Strictly follow these instructions:
+
+1. Keep the content relevant to the product.
+2. Ensure that all subtitles, on-screen text, and hooks are directly related to the product shown.
+3. If the text is irrelevant, remove or replace it.
+4. Add a clear, simple, and engaging hook relevant to the product, for example:
+   - “This is a must-have if you have young children!”
+   - “Your child will love it!”
+5. The text should be easy to read, with clear and professional typography.
+6. Text Replacement: If you modify subtitles, cover the original text with a clean background (preferably white or neutral) and add new text in black or high-contrast color.
+
+Rules for removal:
+- Remove Mentions of External Brands: Identify and remove any references to other brands.
+- Remove Mentions of Platforms: Remove any visual or textual references to TikTok, TikTok Shop, Shopping cart icons, etc.
+- Remove prices, offers, and inventory: Delete or trim any mention of Prices (e.g., “$20”), Discounts, Urgency/Stock levels, or Temporary events (“Christmas,” etc.).
+
+Return the result ONLY as a JSON object with this structure:
+{
+  "cuts": [
+    { "from": number, "to": number }
+  ]
+}
+
+The "cuts" array should contain start and end times in MILLISECONDS for segments that should be REMOVED.`,
+              },
+            ],
+          },
+        ],
+        config: {
+          cachedContent: cacheKey,
+        },
+      });
+
+      const text = response.text || "";
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("No valid JSON found in Gemini response: " + text);
+      }
+      return JSON.parse(jsonMatch[0]);
+    } catch (error) {
+      console.error("Error in analyzeForEcommerceEdit:", error);
+      throw error;
     }
   }
 }

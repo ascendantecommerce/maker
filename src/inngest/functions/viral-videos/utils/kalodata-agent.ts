@@ -15,7 +15,14 @@ export interface ViralVideo {
   id: string;
   views: string;
   url: string;
+  edit_status?: "PENDING" | "EDITING" | "COMPLETED" | "FAILED";
+  analysis?: {
+    cuts: { from: number; to: number }[];
+    suggested_hooks: string[];
+    summary: string;
+  };
 }
+
 
 export async function getViralVideos(productUrl: string): Promise<ViralVideo[]> {
   console.log("Initializing Stagehand agent with Browserbase...");
