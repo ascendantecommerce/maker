@@ -276,3 +276,18 @@ export async function transcribeUrlAction(url: string) {
     return { success: false, error: error.message };
   }
 }
+
+// 7. Viral Edit
+import { inngest } from "@/inngest/client";
+
+export async function triggerViralEditAction(url: string, name: string) {
+  try {
+    await inngest.send({
+      name: "viral-videos/edit-analysis",
+      data: { url, name },
+    });
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
