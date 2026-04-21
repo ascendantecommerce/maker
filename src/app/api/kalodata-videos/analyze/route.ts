@@ -32,14 +32,14 @@ export async function POST(req: Request) {
         user_id: session.user.id,
         status: ResolverStatus.PENDING,
         input: JSON.stringify({ productUrl }),
-        metadata: JSON.stringify({ type: "viral-videos" }),
+        metadata: JSON.stringify({ type: "kalodata-videos" }),
       })
       .execute();
 
     // 2. Trigger Inngest
     const inngest = getInngestApp();
     await inngest.send({
-      name: "viral-videos/analyze",
+      name: "kalodata-videos/analyze",
       data: {
         generationId,
         productUrl,

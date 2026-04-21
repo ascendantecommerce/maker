@@ -19,9 +19,14 @@ interface ProjectData {
   segments: any[];
   isOwner: boolean;
   isPublic: boolean;
+  scene_data?: any;
 }
 
-export default function FolderPage({ params }: { params: Promise<{ schemaId: string }> }) {
+export default function FolderPage({
+  params,
+}: {
+  params: Promise<{ schemaId: string }>;
+}) {
   const { schemaId } = use(params);
   const [projectData, setProjectData] = useState<ProjectData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -72,16 +77,20 @@ export default function FolderPage({ params }: { params: Promise<{ schemaId: str
         });
       }
 
-      // // 1. If scene exists, load it directly
-      if (projectData.scene) {
-        // console.log("Loading existing scene:", projectData.scene);
-        // // Ensure we parse scene_data if it's a string, or use directly if object
-        // const sceneData =
-        //   typeof projectData.scene.scene_data === "string"
-        //     ? JSON.parse(projectData.scene.scene_data)
-        //     : projectData.scene.scene_data;
-        // setDesign(sceneData);
-        // return;
+      // 1. If scene exists, load it directly
+      if (projectData.scene?.scene_data || projectData?.scene_data) {
+        console.log("Loading existing scene:", projectData);
+
+        const rawSceneData =
+          projectData.scene?.scene_data ?? projectData?.scene_data;
+
+        const sceneData =
+          typeof rawSceneData === "string"
+            ? JSON.parse(rawSceneData)
+            : rawSceneData;
+
+        setDesign(sceneData);
+        return;
       }
 
       // 2. If no scene, convert schema and save
@@ -95,7 +104,10 @@ export default function FolderPage({ params }: { params: Promise<{ schemaId: str
         console.log({ schemaWithSegments });
 
         let exportedSchema: Design;
-        if (mainSchema?.type === "ugc-video-ad" || mainSchema?.type === "character-driven-ad") {
+        if (
+          mainSchema?.type === "ugc-video-ad" ||
+          mainSchema?.type === "character-driven-ad"
+        ) {
           console.log("Using UGC schema converter");
           exportedSchema = await convertUgcSchemaToDesign(schemaWithSegments);
         } else {
@@ -134,12 +146,18 @@ export default function FolderPage({ params }: { params: Promise<{ schemaId: str
   }, [schemaId]);
 
   if (loading || isConverting) {
-    return <div className="flex h-screen items-center justify-center">Loading project...</div>;
+    return (
+      <div className="flex h-screen items-center justify-center">
+        Loading project...
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <div className="flex h-screen items-center justify-center text-red-500">Error: {error}</div>
+      <div className="flex h-screen items-center justify-center text-red-500">
+        Error: {error}
+      </div>
     );
   }
 

@@ -13,7 +13,9 @@ import { generateProductAdScript } from "./product-video-ads/script-generator";
 import { generateProductImageAdScript } from "./product-image-ads/script-generator";
 import { generateUGCScript } from "./ugc/script-generator";
 import { generateFakeUGCScript } from "./fake-ugc/script-generator";
-import { viralVideosOrchestrator } from "./viral-videos/orchestrator";
+import { kalodataVideosOrchestrator } from "./kalodata-videos/orchestrator";
+import { repurposeVideoOrchestrator } from "./repurpose/repurpose-orchestrator";
+
 
 export const functions = [
   narrativeVideoOrchestrator,
@@ -31,5 +33,7 @@ export const functions = [
   generateProductImageAdScript,
   generateUGCScript,
   generateFakeUGCScript,
-  viralVideosOrchestrator,
+  kalodataVideosOrchestrator,
+  repurposeVideoOrchestrator,
 ];
+

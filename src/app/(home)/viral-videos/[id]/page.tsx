@@ -25,17 +25,22 @@ import {
   MoreVertical,
   Loader2,
   ExternalLink,
+  Pencil,
 } from "lucide-react";
 import ScenifyIcon from "@/components/logos/scenify";
-import type { ViralVideo } from "@/inngest/functions/viral-videos/utils/kalodata-agent";
+import type { ViralVideo } from "@/inngest/functions/kalodata-videos/utils/kalodata-agent";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Icons } from "@/components/shared/icons";
+import { analyzeViralVideo } from "../edit-actions";
+import { toast } from "sonner";
+
 
 export default function ViralVideosResultsPage() {
   const { id } = useParams() as { id: string };
   const [generation, setGeneration] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [waitingForVideoId, setWaitingForVideoId] = useState<string | null>(null);
   const { isMobile, toggleSidebar } = useSidebar();
 
   useEffect(() => {
@@ -44,12 +49,32 @@ export default function ViralVideosResultsPage() {
     const fetchStatus = async () => {
       try {
         const data = await getGeneration(id);
+        
+        // Define it before checking
+        const parsedResults = typeof data?.output === 'string' ? JSON.parse(data.output) : (data?.output || []);
+        
+        // Check for redirection if waiting
+        if (waitingForVideoId) {
+           const targetVideo = parsedResults.find((v: any) => v.id === waitingForVideoId);
+           if (targetVideo && targetVideo.edit_status === "COMPLETED" && targetVideo.schema_id) {
+             clearInterval(intervalId);
+             window.location.href = `/edit/${targetVideo.schema_id}`;
+             return;
+           }
+        }
+
+        const isAnyEditingItem = Array.isArray(parsedResults) && parsedResults.some((v: any) => v.edit_status === "PENDING" || v.edit_status === "EDITING");
+
         setGeneration(data);
 
+        // Keep polling if generation is not completed OR if any video is being edited
         if (data?.status === "COMPLETED" || data?.status === "FAILED") {
-          setIsLoading(false);
-          clearInterval(intervalId);
+          if (!isAnyEditingItem && !waitingForVideoId) {
+            setIsLoading(false);
+            clearInterval(intervalId);
+          }
         }
+
       } catch (error) {
         console.error("Error fetching generation:", error);
         setIsLoading(false);
@@ -61,7 +86,9 @@ export default function ViralVideosResultsPage() {
     intervalId = setInterval(fetchStatus, 3000);
 
     return () => clearInterval(intervalId);
-  }, [id]);
+  }, [id, waitingForVideoId]);
+
+
 
   const ensureObject = (val: any) => {
     if (typeof val === "string") {
@@ -81,9 +108,19 @@ export default function ViralVideosResultsPage() {
       generation.status === "PROGRESS");
 
   const isFailed = generation?.status === "FAILED";
-  const results: ViralVideo[] = !isPending && !isFailed
-    ? ensureObject(generation?.output) || []
-    : [];
+  const results: ViralVideo[] =
+    !isPending && !isFailed ? ensureObject(generation?.output) || [] : [];
+  
+  const isAnyServerEditing = results.some(v => v.edit_status === "PENDING" || v.edit_status === "EDITING");
+  const [isLocalEditing, setIsLocalEditing] = useState(false);
+
+  useEffect(() => {
+    if (isAnyServerEditing) {
+      setIsLocalEditing(false);
+    }
+  }, [isAnyServerEditing]);
+
+  const showEditingOverlay = isAnyServerEditing || isLocalEditing;
 
   const productLabel = generation?.input?.productUrl
     ? (() => {
@@ -150,9 +187,44 @@ export default function ViralVideosResultsPage() {
           {/* Results grid */}
           {!isPending && !isFailed && results.length > 0 && (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
-              {results.map((video, index) => (
-                <VideoResultCard key={video.id || index} video={video} />
-              ))}
+               {results.map((video, index) => (
+                 <VideoResultCard 
+                   key={video.id || index} 
+                   video={video} 
+                   generationId={id}
+                   onEditStart={(videoId) => {
+                     setIsLocalEditing(true);
+                     setWaitingForVideoId(videoId);
+                   }}
+                 />
+               ))}
+
+
+            </div>
+          )}
+
+          {/* Full Screen Editing Loader */}
+          {showEditingOverlay && (
+            <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/60 backdrop-blur-md animate-in fade-in duration-500">
+
+              <div className="flex flex-col items-center gap-6 max-w-sm text-center">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl animate-pulse" />
+                  <Loader2 className="size-16 animate-spin text-primary relative z-10" />
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-bold text-white tracking-tight">AI Editing in Progress</h2>
+                  <p className="text-white/70 text-sm leading-relaxed">
+                    Our professional editor is analyzing your clips, removing clutter, and identifying the perfect viral moments. 
+                    This usually takes about 60 seconds.
+                  </p>
+                </div>
+                <div className="flex gap-1">
+                   <div className="size-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]" />
+                   <div className="size-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]" />
+                   <div className="size-1.5 bg-primary rounded-full animate-bounce" />
+                </div>
+              </div>
             </div>
           )}
 
@@ -177,8 +249,39 @@ export default function ViralVideosResultsPage() {
   );
 }
 
-function VideoResultCard({ video }: { video: ViralVideo }) {
+function VideoResultCard({ 
+  video, 
+  generationId,
+  onEditStart
+}: { 
+  video: ViralVideo & { schema_id?: string }; 
+  generationId: string;
+  onEditStart: (videoId: string) => void;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+
+  const handleEdit = async () => {
+    setIsEditing(true);
+    onEditStart(video.id);
+    try {
+      await analyzeViralVideo(generationId, video.id);
+
+      toast.success("AI Analysis started. This will take about 60 seconds.");
+    } catch (error) {
+      console.error("Error starting edit analysis:", error);
+      toast.error("Failed to start AI analysis.");
+      setIsEditing(false);
+      // Wait for 1s then reset overlay fallback if parent has it open but API call failed
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    }
+  };
+
+
+
   return (
+
     <div
       className={cn(
         "group relative flex flex-col bg-card border border-border rounded-sm overflow-hidden transition-all duration-300 cursor-pointer",
@@ -221,7 +324,9 @@ function VideoResultCard({ video }: { video: ViralVideo }) {
         <div className="flex flex-col gap-1 min-w-0">
           {/* Revenue as title */}
           <h3 className="text-sm font-semibold text-foreground truncate">
-            {video.revenue ? `${video.revenue} revenue` : video.description?.slice(0, 48) || "Viral Video"}
+            {video.revenue
+              ? `${video.revenue} revenue`
+              : video.description?.slice(0, 48) || "Viral Video"}
           </h3>
 
           {/* Stats row */}
@@ -262,6 +367,28 @@ function VideoResultCard({ video }: { video: ViralVideo }) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem 
+              onClick={handleEdit}
+              disabled={isEditing || video.edit_status === "PENDING" || video.edit_status === "EDITING"}
+            >
+              {(isEditing || video.edit_status === "PENDING" || video.edit_status === "EDITING") ? (
+                <Loader2 className="mr-2 w-4 h-4 animate-spin" />
+              ) : (
+                <Pencil className="mr-2 w-4 h-4" />
+              )}
+              {video.analysis ? "Re-analyze Video" : "Edit Video"}
+            </DropdownMenuItem>
+
+            {video.schema_id && video.edit_status === "COMPLETED" && (
+              <DropdownMenuItem
+                onClick={() => window.open(`/edit/${video.schema_id}`, "_blank")}
+              >
+                <Sparkles className="mr-2 w-4 h-4 text-primary" />
+                Open AI Edit
+              </DropdownMenuItem>
+            )}
+
+
             {video.url && (
               <DropdownMenuItem
                 onClick={() => window.open(video.url, "_blank")}
@@ -271,9 +398,7 @@ function VideoResultCard({ video }: { video: ViralVideo }) {
               </DropdownMenuItem>
             )}
             <DropdownMenuItem
-              onClick={() =>
-                navigator.clipboard.writeText(video.url || "")
-              }
+              onClick={() => navigator.clipboard.writeText(video.url || "")}
             >
               <Share2 className="mr-2 w-4 h-4" />
               Copy Link
@@ -287,6 +412,7 @@ function VideoResultCard({ video }: { video: ViralVideo }) {
         </DropdownMenu>
       </div>
     </div>
+
   );
 }
 
@@ -328,7 +454,10 @@ function LoadingState({
       {/* Skeleton cards */}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
         {[...Array(6)].map((_, i) => (
-          <div key={i} className="rounded-sm overflow-hidden bg-card border border-border">
+          <div
+            key={i}
+            className="rounded-sm overflow-hidden bg-card border border-border"
+          >
             <div className="aspect-video bg-muted animate-pulse" />
             <div className="p-4 space-y-2">
               <div className="h-3 bg-muted animate-pulse rounded w-3/4" />

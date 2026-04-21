@@ -276,3 +276,22 @@ export async function transcribeUrlAction(url: string) {
     return { success: false, error: error.message };
   }
 }
+
+// 7. Repurpose Video
+import { inngest } from "@/inngest/client";
+
+export async function triggerRepurposeAction(
+  url: string,
+  name: string,
+  productName?: string,
+) {
+  try {
+    await inngest.send({
+      name: "video/repurpose",
+      data: { url, name, productName },
+    });
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
