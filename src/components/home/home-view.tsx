@@ -157,7 +157,7 @@ export default function HomeView() {
         )}
       >
         <section>
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, ease: "easeOut" }}
@@ -207,16 +207,16 @@ export default function HomeView() {
               href="/script-to-video?mode=product-image-ad"
             />
 
-            <ModeCard
+            {/* <ModeCard
               index={5}
               title="AI Narrative Video"
               description="Transform scripts into creative storytelling, motivational, or educational videos."
               icon={Brain}
               href="/script-to-video?mode=narrative-video"
-            />
+            /> */}
           </div>
         </section>
-
+        {/* 
         <section>
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
@@ -237,10 +237,10 @@ export default function HomeView() {
               onClick={() => handleCreateProject("ai-editor")}
             />
           </div>
-        </section>
+        </section> */}
 
         <section>
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 8 * 0.05, duration: 0.4, ease: "easeOut" }}
