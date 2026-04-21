@@ -153,81 +153,103 @@ export default function HomeView() {
       </div>
       <div
         className={cn(
-          "max-w-300 mx-auto transition-all duration-500 p-6 lg:p-8",
+          "max-w-300 mx-auto transition-all duration-500 p-6 lg:p-8 flex flex-col gap-10",
         )}
       >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
-          <ModeCard
-            index={0}
-            title="UGC Video Ads"
-            description="Create authentic user-style ads with AI avatars interacting with your product."
-            icon={Video}
-            href="/script-to-video?mode=ugc-video-ad"
-          />
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-1.5 h-1.5 rounded-full bg-primary/70" />
+            <h2 className="text-sm font-medium text-foreground">Video Generation</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
+            <ModeCard
+              index={0}
+              title="UGC Video Ads"
+              description="Create authentic user-style ads with AI avatars interacting with your product."
+              icon={Video}
+              href="/script-to-video?mode=ugc-video-ad"
+            />
 
-          <ModeCard
-            index={1}
-            title="Character-Driven Ad"
-            description="Generate multi-character ads with native lip-sync and cinematic consistency."
-            icon={Users}
-            href="/script-to-video?mode=character-driven-ad"
-          />
+            <ModeCard
+              index={1}
+              title="Character-Driven Ad"
+              description="Generate multi-character ads with native lip-sync and cinematic consistency."
+              icon={Users}
+              href="/script-to-video?mode=character-driven-ad"
+            />
 
-          <ModeCard
-            index={2}
-            title="Fake UGC Ads"
-            description="High-converting AI-generated UGC style ads using lifestyle visuals and avatars."
-            icon={Sparkles}
-            href="/script-to-video?mode=fake-ugc-video-ad"
-          />
+            <ModeCard
+              index={2}
+              title="Fake UGC Ads"
+              description="High-converting AI-generated UGC style ads using lifestyle visuals and avatars."
+              icon={Sparkles}
+              href="/script-to-video?mode=fake-ugc-video-ad"
+            />
 
-          <ModeCard
-            index={2}
-            title="Product Video Ads"
-            description="Generate high-converting promo videos from your product assets and descriptions."
-            icon={Scissors}
-            href="/script-to-video?mode=product-video-ad"
-          />
+            <ModeCard
+              index={3}
+              title="Product Video Ads"
+              description="Generate high-converting promo videos from your product assets and descriptions."
+              icon={Scissors}
+              href="/script-to-video?mode=product-video-ad"
+            />
 
-          <ModeCard
-            index={3}
-            title="Product Image Ads"
-            description="Generate dynamic, fast-pacing promo videos from your product image assets."
-            icon={ImageIcon}
-            href="/script-to-video?mode=product-image-ad"
-          />
+            <ModeCard
+              index={4}
+              title="Product Image Ads"
+              description="Generate dynamic, fast-pacing promo videos from your product image assets."
+              icon={ImageIcon}
+              href="/script-to-video?mode=product-image-ad"
+            />
 
-          <ModeCard
-            index={3}
-            title="AI Narrative Video"
-            description="Transform scripts into creative storytelling, motivational, or educational videos."
-            icon={Brain}
-            href="/script-to-video?mode=narrative-video"
-          />
+            <ModeCard
+              index={5}
+              title="AI Narrative Video"
+              description="Transform scripts into creative storytelling, motivational, or educational videos."
+              icon={Brain}
+              href="/script-to-video?mode=narrative-video"
+            />
+          </div>
+        </section>
 
-          <ModeCard
-            index={4}
-            title="AI Editor"
-            description="Professional video editing app powered by AI tools."
-            icon={Scissors}
-            isCreating={isCreating === "ai-editor"}
-            onClick={() => handleCreateProject("ai-editor")}
-          />
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-1.5 h-1.5 rounded-full bg-primary/70" />
+            <h2 className="text-sm font-medium text-foreground">Pro Tools</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
+            <ModeCard
+              index={0}
+              title="AI Editor"
+              description="Professional video editing app powered by AI tools."
+              icon={Scissors}
+              isCreating={isCreating === "ai-editor"}
+              onClick={() => handleCreateProject("ai-editor")}
+            />
+          </div>
+        </section>
 
-          <ModeCard
-            index={4}
-            title="Viral Videos"
-            description="Discover the most viral videos trending across platforms in real time."
-            icon={Sparkles}
-            isCreating={isCreating === "viral-videos"}
-            onClick={() => setIsViralDialogOpen(true)}
-          />
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-1.5 h-1.5 rounded-full bg-primary/70" />
+            <h2 className="text-sm font-medium text-foreground">Clone Videos</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
+            <ModeCard
+              index={0}
+              title="Clone Videos"
+              description="Finds good videos and clones it with minimal edits."
+              icon={Sparkles}
+              isCreating={isCreating === "viral-videos"}
+              onClick={() => setIsViralDialogOpen(true)}
+            />
+          </div>
+        </section>
 
-          <ViralVideosDialog 
-            open={isViralDialogOpen} 
-            onOpenChange={setIsViralDialogOpen} 
-          />
-        </div>
+        <ViralVideosDialog
+          open={isViralDialogOpen}
+          onOpenChange={setIsViralDialogOpen}
+        />
       </div>
     </main>
   );
