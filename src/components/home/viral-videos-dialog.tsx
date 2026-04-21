@@ -39,7 +39,7 @@ export function ViralVideosDialog({ open, onOpenChange }: ViralVideosDialogProps
     setError(null);
 
     try {
-      const response = await fetch("/api/viral-videos/analyze", {
+      const response = await fetch("/api/kalodata-videos/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ productUrl: url }),

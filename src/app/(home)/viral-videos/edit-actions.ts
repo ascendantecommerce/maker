@@ -37,20 +37,32 @@ export async function analyzeViralVideo(generationId: string, videoId: string) {
         .where("id", "=", generationId)
         .execute();
     }
-  }
 
-  const inngest = getInngestApp();
-  
-  await inngest.send({
-    name: "viral-videos/edit-analysis",
-    data: {
-      generationId,
-      videoId,
-    },
-    user: {
-      id: session.user.id,
-    }
-  });
+    const videoInfo = results[videoIndex];
+    const url = videoInfo?.video_url || videoInfo?.url;
+    const name = videoInfo?.item_name || videoInfo?.name || "Viral Video";
+    // For now, default productName to the scraped item name or empty
+    const productName = videoInfo?.item_name || "";
+
+    const inngest = getInngestApp();
+    
+    await inngest.send({
+      name: "video/repurpose",
+      data: {
+        url,
+        name,
+        productName,
+        // Passing these along just in case downstream steps re-implement DB binding
+        generationId,
+        videoId,
+      },
+      user: {
+        id: session.user.id,
+      }
+    });
+  } else {
+    throw new Error("Generation not found or missing output data");
+  }
 
   return { success: true };
 }

@@ -277,14 +277,18 @@ export async function transcribeUrlAction(url: string) {
   }
 }
 
-// 7. Viral Edit
+// 7. Repurpose Video
 import { inngest } from "@/inngest/client";
 
-export async function triggerViralEditAction(url: string, name: string) {
+export async function triggerRepurposeAction(
+  url: string,
+  name: string,
+  productName?: string,
+) {
   try {
     await inngest.send({
-      name: "viral-videos/edit-analysis",
-      data: { url, name },
+      name: "video/repurpose",
+      data: { url, name, productName },
     });
     return { success: true };
   } catch (error: any) {

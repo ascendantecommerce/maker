@@ -28,7 +28,7 @@ import {
   Pencil,
 } from "lucide-react";
 import ScenifyIcon from "@/components/logos/scenify";
-import type { ViralVideo } from "@/inngest/functions/viral-videos/utils/kalodata-agent";
+import type { ViralVideo } from "@/inngest/functions/kalodata-videos/utils/kalodata-agent";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Icons } from "@/components/shared/icons";

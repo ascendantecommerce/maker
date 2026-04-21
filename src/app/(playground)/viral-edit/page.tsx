@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { triggerViralEditAction } from "../actions";
+import { triggerRepurposeAction } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
@@ -13,11 +13,12 @@ export default function ViralEditPlayground() {
   const [triggered, setTriggered] = useState(false);
   const [url, setUrl] = useState("https://live.kalocdn.com/video/7584490494177152287.mp4?key=619e635cfb3584f0daea1fd845a5929e&time=1776295487598");
   const [name, setName] = useState("my product");
+  const [productName, setProductName] = useState("ToePlex Magnesium");
 
   const handleTrigger = async () => {
     setLoading(true);
     try {
-      const result = await triggerViralEditAction(url, name);
+      const result = await triggerRepurposeAction(url, name, productName);
       if (result.success) {
         toast.success("Orchestrator triggered successfully!");
         setTriggered(true);
@@ -66,6 +67,15 @@ export default function ViralEditPlayground() {
               value={name} 
               onChange={(e) => setName(e.target.value)} 
               placeholder="e.g. My Viral Summer Product"
+              className="h-12 bg-background/50 border-primary/20 focus:border-primary transition-colors"
+            />
+          </div>
+          <div className="space-y-3">
+            <label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Product Name</label>
+            <Input 
+              value={productName} 
+              onChange={(e) => setProductName(e.target.value)} 
+              placeholder="e.g. ToePlex Magnesium"
               className="h-12 bg-background/50 border-primary/20 focus:border-primary transition-colors"
             />
           </div>

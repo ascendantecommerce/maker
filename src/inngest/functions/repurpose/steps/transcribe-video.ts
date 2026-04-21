@@ -1,5 +1,5 @@
 import { transcribe } from "@/lib/transcribe";
-import type { Paragraph } from "@/lib/transcribe/types";
+import type { Paragraph, Word } from "@/lib/transcribe/types";
 
 export interface TranscribeVideoOptions {
   /** Public URL of the video to transcribe (can be the R2 URL) */
@@ -8,6 +8,7 @@ export interface TranscribeVideoOptions {
 
 export interface TranscribeVideoResult {
   paragraphs: Paragraph[];
+  words: Word[];
   fullText: string;
   duration: number;
 }
@@ -27,8 +28,9 @@ export async function transcribeVideo({
   });
 
   const paragraphs = result.results?.main?.paragraphs ?? [];
+  const words = result.results?.main?.words ?? [];
   const fullText = result.results?.main?.text ?? "";
   const duration = result.duration ?? 0;
 
-  return { paragraphs, fullText, duration };
+  return { paragraphs, words, fullText, duration };
 }
