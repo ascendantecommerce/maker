@@ -31,15 +31,16 @@ export async function getViralVideos(productUrl: string): Promise<ViralVideo[]> 
     env: "BROWSERBASE",
     model: "google/gemini-2.5-flash",
     projectId: process.env.BROWSERBASE_PROJECT_ID,
-    browserContextOptions: {
-      userAgent:
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    },
   });
 
   await stagehand.init();
 
-  let page = stagehand.page;
+  await stagehand.context.setExtraHTTPHeaders({
+    "User-Agent":
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+  });
+
+  let page = stagehand.context.activePage();
   if (!page) {
     const pages = stagehand.context.pages();
     page = pages.length > 0 ? pages[0] : await stagehand.context.newPage();
@@ -53,7 +54,7 @@ export async function getViralVideos(productUrl: string): Promise<ViralVideo[]> 
     console.log("Navigating to Kalodata login...");
     await page.goto("https://www.kalodata.com/login", {
       waitUntil: "domcontentloaded",
-      timeout: 60000,
+      timeoutMs: 60000,
     });
 
     console.log("Waiting for login form...");
@@ -77,7 +78,7 @@ export async function getViralVideos(productUrl: string): Promise<ViralVideo[]> 
     console.log(`Analyzing product: ${productId}`);
     await page.goto(productUrl, {
       waitUntil: "domcontentloaded",
-      timeout: 60000,
+      timeoutMs: 60000,
     });
 
     function formatDate(date: Date) {
