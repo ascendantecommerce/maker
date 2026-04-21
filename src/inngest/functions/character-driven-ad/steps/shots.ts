@@ -125,7 +125,7 @@ export const generateCharacterAdShots = async (
   if (!apiKey) throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set");
 
   const visualStyle = scheme.visuals?.style ?? "High-end 3D Pixar/Illumination animation style";
-  const gemini = new GeminiService(apiKey, "gemini-2.0-flash-lite");
+  const gemini = new GeminiService(apiKey, "gemini-3-flash-preview");
 
   // Format the input payload: we only care about segments that actually have shots
   const segmentList = (scheme.segments || [])

@@ -42,16 +42,16 @@ Villains must be solid characters or anthropomorphized objects that properly emb
 - Face: REQUIRED! Must have a highly expressive, anthropomorphic face with BIG, CUTE EYES and a functional mouth. Detailed facial features (smug, mischievous, or asymmetrical expressions matching the ${visualStyle}).
 
 SCENE COMPOSITION (MANDATORY FOR ALL ACTS, INCLUDING VILLAINS):
-- LIGHTING & ENVIRONMENT: MUST ALWAYS be a brightly lit, premium, modern, everyday interior (e.g., a clean modern bathroom, premium kitchen, sunny bedroom) in a beautiful ${visualStyle}. NEVER use dark, gloomy, chaotic, abstract, or spooky scenes, even for villains!
-- BACKGROUND: A human subject (the "victim") who is in clear view but slightly soft-focused, silent, non-speaking, and with no mouth movement. Ensure the background environment is recognizable.
+- LIGHTING & ENVIRONMENT: Match the environment to the ${visualStyle}. For standard products, use a brightly lit, premium, modern, everyday interior. If the style is Pharma CGI/3D Medical, use an internal human body environment, microscopic view, fleshy organic caverns, or artery walls with volumetric lighting (God rays). If the style is Claymation, use a miniature handmade diorama with dollhouse scale.
+- BACKGROUND: A human subject (or appropriate background entity) who is in clear view but slightly soft-focused, silent, non-speaking, and with no mouth movement. Ensure the background environment is recognizable.
 
 PRODUCT COLOR & BRAND DERIVATION:
 - HERO: MUST match the product's primary/secondary colors exactly.
-- VILLAINS: MUST use contrasting neon/toxic colors.
+- VILLAINS: MUST use contrasting neon/toxic colors (or colors fitting a microscopic/diseased state if Pharma CGI).
 
-CINEMATOGRAPHY & RENDERING STYLE (${visualStyle}):
+CINEMATOGRAPHY & RENDERING SCALE (${visualStyle}):
 Append to EVERY \`characterDescription\` and \`sceneDescription\`:
-"${visualStyle}, highly polished and clear environment, sharp focus, 8k resolution, crystal clear details, Cinematic studio lighting, Subsurface scattering, subtle bloom, clean rim light, glossy reflections, vibrant and clean color palette."
+"Rendered in: ${visualStyle}. SCALE: Ensure correct scale is specified (e.g., microscopic/internal for medical CGI, miniature/diorama scale with visible fingerprints and hand-sculpted textures for claymation, or standard human scale for others). 8k resolution, crystal clear details, subtle bloom."
 
 PRODUCT INTERACTION RULES:
 Categorize the physical product interaction for every scene using \`productInteractionType\`: "packaging_hero", "product_content_hero", "packaging_in_hand", "product_content_in_hand", "packaging_on_surface", "product_content_on_surface", "product_reveal", or "none".
@@ -184,9 +184,9 @@ RULES:
    - NO TEXT: In visual descriptions, never describe text, labels, or logos on characters.
 
 SCENE SETTING & ACTIONS:
-- All scenes must be cleanly lit, modern 3D interiors matching the ${visualStyle}.
-- IF THE DIALOGUE describes an action happening to a human or an effect on a human body (e.g., "you rub me all over your body", "streaky legs", "orange palms"), you MUST explicitly include a stylized 3D human experiencing that effect or performing that action in the 'description' field alongside the main character.
-- Human characters must be stylized 3D humans matching the Pixar/Illumination aesthetic.
+- The environment MUST match the ${visualStyle}. For standard styles, use cleanly lit, modern 3D interiors. For Pharma CGI/3D Medical, use internal human body environments or microscopic fleshy caverns. For Claymation, use handmade miniature dioramas.
+- IF THE DIALOGUE describes an action happening to a human or an effect on a human body (e.g., "you rub me all over your body", "streaky legs", "orange palms"), you MUST explicitly include a stylized human experiencing that effect or performing that action in the 'description' field alongside the main character (using the correct scale and style rules).
+- Human characters (or internal organs/tissues for Pharma CGI) must be stylized to match the ${visualStyle} (e.g., claymation figures for Claymation, porous organic tissues for Pharma CGI, or smooth Pixar/Illumination humans for others).
 
 Do not modify the original dialogue text. Only structure it into the requested JSON segments.`;
 

@@ -77,7 +77,7 @@ OUTPUT FORMAT — SEGMENTS WITH CHARACTER:
 - Each segment MUST have a \`character\` object with: name, role, visualDescription, voiceDescription.
 - \`character.visualDescription\` MUST be a LITERAL physical description of the 3D object/mascot. NEVER use metaphorical descriptions.
 - Characters with the same name share the same visual — re-use the same \`name\` for recurring characters.
-- \`sceneDescription\` MUST always be a cleanly lit, premium, modern interior. NEVER dark, gloomy, or abstract.`;
+- \`sceneDescription\` MUST match the provided visual style (e.g. microscopic fleshy environments for Pharma CGI, miniature dollhouse for Claymation, or cleanly lit premium modern interior for standard styles). NEVER use generic dark, gloomy, or abstract environments unless specifically requested by the style.`;
 
       return await gemini.generateScriptAssistant({
         message,

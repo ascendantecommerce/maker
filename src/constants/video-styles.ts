@@ -37,7 +37,7 @@ export const VIDEO_STYLES = [
       "https://cdn.web.imagine.art/remote-config/solutions/shorts/generation/media_styles/claymation.webp",
     name: "Claymation",
     description:
-      "Stop-motion animation created with clay or plasticine models, giving a tactile, molded look.",
+      "Handmade Claymation style, stop-motion animation, plasticine sculpture with tactile details like visible fingerprints, tool marks, hand-sculpted texture, matte finish, and imperfections. Characters have chunky proportions, exaggerated facial expressions, large expressive Pixar-style eyes. Scenes are handmade miniature dioramas with dollhouse furniture and soft-focus background (bokeh). Warm studio lighting, soft cinematic key light, earthy organic tones with vibrant pops of color.",
     scriptTonePreset:
       "Quirky, tactile, charming. Dialogue has a playful, handmade feel. Warm humor over polished wit. Lean into imperfection as charm.",
   },
@@ -118,6 +118,16 @@ export const VIDEO_STYLES = [
       "General computer-generated imagery (CGI) that provides depth, volume, and complex modeling.",
     scriptTonePreset:
       "Versatile and modern. Clean, direct language. Confident without being cold. Dialogue should feel purposeful and contemporary.",
+  },
+  {
+    id: FrameStyle.PharmaCGI,
+    previewUrl:
+      "https://cdn.web.imagine.art/remote-config/solutions/shorts/generation/media_styles/anime.webp",
+    name: "Pharma CGI",
+    description:
+      "3D CGI Pharmaceutical style, high-fidelity 3D render, medical advertising style with pharmaceutical mascots (e.g. Mucinex-style character design) and anthropomorphic animation. Characters have rubber-hose arms, white cartoon gloves. Materials include subsurface scattering, porous organic textures, glossy plastic. Scenes often feature microscopic views like internal human body environments, fleshy organic caverns, or artery walls. Volumetric lighting (God rays), glowing energy particles, cinematic sparks, and dramatic rim lighting.",
+    scriptTonePreset:
+      "High-energy, authoritative, and dynamic. Dialogue should feel like a premium medical or supplement commercial, with a balance of serious problem-solving and engaging, anthropomorphic mascot action.",
   },
   {
     id: FrameStyle.Illustration,
@@ -284,7 +294,7 @@ export const CAPTION_STYLES = [
 export const NARRATIVE_VIDEO_STYLES = VIDEO_STYLES.slice(0, 8);
 
 export const CHARACTER_DRIVEN_VIDEO_STYLES = VIDEO_STYLES.filter((s) =>
-  [FrameStyle.FeltWool, FrameStyle.Pixar, FrameStyle.Claymation].includes(s.id),
+  [FrameStyle.FeltWool, FrameStyle.Pixar, FrameStyle.Claymation, FrameStyle.PharmaCGI].includes(s.id),
 );
 
 export const PRODUCT_IMAGE_VIDEO_STYLES = VIDEO_STYLES.filter((s) =>

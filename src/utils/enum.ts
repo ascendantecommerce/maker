@@ -24,6 +24,7 @@ export enum FrameStyle {
   Dreamwave = "dreamwave",
   Gigerwave = "gigerwave",
   GtaVi = "gta-vi", // Changed from "GTA VI" to a valid enum key
+  PharmaCGI = "pharma-cgi",
 }
 
 export enum resolutionType {

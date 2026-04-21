@@ -173,7 +173,7 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
           characters: updatedCharacters,
         };
       });
-
+      // return {scheme}
       // Persist the full scheme back to DB metadata
       await step.run("sync-metadata-stage-1", async () => {
         await db

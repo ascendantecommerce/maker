@@ -157,10 +157,15 @@ export default function HomeView() {
         )}
       >
         <section>
-          <div className="flex items-center gap-2 mb-4">
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="flex items-center gap-2 mb-4"
+          >
             <div className="w-1.5 h-1.5 rounded-full bg-primary/70" />
             <h2 className="text-sm font-medium text-foreground">Video Generation</h2>
-          </div>
+          </motion.div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
             <ModeCard
               index={0}
@@ -213,13 +218,18 @@ export default function HomeView() {
         </section>
 
         <section>
-          <div className="flex items-center gap-2 mb-4">
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 6 * 0.05, duration: 0.4, ease: "easeOut" }}
+            className="flex items-center gap-2 mb-4"
+          >
             <div className="w-1.5 h-1.5 rounded-full bg-primary/70" />
             <h2 className="text-sm font-medium text-foreground">Pro Tools</h2>
-          </div>
+          </motion.div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
             <ModeCard
-              index={0}
+              index={7}
               title="AI Editor"
               description="Professional video editing app powered by AI tools."
               icon={Scissors}
@@ -230,13 +240,18 @@ export default function HomeView() {
         </section>
 
         <section>
-          <div className="flex items-center gap-2 mb-4">
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 8 * 0.05, duration: 0.4, ease: "easeOut" }}
+            className="flex items-center gap-2 mb-4"
+          >
             <div className="w-1.5 h-1.5 rounded-full bg-primary/70" />
             <h2 className="text-sm font-medium text-foreground">Clone Videos</h2>
-          </div>
+          </motion.div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
             <ModeCard
-              index={0}
+              index={9}
               title="Clone Videos"
               description="Finds good videos and clones it with minimal edits."
               icon={Sparkles}
