@@ -24,6 +24,7 @@ async function main() {
   try {
     const result = await liteGenerator.create({
       prompt: "A beautiful sunset over the ocean.",
+      style: "cinematic",
       firstFrameUrl:
         "https://storage.googleapis.com/falserverless/example_inputs/veo3-i2v-input.png",
       aspectRatio: "16:9",
@@ -39,6 +40,7 @@ async function main() {
   try {
     const result = await liteGenerator.create({
       prompt: "A smooth transition between the two frames.",
+      style: "cinematic",
       firstFrameUrl:
         "https://storage.googleapis.com/falserverless/example_inputs/veo31-flf2v-input-1.jpeg",
       lastFrameUrl:
@@ -56,6 +58,7 @@ async function main() {
   try {
     const result = await liteGenerator.create({
       prompt: "A person walking in the park.",
+      style: "cinematic",
       referenceImageUrls: [
         "https://storage.googleapis.com/falserverless/example_inputs/veo31-r2v-input-1.png",
       ],
@@ -80,6 +83,7 @@ async function main() {
   try {
     const result = await fastGenerator.create({
       prompt: "A fast moving car on a highway.",
+      style: "cinematic",
       firstFrameUrl:
         "https://storage.googleapis.com/falserverless/example_inputs/veo3-i2v-input.png",
       aspectRatio: "16:9",
