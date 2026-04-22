@@ -37,8 +37,6 @@ export function initializeServices(options?: {
     },
   });
 
-
-
   const pexels = new StockVideoService(config.pexels.url, config.pexels.key);
 
   const storage = new R2StorageService({

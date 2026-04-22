@@ -118,7 +118,6 @@ export const productImageOrchestrator = inngest.createFunction(
             return pipelineSteps.saveSchema(schemeId, scheme, ResolverStatus.PROGRESS);
           });
         }
-
         // return { scheme };
       }
 
@@ -207,7 +206,6 @@ export const productImageOrchestrator = inngest.createFunction(
           );
           if (prices) allVisualPrices.push(...prices);
         }
-
 
         // ========================================================================
         // CONSOLIDATION

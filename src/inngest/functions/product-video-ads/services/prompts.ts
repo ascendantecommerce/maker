@@ -8,8 +8,7 @@ import {
   buildProductVideoSchemaContext,
   buildProductAdBrollInteractionPrompt,
 } from "../prompts";
-import {  buildVideoGenerationPrompt } from "@/lib/prompts";
-
+import { buildVideoGenerationPrompt } from "@/lib/prompts";
 
 export const generateProductPrompts = async (scheme: VideoSchema, generatedSchema: any) => {
   const gemini = new GeminiService(config.gemini.key, config.gemini.model2);

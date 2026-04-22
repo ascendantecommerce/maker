@@ -46,22 +46,22 @@ Analyze the provided reference image(s). Identify the core physical attributes: 
 
 **CRITICAL CONSTRAINT**: All visual prompts MUST describe a SINGLE unified scene. NEVER generate prompts for split-screens, collages, grids, or multi-frame compositions.`;
 
-export const RETENTION_PACING_RULES = `**STEP 2: RETENTION-BASED PACING (MEANINGFUL SHOTS)**
-In high-performance marketing, the timing of cuts prevents the brain from getting "bored", but shots MUST hold enough context to be visually coherent. 
+export const RETENTION_PACING_RULES = `**STEP 2: AGGRESSIVE RETENTION PACING (HIGH FREQUENCY CUTS)**
+In high-performance marketing, shots must be extremely fast to prevent "boredom". We prioritize high-energy visual rhythm over long-duration context.
 Follow these logic triggers for visual cuts:
-1. **PHRASE INTEGRITY (COHERENT BUNCHING) [CRITICAL]**: The \`words\` property MUST be a complete semantic phrase, clause, or thought. NEVER split product names, compound nouns, or grammatical units.
-   - BAD: "Most people" | "have parasites" | "and have" | "no clue"
-   - GOOD: "Most people have parasites" | "and have no clue."
-   - BAD: "even brushing" | "your teeth abroad" | "can expose you" | "to microscopic parasites."
-   - GOOD: "even brushing your teeth abroad" | "can expose you to microscopic parasites."
-   - BAD: "the hydrogen" | "water bottle."
-   - GOOD: "the hydrogen water bottle."
-2. **THE NOUN-OBJECT MATCH (SEMANTIC SYNC)**: Trigger a cut whenever a new high-value subject or setting is introduced (e.g., cutting from "Tap water," to "hotel ice machines,").
-3. **PUNCTUATION SYNC**: Use commas, periods, or natural breath pauses as natural cut points.
+1. **PUNCHY SUB-PHRASES [CRITICAL]**: Split sentences into the smallest possible visual beats (1-3 words). Even if it feels "fast", if it carries a visual idea, CUT.
+   - BAD: "even brushing your teeth abroad can expose you to microscopic parasites." (Too long)
+   - GOOD: "even brushing your teeth abroad" | "can expose you" | "to microscopic parasites."
+   - GOOD: "Most people" | "have parasites" | "and have no clue."
+2. **THE NOUN-OBJECT MATCH (SEMANTIC SYNC)**: Trigger a cut whenever a new subject is mentioned.
+3. **PUNCTUATION SYNC**: Always cut at commas and periods.
 4. **THE TONE-SHIFT PIVOT**:
-   - **PROBLEM PHASE**: Faster, punchy phrases (~2-4 words). Use "gross" imagery and dark colors.
-   - **SOLUTION PHASE**: Shorter, rhythmic phrases (~4-6 words). Use bright lighting and clean tech visuals.
-5. **MINIMAL DURATION**: Avoid cutting every single word. The minimum duration is a small complete spoken thought.`;
+   - **PROBLEM PHASE**: Ultra-fast, aggressive cuts (~1-3 words). Gritty, dark, shocking visuals.
+   - **SOLUTION PHASE**: Fast but rhythmic cuts (~2-4 words). Bright, clean, vital visuals.
+5. **VISUAL CONTINUITY**: If a phrase is split, the visual descriptions must maintain the same scene/subject unless the sub-phrase introduces a new idea.
+6. **MICRO-SHOT PROTECTION [IMPORTANT]**: Avoid single-word shots for very short words (e.g., "abroad", "the", "and"). A shot MUST have enough "breath" (spoken duration > 0.6s) to be visually processed. Merge short words with the preceding or following phrase.
+   - BAD: "even brushing your teeth" | "abroad" (The second shot is too short).
+   - GOOD: "even brushing" | "your teeth abroad" (Balanced duration).`;
 
 export function getProductImagePacingInstruction(): string {
   return RETENTION_PACING_RULES;
@@ -119,22 +119,22 @@ ${outputInstructions}`;
 
 // ─── PRODUCT VIDEO PROMPTS (Pacing & Context) ────────────────────────────────
 
-export const VIDEO_RETENTION_PACING_RULES = `**RETENTION-BASED PACING (MEANINGFUL SHOTS)**
-In high-performance marketing, the timing of cuts prevents the brain from getting "bored", but shots MUST hold enough context to be visually coherent. 
+export const VIDEO_RETENTION_PACING_RULES = `**AGGRESSIVE RETENTION PACING (HIGH FREQUENCY CUTS)**
+In high-performance marketing, shots must be extremely fast to prevent "boredom". We prioritize high-energy visual rhythm over long-duration context.
 Follow these logic triggers for visual cuts:
-1. **PHRASE INTEGRITY (COHERENT BUNCHING) [CRITICAL]**: The \`words\` property MUST be a complete semantic phrase, clause, or thought. NEVER split product names, compound nouns, or grammatical units.
-   - BAD: "Most people" | "have parasites" | "and have" | "no clue"
-   - GOOD: "Most people have parasites" | "and have no clue."
-   - BAD: "even brushing" | "your teeth abroad" | "can expose you" | "to microscopic parasites."
-   - GOOD: "even brushing your teeth abroad" | "can expose you to microscopic parasites."
-   - BAD: "the hydrogen" | "water bottle."
-   - GOOD: "the hydrogen water bottle."
-2. **THE NOUN-OBJECT MATCH (SEMANTIC SYNC)**: Trigger a cut whenever a new high-value subject or setting is introduced (e.g., cutting from "Tap water," to "hotel ice machines,").
-3. **PUNCTUATION SYNC**: Use commas, periods, or natural breath pauses as natural cut points.
+1. **PUNCHY SUB-PHRASES [CRITICAL]**: Split sentences into the smallest possible visual beats (1-3 words). Even if it feels "fast", if it carries a visual idea, CUT.
+   - BAD: "even brushing your teeth abroad can expose you to microscopic parasites." (Too long)
+   - GOOD: "even brushing your teeth abroad" | "can expose you" | "to microscopic parasites."
+   - GOOD: "Most people" | "have parasites" | "and have no clue."
+2. **THE NOUN-OBJECT MATCH (SEMANTIC SYNC)**: Trigger a cut whenever a new subject is mentioned.
+3. **PUNCTUATION SYNC**: Always cut at commas and periods.
 4. **THE TONE-SHIFT PIVOT**:
-   - **PROBLEM PHASE**: Faster, punchy phrases (~2-4 words). Use "gross" imagery and dark colors.
-   - **SOLUTION PHASE**: Shorter, rhythmic phrases (~4-6 words). Use bright lighting and clean tech visuals.
-5. **MINIMAL DURATION**: Avoid cutting every single word. The minimum duration is a small complete spoken thought.`;
+   - **PROBLEM PHASE**: Ultra-fast, aggressive cuts (~1-3 words). Gritty, dark, shocking visuals.
+   - **SOLUTION PHASE**: Fast but rhythmic cuts (~2-4 words). Bright, clean, vital visuals.
+5. **VISUAL CONTINUITY**: If a phrase is split, the visual descriptions must maintain the same scene/subject unless the sub-phrase introduces a new idea.
+6. **MICRO-SHOT PROTECTION [IMPORTANT]**: Avoid single-word shots for very short words (e.g., "abroad", "the", "and"). A shot MUST have enough "breath" (spoken duration > 0.6s) to be visually processed. Merge short words with the preceding or following phrase.
+   - BAD: "even brushing your teeth" | "abroad" (The second shot is too short).
+   - GOOD: "even brushing" | "your teeth abroad" (Balanced duration).`;
 
 export function getProductVideoPacingInstruction(): string {
   return VIDEO_RETENTION_PACING_RULES;
