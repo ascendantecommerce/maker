@@ -32,10 +32,10 @@ export function initializeFakeUgcServices(): PipelineServices {
   });
 
   const videoGenerator = new VideoGenerator({
-    provider: "fal-veo",
+    provider: "veo",
     params: {
-      apiKey: config.fal.key,
-      model: "fal-ai/veo3.1/lite/image-to-video",
+      geminiApiKey: config.gemini.key,
+      model: "veo-3.1-lite-generate-preview",
     },
   });
 

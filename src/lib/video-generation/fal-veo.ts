@@ -23,10 +23,15 @@ export class FalVeoProvider implements Generator {
         params.aspectRatio === "9:16" ? "9:16" : params.aspectRatio === "16:9" ? "16:9" : "auto",
       duration: params.durationSeconds ? `${params.durationSeconds}s` : "8s",
       resolution: "720p",
+      auto_fix: (params as any).autoFix ?? true,
     };
 
     if (params.negativePrompt) {
       input.negative_prompt = params.negativePrompt;
+    }
+
+    if ((params as any).safetyTolerance) {
+      input.safety_tolerance = (params as any).safetyTolerance;
     }
 
     // Model specialized input fields

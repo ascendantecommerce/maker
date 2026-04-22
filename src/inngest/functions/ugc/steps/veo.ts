@@ -406,11 +406,22 @@ export const generateAndUploadVeo = async ({
     );
   }
 
-  const [meta, data] = rawVideoUrl.split(",");
-  if (!meta || !data) throw new Error("Invalid base64 video format");
-  const contentTypeMatch = meta.match(/data:(.*?);base64/);
-  const contentType = contentTypeMatch ? contentTypeMatch[1] : "video/mp4";
-  const buffer = Buffer.from(data, "base64");
+  let buffer: Buffer;
+  let contentType = "video/mp4";
+
+  if (rawVideoUrl.startsWith("data:")) {
+    const [meta, data] = rawVideoUrl.split(",");
+    if (!meta || !data) throw new Error("Invalid base64 video format");
+    const contentTypeMatch = meta.match(/data:(.*?);base64/);
+    contentType = contentTypeMatch ? contentTypeMatch[1] : "video/mp4";
+    buffer = Buffer.from(data, "base64");
+  } else {
+    const response = await fetch(rawVideoUrl);
+    if (!response.ok) throw new Error(`Failed to download video from ${rawVideoUrl}`);
+    const arrayBuffer = await response.arrayBuffer();
+    buffer = Buffer.from(arrayBuffer);
+    contentType = response.headers.get("content-type") || "video/mp4";
+  }
   const fileName = `ugc-videos/${schemaId}/${segmentId}/raw-${nanoid()}.mp4`;
 
   return {
