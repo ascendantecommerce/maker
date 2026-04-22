@@ -11,7 +11,10 @@ import { VideoGenerator } from "@/lib/video-generation";
 import { LipSyncService } from "@/lib/lip-sync-generator";
 import { PipelineServices } from "../steps/types";
 
-export function initializeServices(options?: { videoModel?: string }): PipelineServices {
+export function initializeServices(options?: {
+  provider?: "veo" | "fal-veo";
+  videoModel?: string;
+}): PipelineServices {
   const elevenLabsSemaphore = new DistributedSemaphore("elevenlabs:tts_slots", 2, 30000);
 
   const tts = new TtsService(
@@ -35,14 +38,26 @@ export function initializeServices(options?: { videoModel?: string }): PipelineS
     },
   });
 
-  const VEO_MODEL = "veo-3.1-lite-generate-preview";
-  const videoGenerator = new VideoGenerator({
-    provider: "veo",
-    params: {
-      geminiApiKey: config.gemini.key,
-      model: VEO_MODEL,
-    },
-  });
+  const provider = options?.provider || "veo";
+  const VEO_MODEL = options?.videoModel || "veo-3.1-lite-generate-preview";
+
+  const videoGenerator = new VideoGenerator(
+    provider === "fal-veo"
+      ? {
+          provider: "fal-veo",
+          params: {
+            apiKey: config.fal.key,
+            model: options?.videoModel,
+          },
+        }
+      : {
+          provider: "veo",
+          params: {
+            geminiApiKey: config.gemini.key,
+            model: VEO_MODEL,
+          },
+        },
+  );
 
   const pexels = new StockVideoService(config.pexels.url, config.pexels.key);
 

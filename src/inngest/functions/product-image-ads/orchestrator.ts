@@ -5,7 +5,7 @@ import type { PriceItem, SegmentAsset, VideoSchema } from "../../utils/types";
 
 import { db } from "@/lib/database";
 import { withDbRetry } from "@/lib/database/retry";
-import { initializeServices } from "../common/services";
+import { initializeServices } from "./services";
 import * as productSteps from "./steps/index";
 import * as productVisuals from "./steps/visuals";
 import * as pipelineSteps from "../common/steps";
@@ -60,7 +60,6 @@ export const productImageOrchestrator = inngest.createFunction(
       const STAGE_2_AUDIO_CAPTIONS = true;
       const STAGE_3_FIRST_FRAMES = true;
       const STAGE_4_TIMINGS = true;
-      const STAGE_5_VIDEOS = true;
       const STAGE_6_LIPSYNC = true;
       const STAGE_7_FINALIZING = true;
 
@@ -209,25 +208,6 @@ export const productImageOrchestrator = inngest.createFunction(
           if (prices) allVisualPrices.push(...prices);
         }
 
-        // ========================================================================
-        // STAGE 5: VIDEOS
-        // ========================================================================
-        if (STAGE_5_VIDEOS && scheme.visuals.type === VideoType.AI_VIDEOS) {
-          const { dbSegments } = await step.run("fetch-stage-5-state", async () =>
-            fetchWorkflowState(schemeId),
-          );
-          scheme.segments = dbSegments.map((s: any) => ensureObject(s.segment_data));
-          context = { services, scheme, schemeId, attempt };
-
-          await step.run("mark-generation-progress-media", async () => {
-            return advanceGenerationTask(schemeId, PRODUCT_TASK_KEYS.MEDIA, PRODUCT_TASKS);
-          });
-
-          const { prices } = await step.run("Generating shot videos", () =>
-            productVisuals.generateShotVideos(context, userId, projectId),
-          );
-          if (prices) allVisualPrices.push(...prices);
-        }
 
         // ========================================================================
         // CONSOLIDATION

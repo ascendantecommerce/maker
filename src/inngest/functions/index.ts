@@ -16,7 +16,6 @@ import { generateFakeUGCScript } from "./fake-ugc/script-generator";
 import { kalodataVideosOrchestrator } from "./kalodata-videos/orchestrator";
 import { repurposeVideoOrchestrator } from "./repurpose/repurpose-orchestrator";
 
-
 export const functions = [
   narrativeVideoOrchestrator,
   productVideoOrchestrator,
@@ -36,4 +35,3 @@ export const functions = [
   kalodataVideosOrchestrator,
   repurposeVideoOrchestrator,
 ];
-

@@ -35,7 +35,6 @@ import { Icons } from "@/components/shared/icons";
 import { analyzeViralVideo } from "../edit-actions";
 import { toast } from "sonner";
 
-
 export default function ViralVideosResultsPage() {
   const { id } = useParams() as { id: string };
   const [generation, setGeneration] = useState<any>(null);
@@ -49,21 +48,26 @@ export default function ViralVideosResultsPage() {
     const fetchStatus = async () => {
       try {
         const data = await getGeneration(id);
-        
+
         // Define it before checking
-        const parsedResults = typeof data?.output === 'string' ? JSON.parse(data.output) : (data?.output || []);
-        
+        const parsedResults =
+          typeof data?.output === "string" ? JSON.parse(data.output) : data?.output || [];
+
         // Check for redirection if waiting
         if (waitingForVideoId) {
-           const targetVideo = parsedResults.find((v: any) => v.id === waitingForVideoId);
-           if (targetVideo && targetVideo.edit_status === "COMPLETED" && targetVideo.schema_id) {
-             clearInterval(intervalId);
-             window.location.href = `/edit/${targetVideo.schema_id}`;
-             return;
-           }
+          const targetVideo = parsedResults.find((v: any) => v.id === waitingForVideoId);
+          if (targetVideo && targetVideo.edit_status === "COMPLETED" && targetVideo.schema_id) {
+            clearInterval(intervalId);
+            window.location.href = `/edit/${targetVideo.schema_id}`;
+            return;
+          }
         }
 
-        const isAnyEditingItem = Array.isArray(parsedResults) && parsedResults.some((v: any) => v.edit_status === "PENDING" || v.edit_status === "EDITING");
+        const isAnyEditingItem =
+          Array.isArray(parsedResults) &&
+          parsedResults.some(
+            (v: any) => v.edit_status === "PENDING" || v.edit_status === "EDITING",
+          );
 
         setGeneration(data);
 
@@ -74,7 +78,6 @@ export default function ViralVideosResultsPage() {
             clearInterval(intervalId);
           }
         }
-
       } catch (error) {
         console.error("Error fetching generation:", error);
         setIsLoading(false);
@@ -87,8 +90,6 @@ export default function ViralVideosResultsPage() {
 
     return () => clearInterval(intervalId);
   }, [id, waitingForVideoId]);
-
-
 
   const ensureObject = (val: any) => {
     if (typeof val === "string") {
@@ -103,15 +104,15 @@ export default function ViralVideosResultsPage() {
 
   const isPending =
     isLoading &&
-    (!generation ||
-      generation.status === "PENDING" ||
-      generation.status === "PROGRESS");
+    (!generation || generation.status === "PENDING" || generation.status === "PROGRESS");
 
   const isFailed = generation?.status === "FAILED";
   const results: ViralVideo[] =
     !isPending && !isFailed ? ensureObject(generation?.output) || [] : [];
-  
-  const isAnyServerEditing = results.some(v => v.edit_status === "PENDING" || v.edit_status === "EDITING");
+
+  const isAnyServerEditing = results.some(
+    (v) => v.edit_status === "PENDING" || v.edit_status === "EDITING",
+  );
   const [isLocalEditing, setIsLocalEditing] = useState(false);
 
   useEffect(() => {
@@ -125,10 +126,7 @@ export default function ViralVideosResultsPage() {
   const productLabel = generation?.input?.productUrl
     ? (() => {
         try {
-          return (
-            new URL(generation.input.productUrl).searchParams.get("id") ||
-            "Product"
-          );
+          return new URL(generation.input.productUrl).searchParams.get("id") || "Product";
         } catch {
           return "Product";
         }
@@ -142,87 +140,71 @@ export default function ViralVideosResultsPage() {
         <div className="h-14 flex items-center p-4 bg-card/80 backdrop-blur-3xl justify-between text-sm font-medium border-b sticky top-0 z-10 transition-all duration-300">
           <div className="flex items-center gap-2">
             {isMobile && (
-              <Button
-                className="rounded-full"
-                size="icon"
-                variant="ghost"
-                onClick={toggleSidebar}
-              >
+              <Button className="rounded-full" size="icon" variant="ghost" onClick={toggleSidebar}>
                 <Icons.menu className="size-5" />
               </Button>
             )}
             Viral Videos
             {!isPending && !isFailed && results.length > 0 && (
-              <span className="text-muted-foreground font-normal">
-                — {productLabel}
-              </span>
+              <span className="text-muted-foreground font-normal">— {productLabel}</span>
             )}
           </div>
           {!isPending && !isFailed && results.length > 0 && (
-            <span className="text-xs text-muted-foreground">
-              {results.length} videos found
-            </span>
+            <span className="text-xs text-muted-foreground">{results.length} videos found</span>
           )}
         </div>
 
         <div className="p-8 mx-auto">
           {/* Loading skeleton */}
           {isPending && (
-            <LoadingState
-              progress={generation?.progress || 0}
-              status={generation?.status}
-            />
+            <LoadingState progress={generation?.progress || 0} status={generation?.status} />
           )}
 
           {/* Error state */}
           {isFailed && (
             <ErrorState
-              error={
-                ensureObject(generation?.metadata)?.error ||
-                generation?.metadata?.error
-              }
+              error={ensureObject(generation?.metadata)?.error || generation?.metadata?.error}
             />
           )}
 
           {/* Results grid */}
           {!isPending && !isFailed && results.length > 0 && (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
-               {results.map((video, index) => (
-                 <VideoResultCard 
-                   key={video.id || index} 
-                   video={video} 
-                   generationId={id}
-                   onEditStart={(videoId) => {
-                     setIsLocalEditing(true);
-                     setWaitingForVideoId(videoId);
-                   }}
-                 />
-               ))}
-
-
+              {results.map((video, index) => (
+                <VideoResultCard
+                  key={video.id || index}
+                  video={video}
+                  generationId={id}
+                  onEditStart={(videoId) => {
+                    setIsLocalEditing(true);
+                    setWaitingForVideoId(videoId);
+                  }}
+                />
+              ))}
             </div>
           )}
 
           {/* Full Screen Editing Loader */}
           {showEditingOverlay && (
             <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/60 backdrop-blur-md animate-in fade-in duration-500">
-
               <div className="flex flex-col items-center gap-6 max-w-sm text-center">
                 <div className="relative">
                   <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl animate-pulse" />
                   <Loader2 className="size-16 animate-spin text-primary relative z-10" />
                 </div>
                 <div className="space-y-2">
-                  <h2 className="text-2xl font-bold text-white tracking-tight">AI Editing in Progress</h2>
+                  <h2 className="text-2xl font-bold text-white tracking-tight">
+                    AI Editing in Progress
+                  </h2>
                   <p className="text-white/70 text-sm leading-relaxed">
-                    Our professional editor is analyzing your clips, removing clutter, and identifying the perfect viral moments. 
-                    This usually takes about 60 seconds.
+                    Our professional editor is analyzing your clips, removing clutter, and
+                    identifying the perfect viral moments. This usually takes about 60 seconds.
                   </p>
                 </div>
                 <div className="flex gap-1">
-                   <div className="size-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]" />
-                   <div className="size-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]" />
-                   <div className="size-1.5 bg-primary rounded-full animate-bounce" />
+                  <div className="size-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]" />
+                  <div className="size-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]" />
+                  <div className="size-1.5 bg-primary rounded-full animate-bounce" />
                 </div>
               </div>
             </div>
@@ -234,13 +216,8 @@ export default function ViralVideosResultsPage() {
               <div className="py-2 text-stone-600">
                 <Sparkles className="size-16" />
               </div>
-              <h3 className="font-medium text-foreground">
-                No viral videos found
-              </h3>
-              <p>
-                We couldn&apos;t find any viral content for this product. Try
-                another.
-              </p>
+              <h3 className="font-medium text-foreground">No viral videos found</h3>
+              <p>We couldn&apos;t find any viral content for this product. Try another.</p>
             </div>
           )}
         </div>
@@ -249,12 +226,12 @@ export default function ViralVideosResultsPage() {
   );
 }
 
-function VideoResultCard({ 
-  video, 
+function VideoResultCard({
+  video,
   generationId,
-  onEditStart
-}: { 
-  video: ViralVideo & { schema_id?: string }; 
+  onEditStart,
+}: {
+  video: ViralVideo & { schema_id?: string };
   generationId: string;
   onEditStart: (videoId: string) => void;
 }) {
@@ -278,10 +255,7 @@ function VideoResultCard({
     }
   };
 
-
-
   return (
-
     <div
       className={cn(
         "group relative flex flex-col bg-card border border-border rounded-sm overflow-hidden transition-all duration-300 cursor-pointer",
@@ -291,11 +265,7 @@ function VideoResultCard({
       {/* Preview Area */}
       <div className="relative aspect-video w-full bg-muted overflow-hidden">
         {video.url ? (
-          <VideoPlayer
-            src={video.url}
-            className="h-full w-full object-cover"
-            size="full"
-          />
+          <VideoPlayer src={video.url} className="h-full w-full object-cover" size="full" />
         ) : (
           <div className="relative w-full h-full flex items-center justify-center bg-foreground/5">
             <ScenifyIcon className="w-20 h-auto opacity-10 text-foreground" />
@@ -367,11 +337,13 @@ function VideoResultCard({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={handleEdit}
-              disabled={isEditing || video.edit_status === "PENDING" || video.edit_status === "EDITING"}
+              disabled={
+                isEditing || video.edit_status === "PENDING" || video.edit_status === "EDITING"
+              }
             >
-              {(isEditing || video.edit_status === "PENDING" || video.edit_status === "EDITING") ? (
+              {isEditing || video.edit_status === "PENDING" || video.edit_status === "EDITING" ? (
                 <Loader2 className="mr-2 w-4 h-4 animate-spin" />
               ) : (
                 <Pencil className="mr-2 w-4 h-4" />
@@ -380,26 +352,19 @@ function VideoResultCard({
             </DropdownMenuItem>
 
             {video.schema_id && video.edit_status === "COMPLETED" && (
-              <DropdownMenuItem
-                onClick={() => window.open(`/edit/${video.schema_id}`, "_blank")}
-              >
+              <DropdownMenuItem onClick={() => window.open(`/edit/${video.schema_id}`, "_blank")}>
                 <Sparkles className="mr-2 w-4 h-4 text-primary" />
                 Open AI Edit
               </DropdownMenuItem>
             )}
 
-
             {video.url && (
-              <DropdownMenuItem
-                onClick={() => window.open(video.url, "_blank")}
-              >
+              <DropdownMenuItem onClick={() => window.open(video.url, "_blank")}>
                 <ExternalLink className="mr-2 w-4 h-4" />
                 Open Video
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(video.url || "")}
-            >
+            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(video.url || "")}>
               <Share2 className="mr-2 w-4 h-4" />
               Copy Link
             </DropdownMenuItem>
@@ -412,17 +377,10 @@ function VideoResultCard({
         </DropdownMenu>
       </div>
     </div>
-
   );
 }
 
-function LoadingState({
-  progress,
-  status,
-}: {
-  progress: number;
-  status?: string;
-}) {
+function LoadingState({ progress, status }: { progress: number; status?: string }) {
   return (
     <div className="space-y-6">
       {/* Progress indicator */}
@@ -444,9 +402,7 @@ function LoadingState({
                 style={{ width: `${Math.max(progress, 5)}%` }}
               />
             </div>
-            <p className="text-[10px] text-muted-foreground text-right">
-              {progress}%
-            </p>
+            <p className="text-[10px] text-muted-foreground text-right">{progress}%</p>
           </div>
         )}
       </div>
@@ -454,10 +410,7 @@ function LoadingState({
       {/* Skeleton cards */}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
         {[...Array(6)].map((_, i) => (
-          <div
-            key={i}
-            className="rounded-sm overflow-hidden bg-card border border-border"
-          >
+          <div key={i} className="rounded-sm overflow-hidden bg-card border border-border">
             <div className="aspect-video bg-muted animate-pulse" />
             <div className="p-4 space-y-2">
               <div className="h-3 bg-muted animate-pulse rounded w-3/4" />

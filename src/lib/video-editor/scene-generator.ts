@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 
 interface Cut {
   from: number; // in milliseconds
-  to: number;   // in milliseconds
+  to: number; // in milliseconds
 }
 
 interface SceneData {
@@ -19,7 +19,7 @@ export function generateSceneFromCuts(
   videoUrl: string,
   videoDurationMs: number, // Total duration of the video in milliseconds
   cuts: Cut[],
-  videoName: string = "video.mp4"
+  videoName: string = "video.mp4",
 ): SceneData {
   // 1. Sort cuts by start time
   console.log("Cuts:", cuts);

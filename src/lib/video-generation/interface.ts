@@ -6,7 +6,7 @@ export interface Generator {
   getStatus?(id: string): Promise<VideoStatusResponse>;
 }
 
-export type VideoProviderType = "wan" | "pixverse" | "hailuo" | "runway" | "veo";
+export type VideoProviderType = "wan" | "pixverse" | "hailuo" | "runway" | "veo" | "fal-veo";
 
 export type GeneratorConfig =
   | {
@@ -28,4 +28,8 @@ export type GeneratorConfig =
   | {
       provider: "veo";
       params: { geminiApiKey: string; resolution?: string; model?: string };
+    }
+  | {
+      provider: "fal-veo";
+      params: { apiKey: string; model?: string };
     };

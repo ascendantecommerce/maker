@@ -280,11 +280,7 @@ export async function transcribeUrlAction(url: string) {
 // 7. Repurpose Video
 import { inngest } from "@/inngest/client";
 
-export async function triggerRepurposeAction(
-  url: string,
-  name: string,
-  productName?: string,
-) {
+export async function triggerRepurposeAction(url: string, name: string, productName?: string) {
   try {
     await inngest.send({
       name: "video/repurpose",

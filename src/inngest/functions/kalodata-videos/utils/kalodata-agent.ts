@@ -23,7 +23,6 @@ export interface ViralVideo {
   };
 }
 
-
 export async function getViralVideos(productUrl: string): Promise<ViralVideo[]> {
   console.log("Initializing Stagehand agent with Browserbase...");
 
@@ -96,22 +95,19 @@ export async function getViralVideos(productUrl: string): Promise<ViralVideo[]> 
 
     const enrichedResults = await page.evaluate(
       async (body) => {
-        const response = await fetch(
-          "https://www.kalodata.com/product/detail/video/queryList",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              accept: "application/json, text/plain, */*",
-              origin: "https://www.kalodata.com",
-              referer: window.location.href,
-              country: "US",
-              currency: "USD",
-              language: "en-US",
-            },
-            body: JSON.stringify(body),
+        const response = await fetch("https://www.kalodata.com/product/detail/video/queryList", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            accept: "application/json, text/plain, */*",
+            origin: "https://www.kalodata.com",
+            referer: window.location.href,
+            country: "US",
+            currency: "USD",
+            language: "en-US",
           },
-        );
+          body: JSON.stringify(body),
+        });
         const queryListData = await response.json();
 
         let videoList = [];

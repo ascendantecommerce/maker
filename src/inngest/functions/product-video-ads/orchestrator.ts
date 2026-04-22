@@ -28,7 +28,10 @@ export const productVideoOrchestrator = inngest.createFunction(
     let scheme: VideoSchema = event.data.scheme;
     const schemeId = scheme.id;
     const channel = workflowChannel(schemeId);
-    const services = initializeServices();
+    const services = initializeServices({
+      provider: "fal-veo",
+      videoModel: "fal-ai/veo3.1/lite/image-to-video",
+    });
     let resultPreviewUrl: string | undefined = undefined;
 
     try {

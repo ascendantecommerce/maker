@@ -21,9 +21,7 @@ export async function uploadOriginalVideoToR2({
 }: UploadToR2Options): Promise<UploadToR2Result> {
   const response = await fetch(url);
   if (!response.ok) {
-    throw new NonRetriableError(
-      `Failed to download video from origin: ${response.statusText}`,
-    );
+    throw new NonRetriableError(`Failed to download video from origin: ${response.statusText}`);
   }
 
   const arrayBuffer = await response.arrayBuffer();

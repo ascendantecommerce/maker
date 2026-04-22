@@ -25,9 +25,10 @@ export function initializeUgcServices(): UgcServices {
   });
 
   const videoGenerator = new VideoGenerator({
-    provider: "veo",
+    provider: "fal-veo",
     params: {
-      geminiApiKey: config.gemini.key,
+      apiKey: config.fal.key,
+      model: "fal-ai/veo3.1/lite/image-to-video",
     },
   });
 

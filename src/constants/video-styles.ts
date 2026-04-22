@@ -294,7 +294,9 @@ export const CAPTION_STYLES = [
 export const NARRATIVE_VIDEO_STYLES = VIDEO_STYLES.slice(0, 8);
 
 export const CHARACTER_DRIVEN_VIDEO_STYLES = VIDEO_STYLES.filter((s) =>
-  [FrameStyle.FeltWool, FrameStyle.Pixar, FrameStyle.Claymation, FrameStyle.PharmaCGI].includes(s.id),
+  [FrameStyle.FeltWool, FrameStyle.Pixar, FrameStyle.Claymation, FrameStyle.PharmaCGI].includes(
+    s.id,
+  ),
 );
 
 export const PRODUCT_IMAGE_VIDEO_STYLES = VIDEO_STYLES.filter((s) =>
@@ -304,4 +306,3 @@ export const PRODUCT_IMAGE_VIDEO_STYLES = VIDEO_STYLES.filter((s) =>
 export const PRODUCT_VIDEO_STYLES = VIDEO_STYLES.filter((s) =>
   [FrameStyle.Realism, FrameStyle.Cinematic].includes(s.id),
 );
-

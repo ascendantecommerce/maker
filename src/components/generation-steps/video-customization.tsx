@@ -12,7 +12,13 @@ import type { Schema } from "@/lib/schema-generator/types";
 import { VideoType, FrameStyle } from "@/utils/enum";
 import { Separator } from "@/components/ui/separator";
 import { ScriptEditing } from "./script-editing";
-import { NARRATIVE_VIDEO_STYLES, CHARACTER_DRIVEN_VIDEO_STYLES, PRODUCT_IMAGE_VIDEO_STYLES, PRODUCT_VIDEO_STYLES, VIDEO_STYLES } from "@/constants/video-styles";
+import {
+  NARRATIVE_VIDEO_STYLES,
+  CHARACTER_DRIVEN_VIDEO_STYLES,
+  PRODUCT_IMAGE_VIDEO_STYLES,
+  PRODUCT_VIDEO_STYLES,
+  VIDEO_STYLES,
+} from "@/constants/video-styles";
 import { AssetsConfig } from "./assets-config";
 import { ProductConfig } from "./product-config";
 import { AvatarConfig } from "./avatar-config";

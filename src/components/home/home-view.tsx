@@ -8,14 +8,7 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Sparkles,
-  Brain,
-  Scissors,
-  Video,
-  Users,
-  Image as ImageIcon,
-} from "lucide-react";
+import { Sparkles, Brain, Scissors, Video, Users, Image as ImageIcon } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
 import { useSchemaStore } from "@/stores/schema-store";
@@ -139,12 +132,7 @@ export default function HomeView() {
       <div className="h-14 flex items-center p-4 justify-between text-sm font-medium border-b sticky top-0 z-10 bg-card backdrop-blur-md">
         <div className="flex items-center gap-2">
           {isMobile && (
-            <Button
-              className="rounded-full"
-              size="icon"
-              variant="ghost"
-              onClick={toggleSidebar}
-            >
+            <Button className="rounded-full" size="icon" variant="ghost" onClick={toggleSidebar}>
               <Icons.menu className="size-5" />
             </Button>
           )}
@@ -216,7 +204,7 @@ export default function HomeView() {
             /> */}
           </div>
         </section>
-        {/* 
+        {/*
         <section>
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
@@ -261,10 +249,7 @@ export default function HomeView() {
           </div>
         </section>
 
-        <ViralVideosDialog
-          open={isViralDialogOpen}
-          onOpenChange={setIsViralDialogOpen}
-        />
+        <ViralVideosDialog open={isViralDialogOpen} onOpenChange={setIsViralDialogOpen} />
       </div>
     </main>
   );
@@ -282,12 +267,7 @@ export function PromptPanelHeader({
   return (
     <div className="h-16 flex items-center p-6 shrink-0 bg-transparent border-b border-border sticky top-0 z-50 backdrop-blur-xl">
       {isMobile && (
-        <Button
-          className="rounded-full mr-4"
-          size="icon"
-          variant="ghost"
-          onClick={onToggleSidebar}
-        >
+        <Button className="rounded-full mr-4" size="icon" variant="ghost" onClick={onToggleSidebar}>
           <Icons.menu className="size-6 text-foreground" />
         </Button>
       )}

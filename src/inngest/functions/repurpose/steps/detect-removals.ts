@@ -195,11 +195,7 @@ export async function detectRemovalsWithGemini({
 
   const sentences = flattenSentences(paragraphs);
 
-  const transcriptInput = JSON.stringify(
-    { sentences, words },
-    null,
-    2,
-  );
+  const transcriptInput = JSON.stringify({ sentences, words }, null, 2);
 
   // Build an optional whitelist note to inject into the user message
   const whitelistNote = productName
@@ -232,4 +228,3 @@ export async function detectRemovalsWithGemini({
     return { removals: [] };
   }
 }
-

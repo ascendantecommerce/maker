@@ -139,12 +139,22 @@ async function extractClip(
   const duration = end - start;
   await execFileAsync(ffmpegPath, [
     "-y",
-    "-ss", String(start),
-    "-i", inputPath,
-    "-t", String(duration),
-    "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-    "-c:a", "aac",
-    "-movflags", "+faststart",
+    "-ss",
+    String(start),
+    "-i",
+    inputPath,
+    "-t",
+    String(duration),
+    "-c:v",
+    "libx264",
+    "-preset",
+    "fast",
+    "-crf",
+    "23",
+    "-c:a",
+    "aac",
+    "-movflags",
+    "+faststart",
     outputPath,
   ]);
 }
@@ -234,7 +244,7 @@ export async function buildSchemasFromHooks({
       for (let j = 0; j < contentIntervals.length; j++) {
         const iv = contentIntervals[j];
         const shotClipPath = join(tmpdir(), `${schemaId}_c${j}_${uuidv4().substring(0, 6)}.mp4`);
-        
+
         try {
           await extractClip(sourceFilePath, iv.start, iv.end, shotClipPath);
           const shotR2Key = `viral_schemas/${schemaId}_c${j}.mp4`;

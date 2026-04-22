@@ -45,7 +45,7 @@ export const kalodataVideosOrchestrator = inngest.createFunction(
       return { success: true, count: results.length };
     } catch (error: any) {
       console.error("Kalodata Videos Orchestrator Error:", error);
-      
+
       await step.run("mark-failed", async () => {
         await db
           .updateTable("generations")
@@ -59,5 +59,5 @@ export const kalodataVideosOrchestrator = inngest.createFunction(
 
       throw new NonRetriableError(`Kalodata Videos Analysis failed: ${error.message}`);
     }
-  }
+  },
 );

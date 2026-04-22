@@ -23,9 +23,10 @@ export function initializeCharacterAdServices(): CharacterAdServices {
 
   // Video Generator: Veo 3.1 Fast
   const videoGenerator = new VideoGenerator({
-    provider: "veo",
+    provider: "fal-veo",
     params: {
-      geminiApiKey: config.gemini.key,
+      apiKey: config.fal.key,
+      model: "fal-ai/veo3.1/fast/image-to-video",
     },
   });
 

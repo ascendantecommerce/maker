@@ -56,4 +56,7 @@ export const config = {
   phonos: {
     token: process.env.PHONOS_TOKEN as string,
   },
+  fal: {
+    key: process.env.FAL_KEY as string,
+  },
 };

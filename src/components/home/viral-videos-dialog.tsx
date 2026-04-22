@@ -75,15 +75,21 @@ export function ViralVideosDialog({ open, onOpenChange }: ViralVideosDialogProps
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <DialogHeader className="space-y-2">
-            <DialogTitle className="text-2xl font-bold tracking-tight">Viral Video Discovery</DialogTitle>
+            <DialogTitle className="text-2xl font-bold tracking-tight">
+              Viral Video Discovery
+            </DialogTitle>
             <DialogDescription className="text-muted-foreground text-sm leading-relaxed">
-              Paste a Kalodata product URL below to analyze trending viral videos and performance metrics in real-time.
+              Paste a Kalodata product URL below to analyze trending viral videos and performance
+              metrics in real-time.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="url" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <Label
+                htmlFor="url"
+                className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+              >
                 Product URL
               </Label>
               <div className="relative group">

@@ -3,6 +3,7 @@ import { PixVerseProvider } from "./pixverse";
 import { HailuoProvider } from "./hailuo";
 import { RunwayProvider } from "./runway";
 import { VeoProvider } from "./veo";
+import { FalVeoProvider } from "./fal-veo";
 import { Generator, GeneratorConfig } from "./interface";
 import { VideoParams, VideoStatusResponse } from "./types";
 
@@ -25,6 +26,8 @@ export class VideoGenerator implements Generator {
         return new RunwayProvider(config.params);
       case "veo":
         return new VeoProvider(config.params);
+      case "fal-veo":
+        return new FalVeoProvider(config.params);
       default:
         throw new Error(`Unknown provider type: ${(config as any).provider}`);
     }

@@ -22,10 +22,9 @@ export async function analyzeViralVideo(generationId: string, videoId: string) {
     .executeTakeFirst();
 
   if (generation && generation.output) {
-    const results = typeof generation.output === "string" 
-      ? JSON.parse(generation.output) 
-      : generation.output;
-    
+    const results =
+      typeof generation.output === "string" ? JSON.parse(generation.output) : generation.output;
+
     const videoIndex = results.findIndex((v: any) => v.id === videoId);
     if (videoIndex !== -1) {
       results[videoIndex].edit_status = "PENDING";
@@ -45,7 +44,7 @@ export async function analyzeViralVideo(generationId: string, videoId: string) {
     const productName = videoInfo?.item_name || "";
 
     const inngest = getInngestApp();
-    
+
     await inngest.send({
       name: "video/repurpose",
       data: {
@@ -58,7 +57,7 @@ export async function analyzeViralVideo(generationId: string, videoId: string) {
       },
       user: {
         id: session.user.id,
-      }
+      },
     });
   } else {
     throw new Error("Generation not found or missing output data");

@@ -22,11 +22,7 @@ interface ProjectData {
   scene_data?: any;
 }
 
-export default function FolderPage({
-  params,
-}: {
-  params: Promise<{ schemaId: string }>;
-}) {
+export default function FolderPage({ params }: { params: Promise<{ schemaId: string }> }) {
   const { schemaId } = use(params);
   const [projectData, setProjectData] = useState<ProjectData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -81,13 +77,10 @@ export default function FolderPage({
       if (projectData.scene?.scene_data || projectData?.scene_data) {
         console.log("Loading existing scene:", projectData);
 
-        const rawSceneData =
-          projectData.scene?.scene_data ?? projectData?.scene_data;
+        const rawSceneData = projectData.scene?.scene_data ?? projectData?.scene_data;
 
         const sceneData =
-          typeof rawSceneData === "string"
-            ? JSON.parse(rawSceneData)
-            : rawSceneData;
+          typeof rawSceneData === "string" ? JSON.parse(rawSceneData) : rawSceneData;
 
         setDesign(sceneData);
         return;
@@ -104,10 +97,7 @@ export default function FolderPage({
         console.log({ schemaWithSegments });
 
         let exportedSchema: Design;
-        if (
-          mainSchema?.type === "ugc-video-ad" ||
-          mainSchema?.type === "character-driven-ad"
-        ) {
+        if (mainSchema?.type === "ugc-video-ad" || mainSchema?.type === "character-driven-ad") {
           console.log("Using UGC schema converter");
           exportedSchema = await convertUgcSchemaToDesign(schemaWithSegments);
         } else {
@@ -146,18 +136,12 @@ export default function FolderPage({
   }, [schemaId]);
 
   if (loading || isConverting) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        Loading project...
-      </div>
-    );
+    return <div className="flex h-screen items-center justify-center">Loading project...</div>;
   }
 
   if (error) {
     return (
-      <div className="flex h-screen items-center justify-center text-red-500">
-        Error: {error}
-      </div>
+      <div className="flex h-screen items-center justify-center text-red-500">Error: {error}</div>
     );
   }
 

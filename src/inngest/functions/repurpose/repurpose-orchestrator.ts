@@ -46,9 +46,8 @@ export const repurposeVideoOrchestrator = inngest.createFunction(
     // ========================================================================
     // STAGE 2: TRANSCRIBE VIDEO (Deepgram → paragraphs + words)
     // ========================================================================
-    const { paragraphs, words, fullText, duration } = await step.run(
-      "transcribe-video",
-      () => repurposeSteps.transcribeVideo({ url: r2Url }),
+    const { paragraphs, words, fullText, duration } = await step.run("transcribe-video", () =>
+      repurposeSteps.transcribeVideo({ url: r2Url }),
     );
 
     // ========================================================================

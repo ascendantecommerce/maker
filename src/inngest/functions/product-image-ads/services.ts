@@ -3,13 +3,17 @@ import { DistributedSemaphore } from "@/inngest/services/semaphore";
 import { SttService } from "@/lib/transcribe/deepgram";
 import { TtsService } from "@/lib/tts";
 import { R2StorageService } from "@/lib/r2-storage";
+import { OpenAIService } from "@/lib/openai";
+import { StockVideoService } from "@/lib/stock/video";
 import { GeminiService } from "@/lib/gemini/generator";
 import { ImageGenerator } from "@/lib/image-generation";
-import { VideoGenerator } from "@/lib/video-generation";
 import { LipSyncService } from "@/lib/lip-sync-generator";
-import { PipelineServices } from "../../common/steps/types";
+import { PipelineServices } from "../common/steps/types";
 
-export function initializeFakeUgcServices(): PipelineServices {
+export function initializeServices(options?: {
+  provider?: "veo" | "fal-veo";
+  videoModel?: string;
+}): any {
   const elevenLabsSemaphore = new DistributedSemaphore("elevenlabs:tts_slots", 2, 30000);
 
   const tts = new TtsService(
@@ -21,23 +25,21 @@ export function initializeFakeUgcServices(): PipelineServices {
 
   const stt = new SttService(config.deepgram.url, config.deepgram.key, config.deepgram.model);
 
+  const openaiTranscriber = new OpenAIService(config.openai.key, config.openai.transcriptionModel);
+
   const gemini = new GeminiService(config.gemini.key, config.gemini.imageModel);
 
   const imageGenerator = new ImageGenerator({
     provider: "gemini",
     params: {
       apiKey: config.gemini.key,
-      model: "gemini-3.1-flash-image-preview", // nano-banana-2
+      model: config.gemini.imageModel,
     },
   });
 
-  const videoGenerator = new VideoGenerator({
-    provider: "fal-veo",
-    params: {
-      apiKey: config.fal.key,
-      model: "fal-ai/veo3.1/lite/image-to-video",
-    },
-  });
+
+
+  const pexels = new StockVideoService(config.pexels.url, config.pexels.key);
 
   const storage = new R2StorageService({
     bucketName: config.r2.bucket,
@@ -52,10 +54,11 @@ export function initializeFakeUgcServices(): PipelineServices {
   return {
     tts,
     stt,
+    openaiTranscriber,
     gemini,
     imageGenerator,
-    videoGenerator,
+    pexels,
     storage,
     lipSyncService,
-  } as any;
+  };
 }

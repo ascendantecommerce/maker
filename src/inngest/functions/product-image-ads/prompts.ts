@@ -59,9 +59,9 @@ Follow these logic triggers for visual cuts:
 2. **THE NOUN-OBJECT MATCH (SEMANTIC SYNC)**: Trigger a cut whenever a new high-value subject or setting is introduced (e.g., cutting from "Tap water," to "hotel ice machines,").
 3. **PUNCTUATION SYNC**: Use commas, periods, or natural breath pauses as natural cut points.
 4. **THE TONE-SHIFT PIVOT**:
-   - **PROBLEM PHASE**: Shorter, punchy phrases (~4-6 words). Use "gross" imagery and dark colors.
-   - **SOLUTION PHASE**: Smoother, longer phrases (~6-9 words). Use bright lighting and clean tech visuals.
-5. **NEVER OVER-CUT**: Do not cut every 1-3 words. The minimum duration is a complete spoken thought.`;
+   - **PROBLEM PHASE**: Faster, punchy phrases (~2-4 words). Use "gross" imagery and dark colors.
+   - **SOLUTION PHASE**: Shorter, rhythmic phrases (~4-6 words). Use bright lighting and clean tech visuals.
+5. **MINIMAL DURATION**: Avoid cutting every single word. The minimum duration is a small complete spoken thought.`;
 
 export function getProductImagePacingInstruction(): string {
   return RETENTION_PACING_RULES;
@@ -132,9 +132,9 @@ Follow these logic triggers for visual cuts:
 2. **THE NOUN-OBJECT MATCH (SEMANTIC SYNC)**: Trigger a cut whenever a new high-value subject or setting is introduced (e.g., cutting from "Tap water," to "hotel ice machines,").
 3. **PUNCTUATION SYNC**: Use commas, periods, or natural breath pauses as natural cut points.
 4. **THE TONE-SHIFT PIVOT**:
-   - **PROBLEM PHASE**: Shorter, punchy phrases (~4-6 words). Use "gross" imagery and dark colors.
-   - **SOLUTION PHASE**: Smoother, longer phrases (~6-9 words). Use bright lighting and clean tech visuals.
-5. **NEVER OVER-CUT**: Do not cut every 1-3 words. The minimum duration is a complete spoken thought.`;
+   - **PROBLEM PHASE**: Faster, punchy phrases (~2-4 words). Use "gross" imagery and dark colors.
+   - **SOLUTION PHASE**: Shorter, rhythmic phrases (~4-6 words). Use bright lighting and clean tech visuals.
+5. **MINIMAL DURATION**: Avoid cutting every single word. The minimum duration is a small complete spoken thought.`;
 
 export function getProductVideoPacingInstruction(): string {
   return VIDEO_RETENTION_PACING_RULES;
