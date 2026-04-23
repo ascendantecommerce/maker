@@ -34,6 +34,7 @@ async function withRetry<T>(fn: (attempt: number) => Promise<T>, maxRetries = 3)
  * Modular Step 1: Generate Shot First Frames
  */
 export async function generateShotFirstFrames(
+  step: any,
   context: StepContext,
   userId: string | null,
   projectId: string | null,
@@ -48,20 +49,22 @@ export async function generateShotFirstFrames(
   const segmentAssets: Record<string, SegmentAsset[]> = {};
   let previewUrl: string | undefined;
 
-  const updates = await Promise.all(
-    segments.map(async (seg) => {
-      if (!seg.shots?.length) return null;
+  const updates: any[] = [];
 
-      let segmentUpdated = false;
-      const currentAssets: SegmentAsset[] = [];
+  for (const seg of segments) {
+    if (!seg.shots?.length) continue;
 
-      await Promise.all(
-        seg.shots.map(async (shot, index) => {
-          if (shot.imageUrl) return;
+    let segmentUpdated = false;
+    const currentAssets: SegmentAsset[] = [];
 
-          const isProductShot = shot.type === "product";
+    const shotResults = await Promise.all(
+      seg.shots.map(async (shot, index) => {
+        if (shot.imageUrl) return null;
 
-          await withRetry(async (attempt) => {
+        const isProductShot = shot.type === "product";
+
+        return step.run(`Generate image for segment ${seg.id} shot ${index}`, async () => {
+          return await withRetry(async (attempt) => {
             console.log("GENERATING IMAGE FOR SHOT", seg.id, index);
             const fallbackModel = attempt > 0 ? "gemini-3.1-pro-image-preview" : undefined;
             const { imageUrl: img, price: imgPrice } = await generateImage(
@@ -74,48 +77,55 @@ export async function generateShotFirstFrames(
             );
 
             const { buffer, extension } = await fileUrlToBuffer(img);
-            const filePath = `VIDEOS/${schemeId}/${seg.id}/IMAGE/${generateId()}.${extension}`;
+            const assetId = generateId();
+            const filePath = `VIDEOS/${schemeId}/${seg.id}/IMAGE/${assetId}.${extension}`;
             const currentFrame = await services.storage.uploadData(filePath, buffer);
 
-            shot.imageUrl = currentFrame;
-            prices.push(imgPrice);
-            segmentUpdated = true;
-
             const asset: SegmentAsset = {
-              id: generateId(),
+              id: assetId,
               type: "image",
               status: "completed",
               url: currentFrame,
               prompt: `${shot.type}-${shot.firstFramePrompt}`,
             };
-            currentAssets.push(asset);
-
-            if (!previewUrl) previewUrl = currentFrame;
 
             await persistAsset(userId, projectId, schemeId, filePath, currentFrame, {
               sourceType: "ai_generated",
               assetType: "image",
-              originalFilename: `shot_frame_${seg.id}_${generateId()}.${extension}`,
+              originalFilename: `shot_frame_${seg.id}_${assetId}.${extension}`,
             });
-          });
-        }),
-      );
 
-      if (segmentUpdated) {
-        segmentAssets[seg.id] = currentAssets;
-        seg.assets = [...(seg.assets || []), ...currentAssets];
-        return {
-          id: seg.id,
-          segment_data: JSON.parse(JSON.stringify(ensureObject(seg))),
-        };
+            return { currentFrame, imgPrice, asset, index };
+          });
+        });
+      }),
+    );
+
+    shotResults.forEach((result) => {
+      if (result) {
+        seg.shots![result.index].imageUrl = result.currentFrame;
+        prices.push(result.imgPrice);
+        segmentUpdated = true;
+        currentAssets.push(result.asset);
+        if (!previewUrl) previewUrl = result.currentFrame;
       }
-      return null;
-    }),
-  );
+    });
+
+    if (segmentUpdated) {
+      segmentAssets[seg.id] = currentAssets;
+      seg.assets = [...(seg.assets || []), ...currentAssets];
+      updates.push({
+        id: seg.id,
+        segment_data: JSON.parse(JSON.stringify(ensureObject(seg))),
+      });
+    }
+  }
 
   const validUpdates = updates.filter((u): u is NonNullable<typeof u> => u !== null);
   if (validUpdates.length > 0) {
-    await segmentQueries.bulkUpdateSegments(validUpdates);
+    await step.run("Bulk update segments first frames", async () => {
+      await segmentQueries.bulkUpdateSegments(validUpdates);
+    });
   }
 
   return { prices, segmentAssets, previewUrl };

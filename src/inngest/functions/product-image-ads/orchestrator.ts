@@ -180,8 +180,11 @@ export const productImageOrchestrator = inngest.createFunction(
           scheme.segments = dbSegments.map((s: any) => ensureObject(s.segment_data));
           context = { services, scheme, schemeId, attempt };
 
-          const step3Results = await step.run("Generating shot first frames", () =>
-            productVisuals.generateShotFirstFrames(context, userId, projectId),
+          const step3Results = await productVisuals.generateShotFirstFrames(
+            step,
+            context,
+            userId,
+            projectId,
           );
           if (step3Results.previewUrl) resultPreviewUrl = step3Results.previewUrl;
           if (step3Results.prices) allVisualPrices.push(...step3Results.prices);

@@ -1,60 +1,79 @@
 "use client";
 
-import { Sparkles, Scissors, Brain, Bot, X, Video, Users } from "lucide-react";
+import { Sparkles, Scissors, X, Video, Users, Image as ImageIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ViralVideosDialog } from "./home/viral-videos-dialog";
 
 interface CreateProjectModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-const getTools = () => [
-  {
-    id: "character-driven-ad",
-    title: "Character-Driven Ad",
-    description: "Generate multi-character ads with native lip-sync.",
-    icon: Users,
-    href: "/script-to-video?mode=character-driven-ad",
-  },
+interface ToolItem {
+  id: string;
+  title: string;
+  description: string;
+  icon: any;
+  href?: string;
+  type?: string;
+  badge?: string;
+  isDialog?: boolean;
+}
+
+const getTools = (): ToolItem[] => [
   {
     id: "ugc-video",
     title: "UGC Video Ads",
-    description: "Create authentic user-style ads with AI avatars.",
+    description: "Create authentic user-style ads with AI avatars interacting with your product.",
     icon: Video,
     href: "/script-to-video?mode=ugc-video-ad",
   },
   {
+    id: "character-driven-ad",
+    title: "Character-Driven Ad",
+    description: "Generate multi-character ads with native lip-sync and cinematic consistency.",
+    icon: Users,
+    href: "/script-to-video?mode=character-driven-ad",
+  },
+  {
+    id: "fake-ugc-video-ad",
+    title: "Fake UGC Ads",
+    description: "High-converting AI-generated UGC style ads using lifestyle visuals and avatars.",
+    icon: Sparkles,
+    href: "/script-to-video?mode=fake-ugc-video-ad",
+  },
+  {
     id: "product-video",
     title: "Product Video Ads",
-    description: "Generate high-converting promo videos from assets.",
-    icon: Sparkles,
+    description: "Generate high-converting promo videos from your product assets and descriptions.",
+    icon: Scissors,
     href: "/script-to-video?mode=product-video-ad",
   },
   {
-    id: "narrative-video",
-    title: "AI Narrative Video",
-    description: "Transform scripts into creative storytelling videos.",
-    icon: Brain,
-    href: "/script-to-video?mode=narrative-video",
+    id: "product-image-ad",
+    title: "Product Image Ads",
+    description: "Generate dynamic, fast-pacing promo videos from your product image assets.",
+    icon: ImageIcon,
+    href: "/script-to-video?mode=product-image-ad",
   },
   {
-    id: "ai-editor",
-    title: "AI Editor",
-    description: "Professional video editing app powered by AI tools.",
-    icon: Scissors,
-    badge: "New",
-    type: "ai-editor",
+    id: "clone-videos",
+    title: "Clone Videos",
+    description: "Finds good videos and clones it with minimal edits.",
+    icon: Sparkles,
+    isDialog: true,
   },
 ];
 
 export function CreateProjectModal({ open, onOpenChange }: CreateProjectModalProps) {
   const router = useRouter();
   const [isCreating, setIsCreating] = useState<string | null>(null);
+  const [isViralDialogOpen, setIsViralDialogOpen] = useState(false);
 
   const tools = getTools();
 
@@ -85,8 +104,11 @@ export function CreateProjectModal({ open, onOpenChange }: CreateProjectModalPro
     }
   };
 
-  const handleToolClick = (tool: any) => {
-    if (tool.type) {
+  const handleToolClick = (tool: ToolItem) => {
+    if (tool.isDialog) {
+      onOpenChange(false);
+      setTimeout(() => setIsViralDialogOpen(true), 150);
+    } else if (tool.type) {
       handleCreateProject(tool.type);
     } else if (tool.href) {
       router.push(tool.href);
@@ -129,7 +151,7 @@ export function CreateProjectModal({ open, onOpenChange }: CreateProjectModalPro
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3 }}
-              className="grid grid-cols-1 gap-2.5"
+              className="grid grid-cols-1 gap-2.5 max-h-[60vh] overflow-y-auto pr-2"
             >
               {tools.map((tool) => (
                 <div
@@ -170,6 +192,7 @@ export function CreateProjectModal({ open, onOpenChange }: CreateProjectModalPro
           </div>
         </DialogContent>
       </Dialog>
+      <ViralVideosDialog open={isViralDialogOpen} onOpenChange={setIsViralDialogOpen} />
     </>
   );
 }

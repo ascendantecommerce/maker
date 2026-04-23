@@ -24,7 +24,8 @@ async function main() {
   try {
     const result = await (liteGenerator as any).create({
       prompt: `SCRIPT: "because you're actually teaching your body how to produce more energy."\nClear studio voiceover, clean audio track, pure isolated speech.\nDELIVERY: Confident, fluent delivery with smooth, continuous speech and natural professional cadence. NO hesitation, NO stumbled words, NO filler words, NO vocal clutter. STICKLY FORBIDDEN: 'um', 'uh', 'er', 'ah', 'meh', 'hmm', or any other non-script sounds. Subject must deliver the SCRIPT exactly as written with perfect professional articulation.\nACTION:  Subject speaks directly to camera with highly accurate articulation. A medium close-up shot of a young woman with brown hair, freckles, and a grey sweater speaking naturally to the camera. While she says, "because you're actually teaching your body how to produce more energy," she maintains direct eye contact, making subtle expressive hand gestures to emphasize her points. The camera style is a natural handheld smartphone aesthetic.. Perfect audio-visual alignment, highly expressive and dynamic lip-sync that exactly matches the spoken words. Mouth rests naturally closed only when audio ceases.\nSCENE: Warmly lit study, natural window light, handheld smartphone aesthetic.`,
-      negativePrompt: "text, captions, overlays, on-screen graphics, subtitles, zoom, camera transitions, visual effects, blurred, low quality, distorted features.",
+      negativePrompt:
+        "text, captions, overlays, on-screen graphics, subtitles, zoom, camera transitions, visual effects, blurred, low quality, distorted features.",
       style: "cinematic",
       firstFrameUrl: "https://cdn.scenify.io/VIDEOS/avatars/pvu9kZNDke.png",
       aspectRatio: "9:16",
@@ -62,7 +63,8 @@ async function main() {
   try {
     const result = await liteGenerator.create({
       prompt: `SCRIPT: "I see a lot of misinformation going around about methylene blue, so let's clear up a couple of things. Mhm. Yeah, exactly."\nClear studio voiceover, clean audio track, pure isolated speech.\nDELIVERY: Confident, fluent delivery with smooth, continuous speech and natural professional cadence. NO hesitation, NO stumbled words, NO filler words, NO vocal clutter. STICKLY FORBIDDEN: 'um', 'uh', 'er', 'ah', 'meh', 'hmm', or any other non-script sounds. Subject must deliver the SCRIPT exactly as written with perfect professional articulation.\nACTION: Scale: palm-sized small bottle.  Subject speaks directly to camera with highly accurate articulation. [product_reveal] The young woman with light brown hair tied back and a grey v-neck knit sweater reaches forward to the desk, picks up the closed navy blue stand-up pouch of METHYLENE BLUE GUMMIES from image_0.png with bold white text 'METHYLENE BLUE GUMMIES' and a molecular graphic, and brings it up to chest height [product_in_hand] while continuing to speak directly to the camera.. Perfect audio-visual alignment, highly expressive and dynamic lip-sync that exactly matches the spoken words. Mouth rests naturally closed only when audio ceases.\nSCENE: Bright home office with natural window light, warm environment, handheld UGC smartphone video aesthetic.`,
-      negativePrompt: "text, captions, overlays, on-screen graphics, subtitles, zoom, camera transitions, visual effects, blurred, low quality, distorted features.",
+      negativePrompt:
+        "text, captions, overlays, on-screen graphics, subtitles, zoom, camera transitions, visual effects, blurred, low quality, distorted features.",
       style: "cinematic",
       referenceImageUrls: [
         "https://cdn.scenify.io/VIDEOS/avatars/pvu9kZNDke.png",

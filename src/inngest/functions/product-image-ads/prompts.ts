@@ -69,6 +69,7 @@ export function getProductImagePacingInstruction(): string {
 
 export const PRODUCT_SHOT_RULES = `**Rules for Product Reference (type: "product"):**
 - **Implicit Product Placement**: If the script implies "relief", "solution", or "taking it", you MUST show the product even if it's not named.
+- **Show the Full Product**: When the script explicitly mentions the brand or the product by name, you MUST display the FULL product in the frame. Do NOT generate close-ups of specific parts (like the base, cap, or a detail).
 - Refer to the main subject as "the product from the provided reference image".
 - Ensure the product's color, logo, and form are identical to the reference.
 - **NO TEXT**: Absolutely NO labels or UI elements in the prompt.`;
