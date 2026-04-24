@@ -1,4 +1,4 @@
-import { BaseTimelineClip, type BaseClipProps } from "./base";
+import { BaseTimelineClip, type BaseClipProps, CLIP_BORDER_RADIUS } from "./base";
 import { type Control, Pattern } from "fabric";
 import { createTrimControls } from "../controls";
 import { editorFont } from "@/components/editor/constants";
@@ -33,8 +33,8 @@ export class Video extends BaseTimelineClip {
   private _thumbnailCache: ThumbnailCache = new ThumbnailCache();
 
   static ownDefaults = {
-    rx: 6,
-    ry: 6,
+    rx: CLIP_BORDER_RADIUS,
+    ry: CLIP_BORDER_RADIUS,
     objectCaching: false,
     borderColor: "transparent",
     stroke: "transparent",
@@ -249,7 +249,8 @@ export class Video extends BaseTimelineClip {
     ctx.save();
 
     // Apply rounded rectangle clipping to ensure ALL content stays within bounds
-    const radius = this.rx || 6;
+    const radius = this.rx || CLIP_BORDER_RADIUS;
+
     ctx.beginPath();
     ctx.roundRect(-this.width / 2, -this.height / 2, this.width, this.height, radius);
     ctx.clip();
@@ -409,7 +410,7 @@ export class Video extends BaseTimelineClip {
 
       ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
       ctx.beginPath();
-      ctx.roundRect(currentX, y, bgWidth, bgHeight, 4);
+      ctx.roundRect(currentX, y, bgWidth, bgHeight, CLIP_BORDER_RADIUS);
       ctx.fill();
 
       ctx.fillStyle = isDimmed ? "rgba(255, 255, 255, 0.5)" : "rgba(255, 255, 255, 0.9)";
@@ -429,7 +430,7 @@ export class Video extends BaseTimelineClip {
   public updateSelected(ctx: CanvasRenderingContext2D) {
     const borderColor = this.isSelected ? "#ffffff" : "#3730a3";
     const borderWidth = 2;
-    const radius = 6;
+    const radius = CLIP_BORDER_RADIUS;
 
     ctx.save();
     ctx.fillStyle = borderColor;

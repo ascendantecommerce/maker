@@ -1,4 +1,4 @@
-import { BaseTimelineClip, BaseClipProps } from "./base";
+import { BaseTimelineClip, BaseClipProps, CLIP_BORDER_RADIUS } from "./base";
 import { createResizeControls } from "../controls";
 import { Control, util } from "fabric";
 import { editorFont } from "@/components/editor/constants";
@@ -14,8 +14,8 @@ export class Image extends BaseTimelineClip {
   }
 
   static ownDefaults = {
-    rx: 6,
-    ry: 6,
+    rx: CLIP_BORDER_RADIUS,
+    ry: CLIP_BORDER_RADIUS,
     objectCaching: false,
     borderColor: "transparent",
     stroke: "transparent",
@@ -40,7 +40,7 @@ export class Image extends BaseTimelineClip {
     ctx.translate(-this.width / 2, -this.height / 2);
 
     // Apply global rounded clip for thumbnails and identity
-    const radius = this.rx || 6;
+    const radius = this.rx || CLIP_BORDER_RADIUS;
     ctx.beginPath();
     ctx.roundRect(0, 0, this.width, this.height, radius);
     ctx.clip();
@@ -115,7 +115,7 @@ export class Image extends BaseTimelineClip {
       // Draw background
       ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
       ctx.beginPath();
-      ctx.roundRect(currentX, y, bgWidth, bgHeight, 4);
+      ctx.roundRect(currentX, y, bgWidth, bgHeight, CLIP_BORDER_RADIUS);
       ctx.fill();
 
       // Draw text
@@ -136,7 +136,7 @@ export class Image extends BaseTimelineClip {
   public updateSelected(ctx: CanvasRenderingContext2D) {
     const borderColor = this.isSelected ? "#ffffff" : "rgba(255, 255, 255, 0.1)";
     const borderWidth = 2;
-    const radius = 6;
+    const radius = CLIP_BORDER_RADIUS;
 
     ctx.save();
     ctx.fillStyle = borderColor;

@@ -106,19 +106,20 @@ export default function Editor({
     console.log(studio);
     const saveScene = debounce(async () => {
       try {
-        const json = studio.exportToJSON();
-        await fetch("/api/scenes", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            schemaId,
-            projectId,
-            sceneData: json,
-          }),
-        });
-        console.log("Scene saved automatically");
+        // const json = studio.exportToJSON();
+        // await fetch("/api/scenes", {
+        //   method: "POST",
+        //   headers: {
+        //     "Content-Type": "application/json",
+        //   },
+        //   body: JSON.stringify({
+        //     schemaId,
+        //     projectId,
+        //     sceneData: json,
+        //   }),
+        // });
+        // console.log("Scene saved automatically");
+        console.log("save disabled")
       } catch (error) {
         console.error("Failed to auto-save scene:", error);
       }

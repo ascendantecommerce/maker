@@ -1,5 +1,7 @@
 import { Rect, RectProps } from "fabric";
 
+export const CLIP_BORDER_RADIUS = 2;
+
 export interface BaseClipProps extends Partial<RectProps> {
   elementId: string;
   text: string;
@@ -19,8 +21,8 @@ export abstract class BaseTimelineClip extends Rect {
     this.src = options.src;
 
     this.set({
-      rx: 4, // Rounded corners
-      ry: 4,
+      rx: CLIP_BORDER_RADIUS, // Rounded corners
+      ry: CLIP_BORDER_RADIUS,
       cornerSize: 6,
       selectable: true,
       hasControls: true,
