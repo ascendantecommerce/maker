@@ -24,10 +24,12 @@ const phonosSemaphore = new DistributedSemaphore("phonos:audio_enhancement_slots
 const inngest = getInngestApp();
 
 export const ugcVideoOrchestrator = inngest.createFunction(
-  { id: "ugc-video-orchestrator", concurrency: 1 },
-  { event: "ugc/video.orchestrate" },
+  {
+    id: "ugc-video-orchestrator",
+    triggers: { event: "ugc/video.orchestrate" },
+  },
 
-  async ({ event, step, publish }) => {
+  async ({ event, step }) => {
     let scheme: VideoSchema = event.data.scheme;
     const schemeId = scheme.id;
     const channel = workflowChannel(schemeId);
@@ -45,17 +47,7 @@ export const ugcVideoOrchestrator = inngest.createFunction(
       // ========================================================================
 
       // --- PHASE 1: AI ANALYSIS & SCHEMA GENERATION ---
-      await step.run("publish-start-toast", async () => {
-        await publish({
-          channel,
-          topic: "steps",
-          data: {
-            type: ToastType.STEP_START,
-            step: "AI Analysis",
-            stepIndex: 1,
-          },
-        });
-      });
+      await step.run("publish-start-toast", async () => {});
 
       await step.run("mark-generation-progress", async () => {
         await advanceGenerationTask(schemeId, UGC_TASK_KEYS.ANALYSIS, UGC_TASKS);
@@ -164,18 +156,7 @@ export const ugcVideoOrchestrator = inngest.createFunction(
           async () => fetchWorkflowState(schemeId),
         );
 
-        await step.run("publish-veo-start-toast", async () => {
-          await publish({
-            channel,
-            topic: "steps",
-            data: {
-              type: ToastType.STEP_START,
-              step: "Generating Videos",
-              stepIndex: 2,
-              message: "Building generation plan...",
-            },
-          });
-        });
+        await step.run("publish-veo-start-toast", async () => {});
 
         await step.run("update-generation-veo-progress", async () => {
           return await db
@@ -276,33 +257,11 @@ export const ugcVideoOrchestrator = inngest.createFunction(
         });
 
         // Wait for all generations to complete
-        await step.run("publish-rendering-toast", async () => {
-          await publish({
-            channel,
-            topic: "steps",
-            data: {
-              type: ToastType.STEP_START,
-              step: "Generating Videos",
-              stepIndex: 2,
-              message: `Processing ${allWaveItems.length} scenes in parallel...`,
-            },
-          });
-        });
+        await step.run("publish-rendering-toast", async () => {});
 
         await Promise.all(allTasks);
 
-        await step.run("publish-generation-complete-toast", async () => {
-          await publish({
-            channel,
-            topic: "steps",
-            data: {
-              type: ToastType.STEP_START,
-              step: "Generating Videos",
-              stepIndex: 2,
-              message: "All scenes generated",
-            },
-          });
-        });
+        await step.run("publish-generation-complete-toast", async () => {});
       }
 
       // ========================================================================
@@ -336,18 +295,7 @@ export const ugcVideoOrchestrator = inngest.createFunction(
         });
 
         if (cutawayTasks.length > 0) {
-          await step.run("publish-cutaway-start-toast", async () => {
-            await publish({
-              channel,
-              topic: "steps",
-              data: {
-                type: ToastType.STEP_START,
-                step: "Generating B-Rolls",
-                stepIndex: 3,
-                message: `Generating ${cutawayTasks.length} cutaway videos...`,
-              },
-            });
-          });
+          await step.run("publish-cutaway-start-toast", async () => {});
           await Promise.all(cutawayTasks);
         }
       }
@@ -383,18 +331,7 @@ export const ugcVideoOrchestrator = inngest.createFunction(
         });
 
         if (overlayTasks.length > 0) {
-          await step.run("publish-overlay-start-toast", async () => {
-            await publish({
-              channel,
-              topic: "steps",
-              data: {
-                type: ToastType.STEP_START,
-                step: "Generating Overlays",
-                stepIndex: 4,
-                message: `Generating ${overlayTasks.length} image overlays...`,
-              },
-            });
-          });
+          await step.run("publish-overlay-start-toast", async () => {});
           await Promise.all(overlayTasks);
         }
       }
@@ -407,18 +344,7 @@ export const ugcVideoOrchestrator = inngest.createFunction(
           fetchWorkflowState(schemeId),
         );
 
-        await step.run("publish-voice-start-toast", async () => {
-          await publish({
-            channel,
-            topic: "steps",
-            data: {
-              type: ToastType.STEP_START,
-              step: "Aligning Voice",
-              stepIndex: 3,
-              message: "Analyzing best voice source...",
-            },
-          });
-        });
+        await step.run("publish-voice-start-toast", async () => {});
 
         await step.run("update-generation-voice-progress", async () => {
           return await advanceGenerationTask(schemeId, UGC_TASK_KEYS.VOICES, UGC_TASKS);
@@ -520,17 +446,7 @@ export const ugcVideoOrchestrator = inngest.createFunction(
       }
 
       // Final Step: Complete
-      await step.run("publish-done-toast", async () => {
-        await publish({
-          channel,
-          topic: "steps",
-          data: {
-            type: ToastType.FUNCTION_COMPLETE,
-            step: "Completed",
-            message: "All steps finished successfully!",
-          },
-        });
-      });
+      await step.run("publish-done-toast", async () => {});
 
       // Update generation status to COMPLETED
       await step.run("mark-generation-completed", async () => {
@@ -547,17 +463,7 @@ export const ugcVideoOrchestrator = inngest.createFunction(
     } catch (err: any) {
       console.error("UGC Master V3 Error:", err);
       const message = err instanceof Error ? err.message : "Unknown error";
-      await step.run("publish-error-toast", async () => {
-        await publish({
-          channel,
-          topic: "steps",
-          data: {
-            type: ToastType.FUNCTION_ERROR,
-            error: message,
-            message: `Workflow failed: ${message}`,
-          },
-        });
-      });
+      await step.run("publish-error-toast", async () => {});
 
       if (schemeId) {
         await db

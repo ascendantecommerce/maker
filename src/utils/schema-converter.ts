@@ -409,7 +409,7 @@ export const convertSchemaToDesign = async (
 
   // Find the style preset based on the caption ID
   const styleCaptions: ICaptionsControlProps =
-    CAPTION_PRESETS.find((preset) => preset.id === captionConfig.id) || CAPTION_PRESETS[6];
+    CAPTION_PRESETS.find((preset) => preset.id === captionConfig.id) || CAPTION_PRESETS[1];
 
   // Map size to fontSize
   const sizeToFontSize: Record<string, number> = {

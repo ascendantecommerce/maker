@@ -2,7 +2,6 @@ import { linkToVideo } from "./link-to-video";
 import { narrativeVideoOrchestrator } from "./narrative";
 import { productVideoOrchestrator } from "./product-video-ads";
 import { productImageOrchestrator } from "./product-image-ads";
-import { generateUGCVideo } from "./generate-ugc-video";
 import { schemaLipsync } from "./lipsync-resolver";
 import { ugcVideoOrchestrator } from "./ugc";
 import { fakeUgcVideoOrchestrator } from "./fake-ugc/orchestrator";
@@ -21,7 +20,6 @@ export const functions = [
   productVideoOrchestrator,
   productImageOrchestrator,
   linkToVideo,
-  generateUGCVideo,
   schemaLipsync,
   ugcVideoOrchestrator,
   fakeUgcVideoOrchestrator,

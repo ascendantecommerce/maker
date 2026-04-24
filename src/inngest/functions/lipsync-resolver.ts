@@ -83,10 +83,11 @@ export const applyLipsyncToScheme = async (scheme: any, schemeId: string) => {
 };
 
 export const schemaLipsync = inngest.createFunction(
-  { id: "schema-lipsync" },
-  { event: "schema/lipsync" },
-
-  async ({ event, step, attempt, publish }) => {
+  {
+    id: "schema-lipsync",
+    triggers: { event: "schema/lipsync" },
+  },
+  async ({ event, step }) => {
     let scheme = event.data.scheme;
     const schemeId = scheme.id;
     try {

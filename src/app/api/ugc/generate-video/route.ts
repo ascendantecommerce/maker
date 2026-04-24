@@ -54,7 +54,6 @@ export async function POST(req: Request) {
         avatarUrl,
         productUrls,
       },
-      user: { id: userId },
     });
 
     const taskId = ids[0];

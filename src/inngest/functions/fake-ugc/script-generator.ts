@@ -13,9 +13,11 @@ const inngest = getInngestApp();
  * Specialized function for writing AI-generated UGC scripts.
  */
 export const generateFakeUGCScript = inngest.createFunction(
-  { id: "fake-ugc-script-generator", concurrency: 5 },
-  { event: "fake-ugc/script.request" },
-  async ({ event, step, publish }) => {
+  {
+    id: "fake-ugc-script-generator",
+    triggers: { event: "fake-ugc/script.request" },
+  },
+  async ({ event, step }) => {
     const { message, imageUrls, schemaId, previousSchema, productName, productDescription } =
       event.data;
     const channel = workflowChannel(schemaId);
@@ -30,16 +32,6 @@ export const generateFakeUGCScript = inngest.createFunction(
         })
         .where("id", "=", schemaId)
         .execute();
-
-      await publish({
-        channel,
-        topic: "steps",
-        data: {
-          type: ToastType.STEP_START,
-          step: "Scripting",
-          message: "Our AI creator is drafting your message...",
-        },
-      });
     });
 
     // 2. Gemini Generation
@@ -71,26 +63,7 @@ export const generateFakeUGCScript = inngest.createFunction(
     });
 
     // 4. Notify Frontend
-    await step.run("notify-success", async () => {
-      await publish({
-        channel,
-        topic: "script/generate.complete",
-        data: {
-          result,
-          schemaId,
-        },
-      });
-
-      await publish({
-        channel,
-        topic: "steps",
-        data: {
-          type: ToastType.STEP_END,
-          step: "Scripting",
-          message: "Fake UGC script generated!",
-        },
-      });
-    });
+    await step.run("notify-success", async () => {});
 
     return result;
   },

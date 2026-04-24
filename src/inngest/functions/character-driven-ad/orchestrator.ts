@@ -27,12 +27,13 @@ const inngest = getInngestApp();
  * Uses Veo 3.1 Fast's ability to generate video and lip-synced audio from a single payload.
  */
 export const characterDrivenAdOrchestrator = inngest.createFunction(
-  { id: "character-driven-ad-orchestrator", concurrency: 2 },
-  { event: "character-ad/video.orchestrate" },
-  async ({ event, step, publish }) => {
+  {
+    id: "character-driven-ad-orchestrator",
+    triggers: { event: "character-ad/video.orchestrate" },
+  },
+  async ({ event, step }) => {
     let scheme: VideoSchema = event.data.scheme;
     const schemeId = scheme.id;
-    const channel = workflowChannel(schemeId);
     const runToken = (event.id ?? nanoid()).slice(0, 8);
     const services = initializeCharacterAdServices();
 
@@ -94,17 +95,6 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
       // Here, we take those shots and ask the LLM to write continuous "smart" Prompts and Emotions
       // specific to each shot.
       scheme = await step.run("generate-smart-shots-stage-0-5", async () => {
-        await publish({
-          channel,
-          topic: "steps",
-          data: {
-            type: ToastType.STEP_START,
-            step: "Planning Shots",
-            stepIndex: 0,
-            message: `Applying smart AI prompts to ${scheme.segments.length} auto-split scenes...`,
-          },
-        });
-
         const shotResults = await generateCharacterAdShots(scheme);
         const updatedScheme = { ...scheme, segments: mapShotsToSegments(scheme, shotResults) };
 
@@ -125,18 +115,7 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
           .execute();
       });
 
-      await step.run("publish-analysis-start-toast", async () => {
-        await publish({
-          channel,
-          topic: "steps",
-          data: {
-            type: ToastType.STEP_START,
-            step: "Character Initialization",
-            stepIndex: 1,
-            message: `Analyzing characters and generating seed images...`,
-          },
-        });
-      });
+      await step.run("publish-analysis-start-toast", async () => {});
 
       // 2. Stage 1: Generate Scene Composition Images per Shot
       scheme = await step.run("initialize-character-images", async () => {
@@ -184,18 +163,7 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
         return scheme;
       });
 
-      await step.run("publish-veo-start-toast", async () => {
-        await publish({
-          channel,
-          topic: "steps",
-          data: {
-            type: ToastType.STEP_START,
-            step: "Generating Videos",
-            stepIndex: 2,
-            message: `Building ${scheme.segments.length} character scenes in parallel...`,
-          },
-        });
-      });
+      await step.run("publish-veo-start-toast", async () => {});
 
       // 3. Stage 2: Generate Videos (Veo 3.1 Fast)
       scheme = await step.run("generate-video-clips", async () => {
@@ -227,18 +195,7 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
       });
 
       // 4. Stage 3: Audio Refinement (ElevenLabs Audio Isolation + ffmpeg merge)
-      await step.run("publish-refinement-start-toast", async () => {
-        await publish({
-          channel,
-          topic: "steps",
-          data: {
-            type: ToastType.STEP_START,
-            step: "Refining Audio",
-            stepIndex: 3,
-            message: `Enhancing ${scheme.segments.length} videos with studio-quality audio isolation...`,
-          },
-        });
-      });
+      await step.run("publish-refinement-start-toast", async () => {});
 
       scheme = await step.run("refine-generated-videos", async () => {
         // Collect current clips from ALL shots in ALL segments
@@ -288,18 +245,7 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
       });
 
       // 5. Stage 4: Generate Sound Effects
-      await step.run("publish-sfx-start-toast", async () => {
-        await publish({
-          channel,
-          topic: "steps",
-          data: {
-            type: ToastType.STEP_START,
-            step: "Generating Foley & SFX",
-            stepIndex: 4,
-            message: `Creating AI sound effects for ${scheme.segments.length} videos...`,
-          },
-        });
-      });
+      await step.run("publish-sfx-start-toast", async () => {});
 
       scheme = await step.run("generate-sound-effects", async () => {
         // We need Stage 2 results for analysis (original native audio)
@@ -371,34 +317,14 @@ export const characterDrivenAdOrchestrator = inngest.createFunction(
           .execute();
       });
 
-      await step.run("publish-done-toast", async () => {
-        await publish({
-          channel,
-          topic: "steps",
-          data: {
-            type: ToastType.FUNCTION_COMPLETE,
-            step: "Completed",
-            message: "All character scenes refined with studio-quality audio!",
-          },
-        });
-      });
+      await step.run("publish-done-toast", async () => {});
 
       return { success: true };
     } catch (err: any) {
       console.error("[Character Ad Orchestrator Error]:", err);
       const message = err.message || "Unknown error";
 
-      await step.run("publish-error-toast", async () => {
-        await publish({
-          channel,
-          topic: "steps",
-          data: {
-            type: ToastType.FUNCTION_ERROR,
-            error: message,
-            message: `Character workflow failed: ${message}`,
-          },
-        });
-      });
+      await step.run("publish-error-toast", async () => {});
 
       await db
         .updateTable("generations")

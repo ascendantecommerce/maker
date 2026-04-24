@@ -7,8 +7,10 @@ import { ResolverStatus } from "@/utils/enum";
 const inngest = getInngestApp();
 
 export const kalodataVideosOrchestrator = inngest.createFunction(
-  { id: "kalodata-videos-orchestrator", concurrency: 2 },
-  { event: "kalodata-videos/analyze" },
+  {
+    id: "kalodata-videos-orchestrator",
+    triggers: { event: "kalodata-videos/analyze" },
+  },
   async ({ event, step }) => {
     const { generationId, productUrl } = event.data;
 

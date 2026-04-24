@@ -21,10 +21,9 @@ import { applyLipsyncToScheme } from "../lipsync-resolver";
 const inngest = getInngestApp();
 
 export const narrativeVideoOrchestrator = inngest.createFunction(
-  { id: "narrative-video-orchestrator" },
-  { event: "video/narrative.orchestrate" },
+  { id: "narrative-video-orchestrator", triggers: { event: "video/narrative.orchestrate" } },
 
-  async ({ event, step, attempt, publish }) => {
+  async ({ event, step, attempt }) => {
     let scheme: VideoSchema = event.data.scheme;
     const schemeId = scheme.id;
     const channel = workflowChannel(schemeId);
@@ -32,17 +31,7 @@ export const narrativeVideoOrchestrator = inngest.createFunction(
     let resultPreviewUrl: string | undefined = undefined;
 
     try {
-      await step.run("publish-start-toast", async () => {
-        await publish({
-          channel,
-          topic: "steps",
-          data: {
-            type: ToastType.STEP_START,
-            step: "AI Analysis",
-            stepIndex: 1,
-          },
-        });
-      });
+      await step.run("publish-start-toast", async () => {});
 
       await step.run("mark-generation-progress-analysis", async () => {
         await advanceGenerationTask(schemeId, NARRATIVE_TASK_KEYS.ANALYSIS, NARRATIVE_TASKS);
@@ -365,15 +354,6 @@ export const narrativeVideoOrchestrator = inngest.createFunction(
       console.error("Narrative Orchestrator Error:", err);
       const message = err instanceof Error ? err.message : "Unknown error";
       if (schemeId) {
-        await publish({
-          channel,
-          topic: "steps",
-          data: {
-            type: ToastType.FUNCTION_ERROR,
-            error: message,
-            message: `Workflow failed: ${message}`,
-          },
-        });
         await db
           .updateTable("generations")
           .set({ status: ResolverStatus.FAILED })

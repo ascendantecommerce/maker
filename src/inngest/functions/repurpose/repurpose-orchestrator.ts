@@ -17,8 +17,10 @@ const inngest = getInngestApp();
 // ============================================================================
 
 export const repurposeVideoOrchestrator = inngest.createFunction(
-  { id: "repurpose-video-orchestrator", concurrency: 5 },
-  { event: "video/repurpose" },
+  {
+    id: "repurpose-video-orchestrator",
+    triggers: { event: "video/repurpose" },
+  },
 
   async ({ event, step }) => {
     const { url, name, productName } = event.data as {

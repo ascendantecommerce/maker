@@ -13,12 +13,13 @@ const inngest = getInngestApp();
  * Specialized function for writing standard narrative social media scripts.
  */
 export const generateNarrativeScript = inngest.createFunction(
-  { id: "narrative-script-generator", concurrency: 5 },
-  { event: "narrative/script.request" },
-  async ({ event, step, publish }) => {
+  {
+    id: "narrative-script-generator",
+    triggers: { event: "narrative/script.request" },
+  },
+  async ({ event, step }) => {
     const { message, imageUrls, schemaId, previousSchema, productName, productDescription } =
       event.data;
-    const channel = workflowChannel(schemaId);
 
     // 1. Initial Status Update
     await step.run("mark-scripting-start", async () => {
@@ -30,16 +31,6 @@ export const generateNarrativeScript = inngest.createFunction(
         })
         .where("id", "=", schemaId)
         .execute();
-
-      await publish({
-        channel,
-        topic: "steps",
-        data: {
-          type: ToastType.STEP_START,
-          step: "Scripting",
-          message: "Our copywriter is drafting your message...",
-        },
-      });
     });
 
     // 2. Specialized Gemini Generation
@@ -71,26 +62,7 @@ export const generateNarrativeScript = inngest.createFunction(
     });
 
     // 4. Notify Frontend
-    await step.run("notify-success", async () => {
-      await publish({
-        channel,
-        topic: "script/generate.complete",
-        data: {
-          result,
-          schemaId,
-        },
-      });
-
-      await publish({
-        channel,
-        topic: "steps",
-        data: {
-          type: ToastType.STEP_END,
-          step: "Scripting",
-          message: "Narrative script generated!",
-        },
-      });
-    });
+    await step.run("notify-success", async () => {});
 
     return result;
   },

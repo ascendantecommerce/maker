@@ -54,9 +54,9 @@ export async function analyzeViralVideo(generationId: string, videoId: string) {
         // Passing these along just in case downstream steps re-implement DB binding
         generationId,
         videoId,
-      },
-      user: {
-        id: session.user.id,
+        user: {
+          id: session.user.id,
+        },
       },
     });
   } else {

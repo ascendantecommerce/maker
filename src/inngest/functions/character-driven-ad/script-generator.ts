@@ -21,9 +21,11 @@ const inngest = getInngestApp();
  * segments with firstFramePrompt, videoPrompt, etc.
  */
 export const generateCharacterAdScript = inngest.createFunction(
-  { id: "character-ad-script-generator", concurrency: 5 },
-  { event: "character-ad/script.request" },
-  async ({ event, step, publish }) => {
+  {
+    id: "character-ad-script-generator",
+    triggers: { event: "character-ad/script.request" },
+  },
+  async ({ event, step }) => {
     const {
       message,
       imageUrls,
@@ -46,16 +48,6 @@ export const generateCharacterAdScript = inngest.createFunction(
         })
         .where("id", "=", schemaId)
         .execute();
-
-      await publish({
-        channel,
-        topic: "steps",
-        data: {
-          type: ToastType.STEP_START,
-          step: "Scripting",
-          message: "Our creative writer is crafting your story...",
-        },
-      });
     });
 
     // 2. Specialized Gemini Generation — produces segments with character objects
@@ -105,26 +97,7 @@ OUTPUT FORMAT — SEGMENTS WITH CHARACTER:
     });
 
     // 4. Notify Frontend
-    await step.run("notify-success", async () => {
-      await publish({
-        channel,
-        topic: "script/generate.complete",
-        data: {
-          result,
-          schemaId,
-        },
-      });
-
-      await publish({
-        channel,
-        topic: "steps",
-        data: {
-          type: ToastType.STEP_END,
-          step: "Scripting",
-          message: "Script generated successfully!",
-        },
-      });
-    });
+    await step.run("notify-success", async () => {});
 
     return result;
   },

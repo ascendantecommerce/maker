@@ -3,7 +3,6 @@ import { GeminiService } from "@/lib/gemini/generator";
 import { ResolverStatus } from "@/utils/enum";
 import { getInngestApp } from "../../index";
 import { workflowChannel } from "../../utils/common";
-import { ToastType } from "../../utils/types";
 
 const inngest = getInngestApp();
 
@@ -13,13 +12,13 @@ const inngest = getInngestApp();
  * Specialized function for writing high-converting product video ads.
  */
 export const generateProductImageAdScript = inngest.createFunction(
-  { id: "product-image-script-generator", concurrency: 5 },
-  { event: "image/product-script.request" },
-  async ({ event, step, publish }) => {
+  {
+    id: "product-image-script-generator",
+    triggers: { event: "image/product-script.request" },
+  },
+  async ({ event, step }) => {
     const { message, imageUrls, schemaId, previousSchema, productName, productDescription } =
       event.data;
-    const channel = workflowChannel(schemaId);
-
     // 1. Initial Status Update
     await step.run("mark-scripting-start", async () => {
       await db
@@ -30,16 +29,6 @@ export const generateProductImageAdScript = inngest.createFunction(
         })
         .where("id", "=", schemaId)
         .execute();
-
-      await publish({
-        channel,
-        topic: "steps",
-        data: {
-          type: ToastType.STEP_START,
-          step: "Scripting",
-          message: "Our copywriter is drafting your product ad...",
-        },
-      });
     });
 
     // 2. Gemini Generation
@@ -71,26 +60,7 @@ export const generateProductImageAdScript = inngest.createFunction(
     });
 
     // 4. Notify Frontend
-    await step.run("notify-success", async () => {
-      await publish({
-        channel,
-        topic: "script/generate.complete",
-        data: {
-          result,
-          schemaId,
-        },
-      });
-
-      await publish({
-        channel,
-        topic: "steps",
-        data: {
-          type: ToastType.STEP_END,
-          step: "Scripting",
-          message: "Product ad script generated!",
-        },
-      });
-    });
+    await step.run("notify-success", async () => {});
 
     return result;
   },

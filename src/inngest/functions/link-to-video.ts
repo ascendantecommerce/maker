@@ -23,25 +23,16 @@ interface LinkToVideoJob {
 const inngest = getInngestApp();
 
 export const linkToVideo = inngest.createFunction(
-  { id: "link-to-video" },
-  { event: "link/video" },
-  async ({ event, step, attempt, publish }) => {
-    const job: LinkToVideoJob = event.data;
+  {
+    id: "link-to-video",
+    triggers: { event: "link/video" },
+  },
+  async ({ event, step }) => {
+    const job: any = event.data;
     const { schemeId, aspectRatio, visualStyle, url } = job;
-    const channel = workflowChannel(schemeId);
 
     try {
-      await step.run("publish-start-toast", async () => {
-        await publish({
-          channel,
-          topic: "steps",
-          data: {
-            type: ToastType.STEP_START,
-            step: "AI Analysis",
-            stepIndex: 1,
-          },
-        });
-      });
+      await step.run("publish-start-toast", async () => {});
 
       const result = await execLinkToVideo(url, schemeId, aspectRatio, visualStyle, step);
 
@@ -78,17 +69,7 @@ export const linkToVideo = inngest.createFunction(
       console.error("error-error", err);
       if (schemeId) {
         const message = err instanceof Error ? err.message : "Unknown error";
-        await step.run("publish-error-toast", async () => {
-          await publish({
-            channel,
-            topic: "steps",
-            data: {
-              type: ToastType.FUNCTION_ERROR,
-              error: message,
-              message: `Workflow failed: ${message}`,
-            },
-          });
-        });
+        await step.run("publish-error-toast", async () => {});
 
         await db
           .updateTable("generations")

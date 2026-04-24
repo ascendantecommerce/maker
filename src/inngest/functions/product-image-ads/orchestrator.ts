@@ -12,7 +12,6 @@ import * as pipelineSteps from "../common/steps";
 
 import { ResolverStatus, VideoType } from "@/utils/enum";
 import { workflowChannel } from "../../utils/common";
-import { ToastType } from "../../utils/types";
 import { advanceGenerationTask } from "../../utils/generation-progress";
 import { ensureObject, fetchWorkflowState } from "../common/services/utils";
 import { PRODUCT_TASK_KEYS, PRODUCT_TASKS } from "./constants";
@@ -21,10 +20,12 @@ import { applyLipsyncToScheme } from "../lipsync-resolver";
 const inngest = getInngestApp();
 
 export const productImageOrchestrator = inngest.createFunction(
-  { id: "product-image-orchestrator" },
-  { event: "image/product.orchestrate" },
+  {
+    id: "product-image-orchestrator",
+    triggers: { event: "image/product.orchestrate" },
+  },
 
-  async ({ event, step, attempt, publish }) => {
+  async ({ event, step, attempt }) => {
     let scheme: VideoSchema = event.data.scheme;
     const schemeId = scheme.id;
     const channel = workflowChannel(schemeId);
@@ -32,17 +33,7 @@ export const productImageOrchestrator = inngest.createFunction(
     let resultPreviewUrl: string | undefined = undefined;
 
     try {
-      await step.run("publish-start-toast", async () => {
-        await publish({
-          channel,
-          topic: "steps",
-          data: {
-            type: ToastType.STEP_START,
-            step: "AI Analysis",
-            stepIndex: 1,
-          },
-        });
-      });
+      await step.run("publish-start-toast", async () => {});
 
       await step.run("mark-generation-progress-analysis", async () => {
         await advanceGenerationTask(schemeId, PRODUCT_TASK_KEYS.ANALYSIS, PRODUCT_TASKS);
@@ -348,15 +339,6 @@ export const productImageOrchestrator = inngest.createFunction(
       console.error("Product Orchestrator Error:", err);
       const message = err instanceof Error ? err.message : "Unknown error";
       if (schemeId) {
-        await publish({
-          channel,
-          topic: "steps",
-          data: {
-            type: ToastType.FUNCTION_ERROR,
-            error: message,
-            message: `Workflow failed: ${message}`,
-          },
-        });
         await db
           .updateTable("generations")
           .set({ status: ResolverStatus.FAILED })
