@@ -3,7 +3,6 @@ import { type Control, Pattern } from "fabric";
 import { createTrimControls } from "../controls";
 import { editorFont } from "@/components/editor/constants";
 import { TIMELINE_CONSTANTS } from "@/components/editor/timeline/timeline-constants";
-import { useStudioStore } from "@/stores/studio-store";
 import type { Video as VideoClip } from "openvideo";
 import ThumbnailCache from "../utils/thumbnail-cache";
 import { unitsToTimeMs } from "../utils/filmstrip";
@@ -117,20 +116,17 @@ export class Video extends BaseTimelineClip {
   }
 
   public async loadAndRenderThumbnails() {
-    const studio = useStudioStore.getState().studio;
-    if (!studio || !this.studioClipId) return;
+    if (!this.getMediaMetadata || !this.getMediaThumbnails || !this.elementId) return;
 
-    const clip = studio.getClipById(this.studioClipId);
-    if (!clip || clip.type !== "Video") return;
+    const meta = this.getMediaMetadata(this.elementId);
+    if (!meta) return;
 
     this._thumbAborter?.abort();
     this._thumbAborter = new AbortController();
     const { signal } = this._thumbAborter;
 
-    const videoClip = clip as VideoClip;
-
     // Update aspect ratio from metadata if available
-    const { width, height, duration: sourceDuration } = videoClip.meta;
+    const { width, height, duration: sourceDuration } = meta;
     let needsUpdate = false;
 
     if (width && height) {
@@ -178,7 +174,7 @@ export class Video extends BaseTimelineClip {
         return;
       }
 
-      const thumbnailsArr = await videoClip.thumbnails(this._thumbnailWidth, {
+      const thumbnailsArr = await this.getMediaThumbnails(this.elementId, this._thumbnailWidth, {
         start: timestamps[0],
         end: timestamps[timestamps.length - 1],
         step: stepUs,

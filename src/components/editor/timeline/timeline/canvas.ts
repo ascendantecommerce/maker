@@ -9,6 +9,7 @@ import {
   type BaseTimelineClip,
   Transition,
   Caption,
+  type IThumbnail,
 } from "./clips";
 import { TransitionButton } from "./objects/transition-button";
 import { TransitionPlaceholder } from "./objects/transition-placeholder";
@@ -87,6 +88,12 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
   #totalTracksHeight: number = 0;
   /** Framework-agnostic callback for project total duration in seconds. */
   #getDuration: () => number;
+  #getMediaMetadata?: (elementId: string) => any;
+  #getMediaThumbnails?: (
+    elementId: string,
+    width: number,
+    options: any,
+  ) => Promise<IThumbnail[]>;
 
   // Cache for Fabric objects
   #trackObjects: Map<string, Track> = new Map();
@@ -119,9 +126,22 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
   /** Current playhead time in seconds. */
   #playheadTime: number | null = null;
 
-  constructor(id: string, options: { getDuration?: () => number } = {}) {
+  constructor(
+    id: string,
+    options: {
+      getDuration?: () => number;
+      getMediaMetadata?: (elementId: string) => any;
+      getMediaThumbnails?: (
+        elementId: string,
+        width: number,
+        options: any,
+      ) => Promise<IThumbnail[]>;
+    } = {},
+  ) {
     super();
     this.#getDuration = options.getDuration ?? (() => 0);
+    this.#getMediaMetadata = options.getMediaMetadata;
+    this.#getMediaThumbnails = options.getMediaThumbnails;
     this.containerEl = document.getElementById(id) as HTMLDivElement;
 
     if (!this.containerEl) {
@@ -1063,6 +1083,8 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
               lockSkewingY: !!clip.locked,
               lockRotation: !!clip.locked,
               hasControls: !clip.locked,
+              getMediaMetadata: this.#getMediaMetadata,
+              getMediaThumbnails: this.#getMediaThumbnails,
             };
             console.log({ commonProps });
 

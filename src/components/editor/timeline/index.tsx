@@ -271,6 +271,16 @@ export function Timeline() {
   useEffect(() => {
     const canvas = new TimelineCanvas("timeline-canvas", {
       getDuration: () => useTimelineStore.getState().getTotalDuration(),
+      getMediaMetadata: (clipId) => {
+        const studio = useStudioStore.getState().studio;
+        const clip = studio?.getClipById(clipId);
+        return (clip as any)?.meta;
+      },
+      getMediaThumbnails: (clipId, width, options) => {
+        const studio = useStudioStore.getState().studio;
+        const clip = studio?.getClipById(clipId);
+        return (clip as any)?.thumbnails(width, options);
+      },
     });
     timelineCanvasRef.current = canvas;
     setCanvasInstance(canvas);
