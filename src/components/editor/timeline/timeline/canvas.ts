@@ -64,6 +64,8 @@ export interface TimelineCanvasEvents {
   "transition:add": { fromClipId: string; toClipId: string; trackId: string };
   "selection:delete": undefined;
   "viewport:changed": { scrollX: number; scrollY: number };
+  /** Emitted while a clip is being dragged/resized and is snapping to the playhead. */
+  "playhead:snap": { isSnapping: boolean };
   [key: string]: any;
   [key: symbol]: any;
 }
@@ -114,6 +116,8 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
   #onSelectionClear: (opt: any) => void;
   #onMouseMove: (opt: any) => void;
   #enableGuideRedraw: boolean = true;
+  /** Current playhead time in seconds. */
+  #playheadTime: number | null = null;
 
   constructor(id: string, options: { getDuration?: () => number } = {}) {
     super();
@@ -198,6 +202,8 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
     // handleTrackRelocation must run before handleClipModification
     this.canvas.on("object:modified", this.#onTrackRelocation);
     this.canvas.on("object:modified", this.#onClipModification);
+    // Always clear playhead snap highlight when the interaction ends
+    this.canvas.on("object:modified", () => this.emit("playhead:snap", { isSnapping: false }));
     this.canvas.on("selection:created", this.#onSelectionCreate);
     this.canvas.on("selection:updated", this.#onSelectionUpdate);
     this.canvas.on("selection:cleared", this.#onSelectionClear);
@@ -719,6 +725,20 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
 
   public set enableGuideRedraw(value: boolean) {
     this.#enableGuideRedraw = value;
+  }
+
+  /** Current playhead position in canvas object-space pixels (null = unknown). */
+  public get playheadX(): number | null {
+    if (this.#playheadTime === null) return null;
+    return this.#playheadTime * TIMELINE_CONSTANTS.PIXELS_PER_SECOND * this.#timeScale;
+  }
+
+  /**
+   * Keep the canvas aware of the current playhead position so clips can snap to it.
+   * @param timeSeconds - playhead time in seconds
+   */
+  public setPlayheadTime(timeSeconds: number) {
+    this.#playheadTime = timeSeconds;
   }
 
   public clearSeparatorHighlights() {

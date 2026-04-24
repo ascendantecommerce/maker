@@ -6,9 +6,34 @@ import {
   getGuides,
   drawGuides,
   clearAuxiliaryObjects,
+  getStopsForObject,
 } from "../guidelines/utils";
 
 const MIN_RESIZE_WIDTH = 10;
+
+/** Build guide stops for the playhead line so clips can snap to it. */
+function getPlayheadGuideStops(timeline: Timeline): { vertical: any[]; horizontal: any[] } {
+  const px = timeline.playheadX;
+  if (px === null) return { vertical: [], horizontal: [] };
+  // The playhead is a vertical line; its height spans the full canvas
+  const canvasHeight = timeline.canvas.getHeight();
+  return {
+    vertical: getStopsForObject(px, 0, 0, canvasHeight),
+    horizontal: [],
+  };
+}
+
+/**
+ * Returns true when at least one of the resolved guides corresponds to the
+ * current playhead position (within 1 px rounding tolerance).
+ */
+function guidesIncludePlayhead(guides: ReturnType<typeof getGuides>, timeline: Timeline): boolean {
+  const px = timeline.playheadX;
+  if (px === null) return false;
+  return guides.some(
+    (g) => g.orientation === "V" && Math.abs(g.lineGuide - px) < 1,
+  );
+}
 
 export function handleDragging(timeline: Timeline, options: any) {
   const target = options.target as FabricObject;
@@ -21,13 +46,20 @@ export function handleDragging(timeline: Timeline, options: any) {
 
   const skipObjects = [target, ...timeline.canvas.getActiveObjects()];
   const lineGuideStops = getLineGuideStops(skipObjects, timeline.canvas);
+  // Also snap to playhead
+  const playheadStops = getPlayheadGuideStops(timeline);
+  lineGuideStops.vertical.push(...playheadStops.vertical);
   const itemBounds = getObjectSnappingEdges(target);
   const guides = getGuides(lineGuideStops, itemBounds);
 
   if (timeline.enableGuideRedraw) {
     clearAuxiliaryObjects(timeline.canvas, allObjects);
-    if (guides.length > 0) {
-      drawGuides(guides, targetRect, timeline.canvas);
+    // Don't draw a canvas line for playhead snaps — the playhead colour change is the feedback
+    const visibleGuides = guides.filter(
+      (g) => timeline.playheadX === null || Math.abs(g.lineGuide - timeline.playheadX) >= 1,
+    );
+    if (visibleGuides.length > 0) {
+      drawGuides(visibleGuides, targetRect, timeline.canvas);
     }
     timeline.enableGuideRedraw = false;
     setTimeout(() => {
@@ -41,6 +73,9 @@ export function handleDragging(timeline: Timeline, options: any) {
       target.setCoords();
     }
   });
+
+  // Notify React whether the clip is currently locked to the playhead
+  timeline.emit("playhead:snap", { isSnapping: guidesIncludePlayhead(guides, timeline) });
   // ---------------------------
 
   // Get the pointer position (cursor position) instead of object center
@@ -101,13 +136,20 @@ export function handleResizing(timeline: Timeline, options: any) {
 
   const skipObjects = [target, ...timeline.canvas.getActiveObjects()];
   const lineGuideStops = getLineGuideStops(skipObjects, timeline.canvas);
+  // Also snap to playhead
+  const playheadStops = getPlayheadGuideStops(timeline);
+  lineGuideStops.vertical.push(...playheadStops.vertical);
   const guides = getGuides(lineGuideStops, itemBounds);
 
   // Throttled guideline redraw
   if (timeline.enableGuideRedraw) {
     clearAuxiliaryObjects(timeline.canvas, allObjects);
-    if (guides.length > 0) {
-      drawGuides(guides, rect, timeline.canvas);
+    // Don't draw a canvas line for playhead snaps — the playhead colour change is the feedback
+    const visibleGuides = guides.filter(
+      (g) => timeline.playheadX === null || Math.abs(g.lineGuide - timeline.playheadX) >= 1,
+    );
+    if (visibleGuides.length > 0) {
+      drawGuides(visibleGuides, rect, timeline.canvas);
     }
     timeline.enableGuideRedraw = false;
     setTimeout(() => {
@@ -140,6 +182,9 @@ export function handleResizing(timeline: Timeline, options: any) {
       }
     }
   });
+
+  // Notify React whether the clip edge is currently locked to the playhead
+  timeline.emit("playhead:snap", { isSnapping: guidesIncludePlayhead(guides, timeline) });
 
   timeline.canvas.requestRenderAll();
 }

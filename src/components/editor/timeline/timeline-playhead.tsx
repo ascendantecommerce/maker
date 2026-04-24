@@ -19,6 +19,7 @@ interface TimelinePlayheadProps {
   timelineRef: React.RefObject<HTMLDivElement | null>;
   playheadRef?: React.RefObject<HTMLDivElement | null>;
   isSnappingToPlayhead?: boolean;
+  isScrubbing?: boolean;
   scrollLeft: number;
   onScrollChange?: (scrollX: number) => void;
 }
@@ -35,6 +36,7 @@ export function TimelinePlayhead({
   timelineRef,
   playheadRef: externalPlayheadRef,
   isSnappingToPlayhead = false,
+  isScrubbing: externalIsScrubbing = false,
   scrollLeft,
   onScrollChange,
 }: TimelinePlayheadProps) {
@@ -53,11 +55,7 @@ export function TimelinePlayhead({
     return (theme === "system" ? resolvedTheme : theme) as "dark" | "light";
   }, [mounted, theme, resolvedTheme]);
 
-  const color = useMemo(() => {
-    return currentTheme === "dark" ? "#ffffff" : "#000000";
-  }, [currentTheme]);
-
-  const { playheadPosition, handlePlayheadMouseDown } = useTimelinePlayhead({
+  const { playheadPosition, handlePlayheadMouseDown, isScrubbing: internalIsScrubbing } = useTimelinePlayhead({
     currentTime,
     duration,
     zoomLevel,
@@ -68,6 +66,14 @@ export function TimelinePlayhead({
     playheadRef,
     onScrollChange,
   });
+
+  const isScrubbing = internalIsScrubbing || externalIsScrubbing;
+
+  const color = useMemo(() => {
+    if (isSnappingToPlayhead) return "#f59e0b"; // amber   — snapping to playhead
+    if (isScrubbing)           return "#38bdf8"; // sky-400 — playhead dragging
+    return currentTheme === "dark" ? "#ffffff" : "#000000";
+  }, [currentTheme, isSnappingToPlayhead, isScrubbing]);
 
   // Use timeline container height minus a few pixels for breathing room
   const timelineContainerHeight = timelineRef.current?.offsetHeight || 400;
@@ -113,6 +119,7 @@ export function TimelinePlayhead({
         className="absolute left-1/2 -translate-x-1/2 w-[1px] cursor-col-resize h-full"
         style={{
           backgroundColor: color,
+          transition: "background-color 80ms ease",
         }}
       />
 
@@ -126,6 +133,7 @@ export function TimelinePlayhead({
           borderRadius: "2px 2px 0 0",
           clipPath: "polygon(0% 0%, 100% 0%, 100% 70%, 50% 100%, 0% 70%)",
           backgroundColor: color,
+          transition: "background-color 80ms ease",
         }}
       />
     </div>
@@ -146,7 +154,7 @@ export function useTimelinePlayheadRuler({
   scrollLeft?: number;
 }) {
   const currentTime = usePlaybackStore((state) => state.currentTime);
-  const { handleRulerMouseDown, isDraggingRuler } = useTimelinePlayhead({
+  const { handleRulerMouseDown, isDraggingRuler, isScrubbing } = useTimelinePlayhead({
     currentTime,
     duration,
     zoomLevel,
@@ -158,7 +166,7 @@ export function useTimelinePlayheadRuler({
     onScrollChange,
   });
 
-  return { handleRulerMouseDown, isDraggingRuler };
+  return { handleRulerMouseDown, isDraggingRuler, isScrubbing };
 }
 
 export { TimelinePlayhead as default };
