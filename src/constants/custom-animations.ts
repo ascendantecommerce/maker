@@ -621,9 +621,21 @@ export const baseAnim = (duration: number) => {
 };
 
 export const COMBO_ANIMATION_GROUPS = {
-  scale: ["comboZoom1", "comboZoom2", "comboBounce1", "comboSwayIn", "comboSwayOut"],
+  scale: {
+    fast: ["comboZoom2"],
+    slow: ["comboZoom1", "comboBounce1"],
+    medium: ["comboSwayIn", "comboSwayOut"],
+  },
 
-  motion: ["comboPendulum1", "comboPendulum2", "comboWobble"],
+  motion: {
+    fast: [],
+    slow: ["comboWobble"],
+    medium: ["comboPendulum1", "comboPendulum2"],
+  },
 
-  rotation: ["comboSpinningTop1", "comboSpinningTop2", "comboRightDistort", "comboLeftDistort"],
+  rotation: {
+    fast: ["comboRightDistort"],
+    slow: ["comboSpinningTop1", "comboSpinningTop2"],
+    medium: ["comboLeftDistort", "comboRightDistort"],
+  },
 };

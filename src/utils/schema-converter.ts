@@ -477,7 +477,7 @@ export const convertSchemaToDesign = async (
       lastAnimationGroupKey = currentGroupKey;
 
       // Track last used animation within the segment to prevent consecutive repetition
-      let segmentLastAnimationIndex: number | null = null;
+      let segmentLastAnimationName: string | null = null;
 
       // Process shots (video/image)
       if (segment.shots && Array.isArray(segment.shots)) {
@@ -497,24 +497,6 @@ export const convertSchemaToDesign = async (
                 (shot.display?.to ?? (shot.display?.from ?? 0) + (shot.duration ?? 0)) * 1000,
             );
             const durationUs = toUs - fromUs;
-            console.log({
-              durationUs,
-              fromUs,
-              toUs,
-              shot,
-              currentSegmentOffsetUs,
-            });
-
-            // // NEW: Try to find actual file duration from metadata if available
-            // // This helps the renderer know the true bounds of the media file
-            // let sourceDurationUs = durationUs;
-            // if (segment.generatedMedia && Array.isArray(segment.generatedMedia) && segment.generatedMedia[idx]) {
-            //     const gm = segment.generatedMedia[idx];
-            //     if (gm.duration && gm.type === "video") {
-            //         sourceDurationUs = Math.round(gm.duration * 1000);
-            //         console.log(`[CONVERTER] Using source duration for shot ${idx}: ${sourceDurationUs}us (vs shot duration ${durationUs}us)`);
-            //     }
-            // }
 
             let videoWidth = width;
             let videoHeight = height;
@@ -622,16 +604,34 @@ export const convertSchemaToDesign = async (
               id: clipId,
               animations: [
                 (() => {
-                  let animationIndex: number;
-                  if (segmentAnimationGroup.length > 1 && segmentLastAnimationIndex !== null) {
-                    do {
-                      animationIndex = Math.floor(Math.random() * segmentAnimationGroup.length);
-                    } while (animationIndex === segmentLastAnimationIndex);
-                  } else {
-                    animationIndex = Math.floor(Math.random() * segmentAnimationGroup.length);
+                  const durationMs = durationUs / 1000;
+                  let durationBucket: "fast" | "slow" | "medium" = "slow";
+                  if (durationMs < 1000) durationBucket = "fast";
+                  else if (durationMs > 2000) durationBucket = "medium";
+
+                  let shotAnimationGroup = segmentAnimationGroup[durationBucket] as string[];
+                  
+                  // Fallback if the specific bucket is empty for the chosen group (e.g., motion -> fast)
+                  if (!shotAnimationGroup || shotAnimationGroup.length === 0) {
+                    shotAnimationGroup = [
+                      ...(COMBO_ANIMATION_GROUPS.scale[durationBucket] || []),
+                      ...(COMBO_ANIMATION_GROUPS.motion[durationBucket] || []),
+                      ...(COMBO_ANIMATION_GROUPS.rotation[durationBucket] || [])
+                    ];
                   }
-                  segmentLastAnimationIndex = animationIndex;
-                  const animationData = segmentAnimationGroup[animationIndex];
+
+                  let animationData: string;
+                  if (shotAnimationGroup.length > 1 && segmentLastAnimationName !== null) {
+                    do {
+                      const animationIndex = Math.floor(Math.random() * shotAnimationGroup.length);
+                      animationData = shotAnimationGroup[animationIndex];
+                    } while (animationData === segmentLastAnimationName);
+                  } else {
+                    const animationIndex = Math.floor(Math.random() * shotAnimationGroup.length);
+                    animationData = shotAnimationGroup[animationIndex];
+                  }
+                  
+                  segmentLastAnimationName = animationData;
                   const animId = `animation_${Math.random().toString(36).substring(2, 9)}`;
 
                   const animationObj: any = {
