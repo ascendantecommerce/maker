@@ -610,13 +610,13 @@ export const convertSchemaToDesign = async (
                   else if (durationMs > 2000) durationBucket = "medium";
 
                   let shotAnimationGroup = segmentAnimationGroup[durationBucket] as string[];
-                  
+
                   // Fallback if the specific bucket is empty for the chosen group (e.g., motion -> fast)
                   if (!shotAnimationGroup || shotAnimationGroup.length === 0) {
                     shotAnimationGroup = [
                       ...(COMBO_ANIMATION_GROUPS.scale[durationBucket] || []),
                       ...(COMBO_ANIMATION_GROUPS.motion[durationBucket] || []),
-                      ...(COMBO_ANIMATION_GROUPS.rotation[durationBucket] || [])
+                      ...(COMBO_ANIMATION_GROUPS.rotation[durationBucket] || []),
                     ];
                   }
 
@@ -630,7 +630,7 @@ export const convertSchemaToDesign = async (
                     const animationIndex = Math.floor(Math.random() * shotAnimationGroup.length);
                     animationData = shotAnimationGroup[animationIndex];
                   }
-                  
+
                   segmentLastAnimationName = animationData;
                   const animId = `animation_${Math.random().toString(36).substring(2, 9)}`;
 

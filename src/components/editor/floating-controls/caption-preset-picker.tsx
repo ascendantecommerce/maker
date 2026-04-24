@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { CircleOff, XIcon } from "lucide-react";
 import useLayoutStore from "../store/use-layout-store";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -146,9 +146,9 @@ const CaptionPresetPicker = () => {
   };
 
   const PresetGrid = ({ presets }: { presets: ICaptionsControlProps[] }) => (
-    <div className="grid gap-2 p-4">
+    <div className="grid gap-2 p-4 pt-2">
       <div
-        className="flex h-[70px] cursor-pointer items-center justify-center bg-zinc-800"
+        className="flex h-[70px] cursor-pointer items-center justify-center bg-secondary hover:bg-secondary/80 transition-colors border border-border/50 rounded-md text-muted-foreground hover:text-foreground"
         onClick={() => {
           handleApplyPreset(NONE_PRESET);
         }}
@@ -159,7 +159,7 @@ const CaptionPresetPicker = () => {
       {presets.map((preset, index) => (
         <div
           key={index}
-          className="text-md flex h-[70px] cursor-pointer items-center justify-center bg-zinc-800 overflow-hidden"
+          className="text-md flex h-[70px] cursor-pointer items-center justify-center bg-secondary hover:bg-secondary/80 transition-colors border border-border/50 rounded-md overflow-hidden relative"
           onClick={() => handleApplyPreset(preset)}
         >
           <video
@@ -177,13 +177,16 @@ const CaptionPresetPicker = () => {
   return (
     <div
       ref={containerRef}
-      className="absolute left-full top-0 z-200 ml-2 w-72 border bg-background p-0"
+      className="absolute right-full top-0 z-[200] mr-2 w-72 border bg-card p-0 shadow-xl rounded-lg overflow-hidden"
     >
-      <div className="handle flex  items-center justify-between px-4 py-3 pb-0">
-        <p className="text-sm font-bold">Presets</p>
-        <div className="h-4 w-4" onClick={() => setFloatingControl("")}>
-          <XIcon className="h-3 w-3 cursor-pointer font-extrabold text-muted-foreground" />
-        </div>
+      <div className="flex items-center justify-between p-4 pb-0">
+        <h3 className="text-sm font-semibold">Presets</h3>
+        <button
+          onClick={() => setFloatingControl("")}
+          className="text-muted-foreground hover:text-white"
+        >
+          <XIcon className="size-4" />
+        </button>
       </div>
       <ScrollArea className="h-[500px] w-full">
         <PresetGrid presets={CAPTION_PRESETS} />

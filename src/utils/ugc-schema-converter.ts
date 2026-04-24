@@ -370,7 +370,7 @@ export const convertUgcSchemaToDesign = async (
       lastAnimationGroupKey = currentGroupKey;
 
       // Track last used animation within the segment to prevent consecutive repetition
-      let segmentLastAnimationIndex: number | null = null;
+      let segmentLastAnimationName: string | null = null;
 
       // Extract precise duration from transcription if available
       let lastWordEndMs = 0;
@@ -524,16 +524,34 @@ export const convertUgcSchemaToDesign = async (
               id: clipId,
               animations: [
                 (() => {
-                  let animationIndex: number;
-                  if (segmentAnimationGroup.length > 1 && segmentLastAnimationIndex !== null) {
-                    do {
-                      animationIndex = Math.floor(Math.random() * segmentAnimationGroup.length);
-                    } while (animationIndex === segmentLastAnimationIndex);
-                  } else {
-                    animationIndex = Math.floor(Math.random() * segmentAnimationGroup.length);
+                  const durationMs = durationUs / 1000;
+                  let durationBucket: "fast" | "slow" | "medium" = "slow";
+                  if (durationMs < 1000) durationBucket = "fast";
+                  else if (durationMs > 2000) durationBucket = "medium";
+
+                  let shotAnimationGroup = segmentAnimationGroup[durationBucket] as string[];
+
+                  // Fallback if the specific bucket is empty for the chosen group (e.g., motion -> fast)
+                  if (!shotAnimationGroup || shotAnimationGroup.length === 0) {
+                    shotAnimationGroup = [
+                      ...(COMBO_ANIMATION_GROUPS.scale[durationBucket] || []),
+                      ...(COMBO_ANIMATION_GROUPS.motion[durationBucket] || []),
+                      ...(COMBO_ANIMATION_GROUPS.rotation[durationBucket] || []),
+                    ];
                   }
-                  segmentLastAnimationIndex = animationIndex;
-                  const animationData = segmentAnimationGroup[animationIndex];
+
+                  let animationData: string;
+                  if (shotAnimationGroup.length > 1 && segmentLastAnimationName !== null) {
+                    do {
+                      const animationIndex = Math.floor(Math.random() * shotAnimationGroup.length);
+                      animationData = shotAnimationGroup[animationIndex];
+                    } while (animationData === segmentLastAnimationName);
+                  } else {
+                    const animationIndex = Math.floor(Math.random() * shotAnimationGroup.length);
+                    animationData = shotAnimationGroup[animationIndex];
+                  }
+
+                  segmentLastAnimationName = animationData;
                   const animId = `animation_${Math.random().toString(36).substring(2, 9)}`;
 
                   const animationObj: any = {

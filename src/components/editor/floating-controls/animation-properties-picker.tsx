@@ -400,7 +400,7 @@ export function AnimationPropertiesPicker() {
   return (
     <div
       ref={containerRef}
-      className="absolute left-full top-0 z-[200] ml-2 w-72 border bg-background p-0 shadow-xl rounded-lg overflow-hidden"
+      className="absolute right-full top-0 z-[200] mr-2 w-72 border bg-background p-0 shadow-xl rounded-lg overflow-hidden"
     >
       <div className="max-h-[600px]">
         <ScrollArea className="h-full mb-4">

@@ -185,7 +185,6 @@ export default function Editor({
                 className="max-w-7xl relative overflow-visible! min-w-0"
               >
                 <MediaPanel />
-                <FloatingControl />
               </ResizablePanel>
 
               <ResizableHandle className="bg-border" />
@@ -214,6 +213,7 @@ export default function Editor({
                 className="max-w-7xl relative overflow-visible! min-w-0"
               >
                 <RightPanel selectedClips={selectedClips} />
+                <FloatingControl />
               </ResizablePanel>
             </ResizablePanelGroup>
           </ResizablePanel>
