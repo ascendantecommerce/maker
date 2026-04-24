@@ -1,4 +1,4 @@
-import { BaseTimelineClip, BaseClipProps } from "./base";
+import { BaseTimelineClip, BaseClipProps, CLIP_BORDER_RADIUS } from "./base";
 import { Control, Path } from "fabric";
 import { createTransitionControls } from "../controls";
 
@@ -12,8 +12,8 @@ export class Transition extends BaseTimelineClip {
   }
 
   static ownDefaults = {
-    rx: 4,
-    ry: 4,
+    rx: CLIP_BORDER_RADIUS,
+    ry: CLIP_BORDER_RADIUS,
     objectCaching: false,
     borderColor: "transparent",
     stroke: "transparent",
@@ -55,7 +55,7 @@ export class Transition extends BaseTimelineClip {
     // Use the object's width and height determined by duration and track height
     const width = this.width;
     const height = this.height;
-    const radius = this.rx || 4;
+    const radius = this.rx || CLIP_BORDER_RADIUS;
 
     ctx.save();
 
@@ -83,7 +83,7 @@ export class Transition extends BaseTimelineClip {
   public updateSelected(ctx: CanvasRenderingContext2D) {
     const borderColor = this.isSelected ? "rgba(200, 200, 200, 1.0)" : "rgba(0, 0, 0, 0.5)";
     const borderWidth = 2;
-    const radius = this.rx || 4;
+    const radius = this.rx || CLIP_BORDER_RADIUS;
     const width = this.width;
     const height = this.height;
 

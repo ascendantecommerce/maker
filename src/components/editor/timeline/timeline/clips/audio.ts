@@ -1,4 +1,4 @@
-import { BaseTimelineClip, BaseClipProps } from "./base";
+import { BaseTimelineClip, BaseClipProps, CLIP_BORDER_RADIUS } from "./base";
 import { Control } from "fabric";
 import { createTrimControls } from "../controls";
 import { editorFont } from "@/components/editor/constants";
@@ -10,8 +10,8 @@ export class Audio extends BaseTimelineClip {
   }
 
   static ownDefaults = {
-    rx: 10,
-    ry: 10,
+    rx: CLIP_BORDER_RADIUS,
+    ry: CLIP_BORDER_RADIUS,
     objectCaching: false,
     borderColor: "transparent",
     stroke: "transparent",
@@ -60,7 +60,7 @@ export class Audio extends BaseTimelineClip {
   public updateSelected(ctx: CanvasRenderingContext2D) {
     const borderColor = this.isSelected ? "#3b82f6" : "#1d4ed8";
     const borderWidth = 2;
-    const radius = 10;
+    const radius = CLIP_BORDER_RADIUS;
 
     ctx.save();
     ctx.fillStyle = borderColor;
