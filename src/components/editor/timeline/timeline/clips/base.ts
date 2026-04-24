@@ -1,17 +1,25 @@
 import { Rect, RectProps } from "fabric";
 
+export interface IThumbnail {
+  img: Blob;
+}
+
 export const CLIP_BORDER_RADIUS = 2;
 
 export interface BaseClipProps extends Partial<RectProps> {
   elementId: string;
   text: string;
   src?: string;
+  getMediaMetadata?: (elementId: string) => any;
+  getMediaThumbnails?: (elementId: string, width: number, options: any) => Promise<IThumbnail[]>;
 }
 
 export abstract class BaseTimelineClip extends Rect {
   elementId: string;
   text: string;
   src?: string;
+  getMediaMetadata?: (elementId: string) => any;
+  getMediaThumbnails?: (elementId: string, width: number, options: any) => Promise<IThumbnail[]>;
   public timeScale: number = 1;
 
   constructor(options: BaseClipProps) {
@@ -19,6 +27,8 @@ export abstract class BaseTimelineClip extends Rect {
     this.elementId = options.elementId;
     this.text = options.text;
     this.src = options.src;
+    this.getMediaMetadata = options.getMediaMetadata;
+    this.getMediaThumbnails = options.getMediaThumbnails;
 
     this.set({
       rx: CLIP_BORDER_RADIUS, // Rounded corners

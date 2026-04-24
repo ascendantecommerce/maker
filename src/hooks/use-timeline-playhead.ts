@@ -4,8 +4,13 @@ import {
 } from "@/components/editor/timeline/timeline-constants";
 import { DEFAULT_FPS } from "@/stores/project-store";
 import { usePlaybackStore } from "@/stores/playback-store";
+import { useTimelineStore } from "@/stores/timeline-store";
+import { MICROSECONDS_PER_SECOND } from "@/types/timeline";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useEdgeAutoScroll } from "@/hooks/use-edge-auto-scroll";
+
+/** Pixels within which the playhead snaps to a clip edge. */
+const SNAP_THRESHOLD_PX = 8;
 
 interface UseTimelinePlayheadProps {
   currentTime: number;
@@ -89,9 +94,39 @@ export function useTimelinePlayhead({
         0,
         Math.min(duration, x / (TIMELINE_CONSTANTS.PIXELS_PER_SECOND * zoomLevel)),
       );
-      // Use frame snapping for playhead scrubbing
+
+      // --- Snap playhead to clip edges ---
+      const { clips } = useTimelineStore.getState();
+      let snappedTime = rawTime;
+      let minDist = Infinity;
+
+      Object.values(clips).forEach((clip: any) => {
+        if (!clip?.display) return;
+        const startSec = clip.display.from / MICROSECONDS_PER_SECOND;
+        const endSec   = clip.display.to   / MICROSECONDS_PER_SECOND;
+        const startPx  = startSec * TIMELINE_CONSTANTS.PIXELS_PER_SECOND * zoomLevel;
+        const endPx    = endSec   * TIMELINE_CONSTANTS.PIXELS_PER_SECOND * zoomLevel;
+
+        const distStart = Math.abs(x - startPx);
+        const distEnd   = Math.abs(x - endPx);
+
+        if (distStart < SNAP_THRESHOLD_PX && distStart < minDist) {
+          minDist = distStart;
+          snappedTime = startSec;
+        }
+        if (distEnd < SNAP_THRESHOLD_PX && distEnd < minDist) {
+          minDist = distEnd;
+          snappedTime = endSec;
+        }
+      });
+
+      const isSnapped = minDist < SNAP_THRESHOLD_PX;
+
+      // Use frame snapping for playhead scrubbing (skip frame-snap when clip-snapped so
+      // the playhead lands exactly on the clip boundary)
       const projectFps = DEFAULT_FPS;
-      const time = snapTimeToFrame(rawTime, projectFps);
+      const time = isSnapped ? snappedTime : snapTimeToFrame(snappedTime, projectFps);
+      // -----------------------------------
 
       setScrubTime(time);
       seek(time); // update video preview in real time
@@ -180,5 +215,6 @@ export function useTimelinePlayhead({
     handlePlayheadMouseDown,
     handleRulerMouseDown,
     isDraggingRuler,
+    isScrubbing,
   };
 }

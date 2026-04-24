@@ -9,6 +9,7 @@ import {
   type BaseTimelineClip,
   Transition,
   Caption,
+  type IThumbnail,
 } from "./clips";
 import { TransitionButton } from "./objects/transition-button";
 import { TransitionPlaceholder } from "./objects/transition-placeholder";
@@ -64,6 +65,8 @@ export interface TimelineCanvasEvents {
   "transition:add": { fromClipId: string; toClipId: string; trackId: string };
   "selection:delete": undefined;
   "viewport:changed": { scrollX: number; scrollY: number };
+  /** Emitted while a clip is being dragged/resized and is snapping to the playhead. */
+  "playhead:snap": { isSnapping: boolean };
   [key: string]: any;
   [key: symbol]: any;
 }
@@ -85,6 +88,12 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
   #totalTracksHeight: number = 0;
   /** Framework-agnostic callback for project total duration in seconds. */
   #getDuration: () => number;
+  #getMediaMetadata?: (elementId: string) => any;
+  #getMediaThumbnails?: (
+    elementId: string,
+    width: number,
+    options: any,
+  ) => Promise<IThumbnail[]>;
 
   // Cache for Fabric objects
   #trackObjects: Map<string, Track> = new Map();
@@ -114,10 +123,25 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
   #onSelectionClear: (opt: any) => void;
   #onMouseMove: (opt: any) => void;
   #enableGuideRedraw: boolean = true;
+  /** Current playhead time in seconds. */
+  #playheadTime: number | null = null;
 
-  constructor(id: string, options: { getDuration?: () => number } = {}) {
+  constructor(
+    id: string,
+    options: {
+      getDuration?: () => number;
+      getMediaMetadata?: (elementId: string) => any;
+      getMediaThumbnails?: (
+        elementId: string,
+        width: number,
+        options: any,
+      ) => Promise<IThumbnail[]>;
+    } = {},
+  ) {
     super();
     this.#getDuration = options.getDuration ?? (() => 0);
+    this.#getMediaMetadata = options.getMediaMetadata;
+    this.#getMediaThumbnails = options.getMediaThumbnails;
     this.containerEl = document.getElementById(id) as HTMLDivElement;
 
     if (!this.containerEl) {
@@ -198,6 +222,8 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
     // handleTrackRelocation must run before handleClipModification
     this.canvas.on("object:modified", this.#onTrackRelocation);
     this.canvas.on("object:modified", this.#onClipModification);
+    // Always clear playhead snap highlight when the interaction ends
+    this.canvas.on("object:modified", () => this.emit("playhead:snap", { isSnapping: false }));
     this.canvas.on("selection:created", this.#onSelectionCreate);
     this.canvas.on("selection:updated", this.#onSelectionUpdate);
     this.canvas.on("selection:cleared", this.#onSelectionClear);
@@ -721,6 +747,20 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
     this.#enableGuideRedraw = value;
   }
 
+  /** Current playhead position in canvas object-space pixels (null = unknown). */
+  public get playheadX(): number | null {
+    if (this.#playheadTime === null) return null;
+    return this.#playheadTime * TIMELINE_CONSTANTS.PIXELS_PER_SECOND * this.#timeScale;
+  }
+
+  /**
+   * Keep the canvas aware of the current playhead position so clips can snap to it.
+   * @param timeSeconds - playhead time in seconds
+   */
+  public setPlayheadTime(timeSeconds: number) {
+    this.#playheadTime = timeSeconds;
+  }
+
   public clearSeparatorHighlights() {
     this.#separatorLines.forEach((sep) => {
       sep.highlight.set("fill", "transparent");
@@ -1043,6 +1083,8 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
               lockSkewingY: !!clip.locked,
               lockRotation: !!clip.locked,
               hasControls: !clip.locked,
+              getMediaMetadata: this.#getMediaMetadata,
+              getMediaThumbnails: this.#getMediaThumbnails,
             };
             console.log({ commonProps });
 

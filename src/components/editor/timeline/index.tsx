@@ -96,6 +96,7 @@ export function Timeline() {
 
   const [scrollLeft, setScrollLeft] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(0);
+  const [isSnappingToPlayhead, setIsSnappingToPlayhead] = useState(false);
 
   // Timeline zoom functionality
   const { zoomLevel, setZoomLevel, handleWheel } = useTimelineZoom({
@@ -140,7 +141,7 @@ export function Timeline() {
   );
 
   // Timeline playhead ruler handlers
-  const { handleRulerMouseDown } = useTimelinePlayheadRuler({
+  const { handleRulerMouseDown, isScrubbing: isRulerScrubbing } = useTimelinePlayheadRuler({
     duration,
     zoomLevel,
     seek,
@@ -270,6 +271,16 @@ export function Timeline() {
   useEffect(() => {
     const canvas = new TimelineCanvas("timeline-canvas", {
       getDuration: () => useTimelineStore.getState().getTotalDuration(),
+      getMediaMetadata: (clipId) => {
+        const studio = useStudioStore.getState().studio;
+        const clip = studio?.getClipById(clipId);
+        return (clip as any)?.meta;
+      },
+      getMediaThumbnails: (clipId, width, options) => {
+        const studio = useStudioStore.getState().studio;
+        const clip = studio?.getClipById(clipId);
+        return (clip as any)?.thumbnails(width, options);
+      },
     });
     timelineCanvasRef.current = canvas;
     setCanvasInstance(canvas);
@@ -306,8 +317,8 @@ export function Timeline() {
       handleWheel({
         ctrlKey: true,
         deltaY: delta,
-        preventDefault: () => {},
-        stopPropagation: () => {},
+        preventDefault: () => { },
+        stopPropagation: () => { },
       } as any);
     });
 
@@ -358,6 +369,18 @@ export function Timeline() {
     }
   }, [currentTheme]);
 
+  // Keep canvas aware of the current playhead position so clips can snap to it
+  // while dragging or resizing. Subscribe to the store directly so it stays live
+  // during playback and scrubbing without adding currentTime to the render loop.
+  useEffect(() => {
+    const unsub = usePlaybackStore.subscribe((state) => {
+      timelineCanvasRef.current?.setPlayheadTime(state.currentTime);
+    });
+    // Sync immediately on mount
+    timelineCanvasRef.current?.setPlayheadTime(usePlaybackStore.getState().currentTime);
+    return unsub;
+  }, []);
+
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
       if (!canvasInstance) return;
@@ -377,6 +400,17 @@ export function Timeline() {
     const splitTime = usePlaybackStore.getState().currentTime * 1_000_000;
     studio?.splitSelected(splitTime);
   }, [studio]);
+
+  // Subscribe to playhead:snap events emitted by the canvas handlers
+  useEffect(() => {
+    const canvas = timelineCanvasRef.current;
+    if (!canvas) return;
+    const handler = ({ isSnapping }: { isSnapping: boolean }) => {
+      setIsSnappingToPlayhead(isSnapping);
+    };
+    canvas.on("playhead:snap", handler);
+    return () => canvas.off("playhead:snap", handler);
+  }, [canvasInstance]); // re-subscribe whenever the canvas instance changes
 
   useEditorHotkeys({
     timelineCanvas: timelineCanvasRef.current,
@@ -413,7 +447,8 @@ export function Timeline() {
           trackLabelsRef={trackLabelsRef}
           timelineRef={timelineRef}
           playheadRef={playheadRef}
-          isSnappingToPlayhead={false}
+          isSnappingToPlayhead={isSnappingToPlayhead}
+          isScrubbing={isRulerScrubbing}
           scrollLeft={scrollLeft}
           onScrollChange={handleScrollChange}
         />

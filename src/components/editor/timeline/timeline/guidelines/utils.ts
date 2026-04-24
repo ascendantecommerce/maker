@@ -171,7 +171,7 @@ export const drawGuides = (guides: Guide[], _: TBBox, canvas: Canvas) => {
 };
 
 const getAlignmentLineOptions = (zoom: number) => {
-  const strokeWidth = 2 / zoom;
+  const strokeWidth = 1 / zoom;
   return {
     strokeWidth,
   };
