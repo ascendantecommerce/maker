@@ -106,6 +106,7 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
 
   // Bound event handlers (business-logic level — delegated from handlers/)
   #onDragging: (opt: any) => void;
+  #onResizing: (opt: any) => void;
   #onTrackRelocation: (opt: any) => void;
   #onClipModification: (opt: any) => void;
   #onSelectionCreate: (opt: any) => void;
@@ -130,6 +131,9 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
       const src = "clientX" in e ? e : (e as TouchEvent).touches[0];
       this.#inputController.startAutoScroll({ x: src.clientX, y: src.clientY });
       DragHandlers.handleDragging(this, options);
+    };
+    this.#onResizing = (options) => {
+      DragHandlers.handleResizing(this, options);
     };
     this.#onTrackRelocation = (options) => {
       this.#inputController.stopAutoScroll();
@@ -190,6 +194,7 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
    */
   #bindBusinessEvents() {
     this.canvas.on("object:moving", this.#onDragging);
+    this.canvas.on("object:resizing", this.#onResizing);
     // handleTrackRelocation must run before handleClipModification
     this.canvas.on("object:modified", this.#onTrackRelocation);
     this.canvas.on("object:modified", this.#onClipModification);
