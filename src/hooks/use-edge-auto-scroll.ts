@@ -4,10 +4,11 @@ interface UseEdgeAutoScrollParams {
   isActive: boolean;
   getMouseClientX: () => number;
   rulerScrollRef: React.RefObject<HTMLDivElement | null>;
-  tracksScrollRef: React.RefObject<HTMLDivElement | null>;
+  tracksScrollRef?: React.RefObject<HTMLDivElement | null>;
   contentWidth: number;
   edgeThreshold?: number;
   maxScrollSpeed?: number;
+  onAutoScroll?: () => void;
 }
 
 // Provides smooth edge auto-scrolling for horizontal timeline interactions.
@@ -19,8 +20,14 @@ export function useEdgeAutoScroll({
   contentWidth,
   edgeThreshold = 100,
   maxScrollSpeed = 15,
+  onAutoScroll,
 }: UseEdgeAutoScrollParams): void {
   const rafRef = useRef<number | null>(null);
+  const onAutoScrollRef = useRef(onAutoScroll);
+
+  useEffect(() => {
+    onAutoScrollRef.current = onAutoScroll;
+  }, [onAutoScroll]);
 
   useEffect(() => {
     if (!isActive) {
@@ -33,8 +40,8 @@ export function useEdgeAutoScroll({
 
     const step = () => {
       const rulerViewport = rulerScrollRef.current;
-      const tracksViewport = tracksScrollRef.current;
-      if (!rulerViewport || !tracksViewport) {
+      const tracksViewport = tracksScrollRef?.current;
+      if (!rulerViewport) {
         rafRef.current = requestAnimationFrame(step);
         return;
       }
@@ -58,7 +65,7 @@ export function useEdgeAutoScroll({
         mouseXRelative > viewportWidth - edgeThreshold &&
         rulerViewport.scrollLeft < scrollMax
       ) {
-        const edgeDistance = Math.max(0, viewportWidth - edgeThreshold - mouseXRelative);
+        const edgeDistance = Math.max(0, viewportWidth - mouseXRelative);
         const intensity = 1 - edgeDistance / edgeThreshold;
         scrollSpeed = maxScrollSpeed * intensity;
       }
@@ -69,7 +76,13 @@ export function useEdgeAutoScroll({
           Math.min(scrollMax, rulerViewport.scrollLeft + scrollSpeed),
         );
         rulerViewport.scrollLeft = newScrollLeft;
-        tracksViewport.scrollLeft = newScrollLeft;
+        if (tracksViewport) {
+          tracksViewport.scrollLeft = newScrollLeft;
+        }
+        
+        if (onAutoScrollRef.current) {
+          onAutoScrollRef.current();
+        }
       }
 
       rafRef.current = requestAnimationFrame(step);

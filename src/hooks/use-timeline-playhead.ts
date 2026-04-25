@@ -77,12 +77,12 @@ export function useTimelinePlayhead({
     [duration, zoomLevel],
   );
 
-  const handleScrub = useCallback(
-    (e: MouseEvent | React.MouseEvent) => {
+  const performScrub = useCallback(
+    (clientX: number) => {
       const ruler = rulerRef.current;
       if (!ruler) return;
       const rect = ruler.getBoundingClientRect();
-      const rawX = e.clientX - rect.left;
+      const rawX = clientX - rect.left;
 
       // Get the timeline content width based on duration and zoom
       const timelineContentWidth = duration * TIMELINE_CONSTANTS.PIXELS_PER_SECOND * zoomLevel;
@@ -126,15 +126,19 @@ export function useTimelinePlayhead({
       // the playhead lands exactly on the clip boundary)
       const projectFps = DEFAULT_FPS;
       const time = isSnapped ? snappedTime : snapTimeToFrame(snappedTime, projectFps);
-      // -----------------------------------
-
       setScrubTime(time);
       seek(time); // update video preview in real time
-
-      // Store mouse position for auto-scrolling
-      lastMouseXRef.current = e.clientX;
     },
     [duration, zoomLevel, seek, rulerRef],
+  );
+
+  const handleScrub = useCallback(
+    (e: MouseEvent | React.MouseEvent) => {
+      // Store mouse position for auto-scrolling
+      lastMouseXRef.current = e.clientX;
+      performScrub(e.clientX);
+    },
+    [performScrub],
   );
 
   useEdgeAutoScroll({
@@ -143,6 +147,7 @@ export function useTimelinePlayhead({
     rulerScrollRef,
     tracksScrollRef,
     contentWidth: duration * TIMELINE_CONSTANTS.PIXELS_PER_SECOND * zoomLevel,
+    onAutoScroll: () => performScrub(lastMouseXRef.current),
   });
 
   // Mouse move/up event handlers
