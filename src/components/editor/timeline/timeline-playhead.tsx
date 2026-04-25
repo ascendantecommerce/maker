@@ -69,11 +69,23 @@ export function TimelinePlayhead({
 
   const isScrubbing = internalIsScrubbing || externalIsScrubbing;
 
-  const color = useMemo(() => {
-    if (isSnappingToPlayhead) return "#f59e0b"; // amber   — snapping to playhead
-    if (isScrubbing)           return "#38bdf8"; // sky-400 — playhead dragging
-    return currentTheme === "dark" ? "#ffffff" : "#000000";
-  }, [currentTheme, isSnappingToPlayhead, isScrubbing]);
+  const lineColor = useMemo(() => {
+    if (isSnappingToPlayhead) return "#f59e0b"; // amber — snapping
+    return "#ffffff"; // Always white line as per reference
+  }, [isSnappingToPlayhead]);
+
+  const indicatorStyle = useMemo(() => {
+    if (isSnappingToPlayhead) {
+      return { fill: "#f59e0b", stroke: "transparent" };
+    }
+    if (isScrubbing) {
+      return { fill: "#ffffff", stroke: "transparent" };
+    }
+    return {
+      fill: "#1a1a1a",
+      stroke: "rgba(255, 255, 255, 0.8)",
+    };
+  }, [isSnappingToPlayhead, isScrubbing]);
 
   // Use timeline container height minus a few pixels for breathing room
   const timelineContainerHeight = timelineRef.current?.offsetHeight || 400;
@@ -118,7 +130,7 @@ export function TimelinePlayhead({
       <div
         className="absolute left-1/2 -translate-x-1/2 w-[1px] cursor-col-resize h-full"
         style={{
-          backgroundColor: color,
+          backgroundColor: lineColor,
           transition: "background-color 80ms ease",
         }}
       />
@@ -128,14 +140,28 @@ export function TimelinePlayhead({
         className="absolute left-1/2 transform -translate-x-1/2 cursor-col-resize"
         style={{
           top: "0",
-          width: "12px",
-          height: "14px",
-          borderRadius: "2px 2px 0 0",
-          clipPath: "polygon(0% 0%, 100% 0%, 100% 70%, 50% 100%, 0% 70%)",
-          backgroundColor: color,
-          transition: "background-color 80ms ease",
+          width: "13px", // Slightly wider to accommodate stroke
+          height: "15px",
+          display: "flex",
+          justifyContent: "center",
+          transition: "all 80ms ease",
         }}
-      />
+      >
+        <svg
+          width="13"
+          height="15"
+          viewBox="0 0 13 15"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M2.5 0.5H10.5C11.6046 0.5 12.5 1.39543 12.5 2.5V9.5L6.5 14L0.5 9.5V2.5C0.5 1.39543 1.39543 0.5 2.5 0.5Z"
+            fill={indicatorStyle.fill}
+            stroke={indicatorStyle.stroke}
+            style={{ transition: "fill 80ms ease, stroke 80ms ease" }}
+          />
+        </svg>
+      </div>
     </div>
   );
 }
