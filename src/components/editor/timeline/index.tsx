@@ -619,7 +619,7 @@ export function Timeline() {
                   }}
                   onDragLeave={() => {
                     if (timelineCanvasRef.current) {
-                      timelineCanvasRef.current.clearTransitionButton();
+                      timelineCanvasRef.current.clearTransitionJunction();
                     }
                   }}
                   onDrop={async (e) => {

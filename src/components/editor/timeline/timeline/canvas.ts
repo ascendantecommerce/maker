@@ -11,8 +11,7 @@ import {
   Caption,
   type IThumbnail,
 } from "./clips";
-import { TransitionButton } from "./objects/transition-button";
-import { TransitionPlaceholder } from "./objects/transition-placeholder";
+import { TransitionJunction } from "./objects/transition-junction";
 import { TIMELINE_CONSTANTS } from "@/components/editor/timeline/timeline-constants";
 import {
   type ITimelineTrack,
@@ -106,8 +105,7 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
 
   #trackRegions: { top: number; bottom: number; id: string }[] = [];
   #activeSeparatorIndex: number | null = null;
-  #transitionButton: TransitionButton | null = null;
-  #transitionPlaceholder: TransitionPlaceholder | null = null;
+  #transitionJunction: TransitionJunction | null = null;
 
   // Optimized cache for spatial lookups (lazy-memoized)
   #trackCache = new Map<string, { ids: string; sorted: IClip[]; transitions: IClip[] }>();
@@ -191,7 +189,7 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
       selectionBorderColor: "#0abde3",
       selectionLineWidth: 2,
       renderOnAddRemove: false, // Performance optimization
-      preserveObjectStacking: true,
+      preserveObjectStacking: false,
     });
 
     // Delegate all low-level pointer/wheel input to the controller
@@ -298,7 +296,7 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
         x: junction.x,
       };
     } else if (showPlaceholder) {
-      this.clearTransitionButton();
+      this.clearTransitionJunction();
     }
     return null;
   }
@@ -374,7 +372,7 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
         width,
       );
     } else {
-      this.clearTransitionButton();
+      this.clearTransitionJunction();
     }
   }
 
@@ -403,7 +401,7 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
 
     const { sorted: clipsAtTrack } = this._getTrackDataForJunction(track.id, trackData.clipIds);
 
-    const TRANSITION_POINT_THRESHOLD = 10; // Pixels
+    const TRANSITION_POINT_THRESHOLD = 1.5; // Pixels (Tightened as per user request)
 
     // Case 1: Mouse is in a gap between clips or very close to a junction (Original logic)
     for (let i = 0; i < clipsAtTrack.length - 1; i++) {
@@ -604,30 +602,25 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
     trackId: string,
     width: number,
   ) {
-    if (this.#transitionButton) {
-      // If already showing for these clips, just move it if needed
+    if (this.#transitionJunction) {
       if (
-        (this.#transitionButton as any).clipAId === clipAId &&
-        (this.#transitionButton as any).clipBId === clipBId &&
-        Math.abs(this.#transitionButton.width - width) < 0.1
+        (this.#transitionJunction as any).mode === "hover" &&
+        (this.#transitionJunction as any).clipAId === clipAId &&
+        (this.#transitionJunction as any).clipBId === clipBId
       ) {
-        this.#transitionButton.set({ left: x, top: y });
-        this.#transitionButton.setCoords();
-        this.canvas.bringObjectToFront(this.#transitionButton);
+        this.#transitionJunction.set({ left: x, top: y });
+        this.#transitionJunction.setCoords();
+        this.canvas.bringObjectToFront(this.#transitionJunction);
         this.canvas.requestRenderAll();
         return;
       }
-      this.clearTransitionButton();
+      this.clearTransitionJunction();
     }
 
-    const track = this.#tracks.find((t) => t.id === trackId);
-    const height = track ? getTrackHeight(track.type as any) : 52;
-
-    this.#transitionButton = new TransitionButton({
+    this.#transitionJunction = new TransitionJunction({
       left: x,
       top: y,
-      width: width,
-      height: height,
+      mode: "hover",
       onClick: () => {
         this.emit("transition:add", {
           fromClipId: clipAId,
@@ -637,11 +630,12 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
       },
     });
 
-    (this.#transitionButton as any).clipAId = clipAId;
-    (this.#transitionButton as any).clipBId = clipBId;
+    (this.#transitionJunction as any).clipAId = clipAId;
+    (this.#transitionJunction as any).clipBId = clipBId;
+    (this.#transitionJunction as any).mode = "hover";
 
-    this.canvas.add(this.#transitionButton);
-    this.canvas.bringObjectToFront(this.#transitionButton);
+    this.canvas.add(this.#transitionJunction);
+    this.canvas.bringObjectToFront(this.#transitionJunction);
     this.canvas.requestRenderAll();
   }
 
@@ -650,47 +644,38 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
     if (this.#lastPlaceholderArgs === args) return;
     this.#lastPlaceholderArgs = args;
 
-    const track = this.#tracks.find((t) => t.id === trackId);
-    const height = track ? getTrackHeight(track.type as any) : 52;
-
-    if (this.#transitionPlaceholder) {
-      // If height or width changed, we're better off recreating for simplicity
+    if (this.#transitionJunction) {
       if (
-        (this.#transitionPlaceholder as any).trackId !== trackId ||
-        Math.abs(this.#transitionPlaceholder.width - width) > 0.1
+        (this.#transitionJunction as any).mode === "drop" &&
+        (this.#transitionJunction as any).trackId === trackId
       ) {
-        this.clearTransitionButton();
-      } else {
-        this.#transitionPlaceholder.set({ left: x, top: y });
-        this.#transitionPlaceholder.setCoords();
-        this.canvas.bringObjectToFront(this.#transitionPlaceholder);
+        this.#transitionJunction.set({ left: x, top: y });
+        this.#transitionJunction.setCoords();
+        this.canvas.bringObjectToFront(this.#transitionJunction);
         this.canvas.requestRenderAll();
         return;
       }
+      this.clearTransitionJunction();
     }
 
-    this.#transitionPlaceholder = new TransitionPlaceholder({
+    this.#transitionJunction = new TransitionJunction({
       left: x,
       top: y,
-      height: height,
-      width: width,
+      mode: "drop",
     });
-    (this.#transitionPlaceholder as any).trackId = trackId;
+    (this.#transitionJunction as any).trackId = trackId;
+    (this.#transitionJunction as any).mode = "drop";
 
-    this.canvas.add(this.#transitionPlaceholder);
-    this.canvas.bringObjectToFront(this.#transitionPlaceholder);
+    this.canvas.add(this.#transitionJunction);
+    this.canvas.bringObjectToFront(this.#transitionJunction);
     this.canvas.requestRenderAll();
   }
 
-  public clearTransitionButton() {
+  public clearTransitionJunction() {
     this.#lastPlaceholderArgs = ""; // Reset cache
-    if (this.#transitionButton) {
-      this.canvas.remove(this.#transitionButton);
-      this.#transitionButton = null;
-    }
-    if (this.#transitionPlaceholder) {
-      this.canvas.remove(this.#transitionPlaceholder);
-      this.#transitionPlaceholder = null;
+    if (this.#transitionJunction) {
+      this.canvas.remove(this.#transitionJunction);
+      this.#transitionJunction = null;
     }
     this.canvas.requestRenderAll();
   }
@@ -867,7 +852,7 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
     });
     this.#separatorLines = [];
     this.#trackRegions = [];
-    this.clearTransitionButton();
+    this.clearTransitionJunction();
 
     this.canvas.requestRenderAll();
     this.emit("timeline:cleared", {});
@@ -1097,7 +1082,10 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
             } else if (clip.type === "Effect") {
               timelineClip = new Effect(commonProps);
             } else if (clip.type === "Transition") {
-              timelineClip = new Transition(commonProps);
+              timelineClip = new Transition({
+                ...commonProps,
+                top: region.top + trackHeight / 2,
+              });
 
               // Calculate max duration as 25% of shortest neighbor
               const prevClipId = (clip as any).fromClipId;
@@ -1133,7 +1121,7 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
           } else {
             const props: any = {
               left: startX,
-              top: region.top,
+              top: clip.type === "Transition" ? region.top + trackHeight / 2 : region.top,
               width: width,
               height: trackHeight,
               text: clipName,
@@ -1200,13 +1188,9 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
     });
 
     // --- PASS 5: BRING AUXILIARY OBJECTS TO FRONT ---
-    if (this.#transitionButton) {
-      this.canvas.bringObjectToFront(this.#transitionButton);
-      this.#transitionButton.set({ dirty: true });
-    }
-    if (this.#transitionPlaceholder) {
-      this.canvas.bringObjectToFront(this.#transitionPlaceholder);
-      this.#transitionPlaceholder.set({ dirty: true });
+    if (this.#transitionJunction) {
+      this.canvas.bringObjectToFront(this.#transitionJunction);
+      this.#transitionJunction.set({ dirty: true });
     }
 
     // Cleanup Unused Objects
@@ -1446,7 +1430,7 @@ class Timeline extends EventEmitter<TimelineCanvasEvents> {
       this.canvas.off("selection:cleared", this.#onSelectionClear);
       this.canvas.off("mouse:move", this.#onMouseMove);
 
-      this.clearTransitionButton();
+      this.clearTransitionJunction();
       this.disposeScrollbars();
       this.canvas.dispose();
       (this.canvas as any) = null;
