@@ -293,18 +293,19 @@ const AdjusmentCurves = ({ selectedClips }: { selectedClips: IClip[] }) => {
       ],
     },
   ]);
-
   useEffect(() => {
-    if (!clip?.colorAdjustment?.curves) return;
+    const curves = clip?.colorAdjustment?.curves;
+    if (!curves) return;
+
     setCurves((prev) =>
       prev.map((curve) => {
         const incoming =
-          clip.colorAdjustment.curves[
-            curve.id as "rgb" | "red" | "green" | "blue"
-          ] ?? curve.points;
+          curves[curve.id as "rgb" | "red" | "green" | "blue"] ?? curve.points;
+
         if (JSON.stringify(incoming) === JSON.stringify(curve.points)) {
           return curve;
         }
+
         return {
           ...curve,
           points: incoming,
