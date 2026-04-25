@@ -34,14 +34,19 @@ export async function regenerateCaptionClips({
 }: RegenerateCaptionClipsOptions) {
   if (!studio || !captionClip?.mediaId) return;
 
-  const getAnimationObjects = (animation: string | string[], clipDuration: number) => {
+  const getAnimationObjects = (
+    animation: string | string[],
+    clipDuration: number,
+  ) => {
     const animations = Array.isArray(animation) ? animation : [animation];
     return animations
       .filter((a) => a !== "undefined")
       .map((a) => ({
         type: a,
         opts: {
-          duration: CUSTOM_ANIMATIONS_CAPTIONS.includes(a) ? clipDuration : clipDuration * 0.2,
+          duration: CUSTOM_ANIMATIONS_CAPTIONS.includes(a)
+            ? clipDuration
+            : clipDuration * 0.2,
           delay: 0,
         },
       }));
@@ -54,7 +59,7 @@ export async function regenerateCaptionClips({
   tracks.forEach((track: any) => {
     track.clipIds.forEach((id: string) => {
       const c = studio.getClipById(id);
-      if (c && c.type === "Caption" && (c as any).opts.mediaId === mediaId) {
+      if (c && c.type === "Caption") {
         siblingClips.push(c);
       }
     });
@@ -67,7 +72,6 @@ export async function regenerateCaptionClips({
   const mediaClip = studio.getClipById(mediaId);
   if (!mediaClip) return;
 
-  const mediaStartUs = mediaClip.display.from;
   const allWords: any[] = [];
 
   siblingClips.forEach((c) => {
@@ -76,8 +80,9 @@ export async function regenerateCaptionClips({
     words.forEach((w: any) => {
       allWords.push({
         ...w,
-        start: (clipStartUs + w.from * 1000 - mediaStartUs) / 1000000,
-        end: (clipStartUs + w.to * 1000 - mediaStartUs) / 1000000,
+        start: (clipStartUs + w.from * 1000) / 1000000,
+        end: (clipStartUs + w.to * 1000) / 1000000,
+        mediaClipId: c.mediaId,
       });
     });
   });
@@ -102,6 +107,7 @@ export async function regenerateCaptionClips({
     style: combinedStyle,
   });
 
+
   const trackId = studio.findTrackIdByClipId(captionClip.id);
   if (!trackId) return;
 
@@ -124,12 +130,13 @@ export async function regenerateCaptionClips({
     const uniformTop = json.top != null ? json.top - paddingY * 3 : 0;
     const enrichedJson: any = {
       ...json,
-      mediaId,
       wordsPerLine: mode,
       top: uniformTop,
       angle: captionClip.angle !== undefined ? captionClip.angle : json.angle,
-      opacity: captionClip.opacity !== undefined ? captionClip.opacity : json.opacity,
-      zIndex: captionClip.zIndex !== undefined ? captionClip.zIndex : json.zIndex,
+      opacity:
+        captionClip.opacity !== undefined ? captionClip.opacity : json.opacity,
+      zIndex:
+        captionClip.zIndex !== undefined ? captionClip.zIndex : json.zIndex,
       flip: captionClip.flip !== undefined ? captionClip.flip : json.flip,
       textBoxStyle: styleUpdate?.textBoxStyle,
       caption: {
@@ -152,8 +159,12 @@ export async function regenerateCaptionClips({
             json.display.to - json.display.from,
           ),
         }),
-        ...(styleUpdate?.wordAnimation ? { wordAnimation: styleUpdate.wordAnimation } : {}),
-        ...(styleUpdate?.textBoxStyle ? { textBoxStyle: styleUpdate.textBoxStyle } : {}),
+        ...(styleUpdate?.wordAnimation
+          ? { wordAnimation: styleUpdate.wordAnimation }
+          : {}),
+        ...(styleUpdate?.textBoxStyle
+          ? { textBoxStyle: styleUpdate.textBoxStyle }
+          : {}),
       },
       opts: {
         ...(json.opts || {}),
@@ -165,15 +176,22 @@ export async function regenerateCaptionClips({
             json.display.to - json.display.from,
           ),
         }),
-        ...(styleUpdate?.wordAnimation ? { wordAnimation: styleUpdate.wordAnimation } : {}),
-        ...(styleUpdate?.textBoxStyle ? { textBoxStyle: styleUpdate.textBoxStyle } : {}),
+        ...(styleUpdate?.wordAnimation
+          ? { wordAnimation: styleUpdate.wordAnimation }
+          : {}),
+        ...(styleUpdate?.textBoxStyle
+          ? { textBoxStyle: styleUpdate.textBoxStyle }
+          : {}),
       },
       animations: styleUpdate?.animation
-        ? getAnimationObjects(styleUpdate.animation, json.display.to - json.display.from)
+        ? getAnimationObjects(
+            styleUpdate.animation,
+            json.display.to - json.display.from,
+          )
         : [],
       display: {
-        from: json.display.from + mediaStartUs,
-        to: json.display.to + mediaStartUs,
+        from: json.display.from,
+        to: json.display.to,
       },
     };
 
@@ -181,21 +199,29 @@ export async function regenerateCaptionClips({
     if (styleUpdate) {
       if (styleUpdate.fill) enrichedJson.style.color = styleUpdate.fill;
       if (styleUpdate.align) enrichedJson.style.align = styleUpdate.align;
-      if (styleUpdate.fontFamily) enrichedJson.style.fontFamily = styleUpdate.fontFamily;
+      if (styleUpdate.fontFamily)
+        enrichedJson.style.fontFamily = styleUpdate.fontFamily;
       if (styleUpdate.fontUrl) enrichedJson.style.fontUrl = styleUpdate.fontUrl;
-      if (styleUpdate.fontSize) enrichedJson.style.fontSize = styleUpdate.fontSize;
+      if (styleUpdate.fontSize)
+        enrichedJson.style.fontSize = styleUpdate.fontSize;
 
       if (styleUpdate.strokeWidth !== undefined || styleUpdate.stroke) {
-        if (typeof enrichedJson.style.stroke !== "object" || enrichedJson.style.stroke === null) {
+        if (
+          typeof enrichedJson.style.stroke !== "object" ||
+          enrichedJson.style.stroke === null
+        ) {
           enrichedJson.style.stroke = {
             color:
-              typeof enrichedJson.style.stroke === "string" ? enrichedJson.style.stroke : "#000000",
+              typeof enrichedJson.style.stroke === "string"
+                ? enrichedJson.style.stroke
+                : "#000000",
             width: 0,
           };
         }
         if (styleUpdate.strokeWidth !== undefined)
           enrichedJson.style.stroke.width = styleUpdate.strokeWidth;
-        if (styleUpdate.stroke) enrichedJson.style.stroke.color = styleUpdate.stroke;
+        if (styleUpdate.stroke)
+          enrichedJson.style.stroke.color = styleUpdate.stroke;
       }
 
       if (styleUpdate.dropShadow) {
@@ -203,14 +229,20 @@ export async function regenerateCaptionClips({
           color: styleUpdate.dropShadow.color,
           alpha: styleUpdate.dropShadow.alpha,
           blur: styleUpdate.dropShadow.blur,
-          offsetX: styleUpdate.dropShadow.distance * Math.cos(styleUpdate.dropShadow.angle),
-          offsetY: styleUpdate.dropShadow.distance * Math.sin(styleUpdate.dropShadow.angle),
+          offsetX:
+            styleUpdate.dropShadow.distance *
+            Math.cos(styleUpdate.dropShadow.angle),
+          offsetY:
+            styleUpdate.dropShadow.distance *
+            Math.sin(styleUpdate.dropShadow.angle),
         };
       }
 
-      if (styleUpdate.textCase) enrichedJson.style.textCase = styleUpdate.textCase;
+      if (styleUpdate.textCase)
+        enrichedJson.style.textCase = styleUpdate.textCase;
 
-      if (styleUpdate.wordAnimation) enrichedJson.style.wordAnimation = styleUpdate.wordAnimation;
+      if (styleUpdate.wordAnimation)
+        enrichedJson.style.wordAnimation = styleUpdate.wordAnimation;
 
       if (styleUpdate.textBoxStyle) {
         enrichedJson.textBoxStyle = styleUpdate.textBoxStyle;
