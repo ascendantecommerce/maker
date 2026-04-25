@@ -100,18 +100,18 @@ export function TimelinePlayhead({
   const rawLeftPosition = trackLabelsWidth + timelinePosition - scrollLeft;
 
   // Get the timeline content width and viewport width for right boundary
-  const timelineContentWidth = duration * TIMELINE_CONSTANTS.PIXELS_PER_SECOND * zoomLevel;
   const tracksViewport = tracksScrollRef.current || rulerScrollRef.current;
   const viewportWidth = tracksViewport?.clientWidth || 1000;
 
   // Constrain playhead to never appear outside the timeline area
-  const leftBoundary = trackLabelsWidth;
-  const rightBoundary = Math.min(
-    trackLabelsWidth + timelineContentWidth - scrollLeft, // Don't go beyond timeline content
-    trackLabelsWidth + viewportWidth, // Don't go beyond viewport
-  );
+  // We don't clamp it, but rather hide it if it's off-screen so it doesn't stick to the edges
+  const leftPosition = rawLeftPosition;
 
-  const leftPosition = Math.max(leftBoundary, Math.min(rightBoundary, rawLeftPosition));
+  // Calculate if the playhead is currently visible in the scroll viewport
+  const isVisible =
+    duration > 0 &&
+    leftPosition >= trackLabelsWidth &&
+    leftPosition <= trackLabelsWidth + viewportWidth;
 
   return (
     <div
@@ -122,7 +122,8 @@ export function TimelinePlayhead({
         top: 0,
         height: `${totalHeight}px`,
         width: "1px",
-        opacity: duration === 0 ? 0 : 1,
+        opacity: isVisible ? 1 : 0,
+        display: isVisible ? "block" : "none",
       }}
       onMouseDown={handlePlayheadMouseDown}
     >
@@ -153,11 +154,13 @@ export function TimelinePlayhead({
           viewBox="0 0 13 15"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
+          style={{ overflow: "visible" }}
         >
           <path
             d="M2.5 0.5H10.5C11.6046 0.5 12.5 1.39543 12.5 2.5V9.5L6.5 14L0.5 9.5V2.5C0.5 1.39543 1.39543 0.5 2.5 0.5Z"
             fill={indicatorStyle.fill}
             stroke={indicatorStyle.stroke}
+            strokeWidth="2"
             style={{ transition: "fill 80ms ease, stroke 80ms ease" }}
           />
         </svg>
