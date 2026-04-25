@@ -47,7 +47,7 @@ export function RenameProjectDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="sm">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Rename project</DialogTitle>
           <DialogDescription>
