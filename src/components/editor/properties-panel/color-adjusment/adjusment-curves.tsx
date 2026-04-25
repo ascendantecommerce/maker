@@ -241,8 +241,15 @@ const CURVE_PRESETS: Record<string, CurvePreset> = {
   },
 };
 
+const isPointsEqual = (p1: any[] | undefined, p2: any[] | undefined) => {
+  if (!p1 || !p2) return p1 === p2;
+  if (p1.length !== p2.length) return false;
+  return p1.every((p, i) => p.x === p2[i].x && p.y === p2[i].y);
+};
+
 const AdjusmentCurves = ({ selectedClips }: { selectedClips: IClip[] }) => {
   const clip = selectedClips[0];
+  if (!clip) return null;
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [selectedCurve, setSelectedCurve] = useState<string>("rgb");
@@ -293,29 +300,42 @@ const AdjusmentCurves = ({ selectedClips }: { selectedClips: IClip[] }) => {
       ],
     },
   ]);
+
+  const skipStoreUpdate = useRef(false);
+
   useEffect(() => {
-    const curves = clip?.colorAdjustment?.curves;
-    if (!curves) return;
-
-    setCurves((prev) =>
-      prev.map((curve) => {
+    const curvesData = clip?.colorAdjustment?.curves;
+    if (!curvesData) return;
+    setCurves((prev) => {
+      let hasChanges = false;
+      const next = prev.map((curve) => {
         const incoming =
-          curves[curve.id as "rgb" | "red" | "green" | "blue"] ?? curve.points;
-
-        if (JSON.stringify(incoming) === JSON.stringify(curve.points)) {
+          curvesData[
+            curve.id as "rgb" | "red" | "green" | "blue"
+          ] ?? curve.points;
+        if (isPointsEqual(incoming, curve.points)) {
           return curve;
         }
-
+        hasChanges = true;
         return {
           ...curve,
           points: incoming,
         };
-      }),
-    );
+      });
+      if (hasChanges) {
+        skipStoreUpdate.current = true;
+        return next;
+      }
+      return prev;
+    });
   }, [clip?.colorAdjustment?.curves]);
 
   useEffect(() => {
     if (!clip) return;
+    if (skipStoreUpdate.current) {
+      skipStoreUpdate.current = false;
+      return;
+    }
     const nextCurves = curves.reduce(
       (acc, curve) => {
         acc[curve.id as "rgb" | "red" | "green" | "blue"] = curve.points;
@@ -323,11 +343,18 @@ const AdjusmentCurves = ({ selectedClips }: { selectedClips: IClip[] }) => {
       },
       {} as Record<"rgb" | "red" | "green" | "blue", Point[]>,
     );
+    
+    const currentCurves = clip?.colorAdjustment?.curves;
     if (
-      JSON.stringify(nextCurves) ===
-      JSON.stringify(clip?.colorAdjustment?.curves)
-    )
+      currentCurves &&
+      isPointsEqual(nextCurves.rgb, currentCurves.rgb) &&
+      isPointsEqual(nextCurves.red, currentCurves.red) &&
+      isPointsEqual(nextCurves.green, currentCurves.green) &&
+      isPointsEqual(nextCurves.blue, currentCurves.blue)
+    ) {
       return;
+    }
+    
     clip.update({
       colorAdjustment: {
         enabled: true,
