@@ -3,9 +3,10 @@ import { Icons } from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSidebar } from "@/components/ui/sidebar";
-import { useProjects, useDeleteProject } from "@/hooks/use-projects";
+import { useProjects, useDeleteProject, useUpdateProject } from "@/hooks/use-projects";
 import { useState } from "react";
 import { DeleteProjectDialog } from "@/components/delete-project-dialog";
+import { RenameProjectDialog } from "@/components/rename-project-dialog";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
@@ -45,9 +46,10 @@ function ProjectProgress({ project }: { project: any }) {
 interface ProjectCardProps {
   project: any;
   onDelete: (id: string) => void;
+  onRename: (project: any) => void;
 }
 
-function ProjectCard({ project, onDelete }: ProjectCardProps) {
+function ProjectCard({ project, onDelete, onRename }: ProjectCardProps) {
   const router = useRouter();
   const schemaId = project.schemas?.[0]?.id ?? "";
   const handleClick = () => {
@@ -73,6 +75,8 @@ function ProjectCard({ project, onDelete }: ProjectCardProps) {
       onDelete(project.id);
     } else if (action === "edit") {
       router.push(`/edit/${schemaId}`);
+    } else if (action === "rename") {
+      onRename(project);
     } else {
       console.log(`Action ${action} triggered for project ${project.id}`);
     }
@@ -168,11 +172,17 @@ export default function Page() {
   const { open, isMobile, toggleSidebar } = useSidebar();
   const { data: projects = [], isLoading } = useProjects();
   const { mutate: deleteProject, isPending: isDeleting } = useDeleteProject();
+  const { mutate: updateProject, isPending: isRenaming } = useUpdateProject();
 
   const [projectIdToDelete, setProjectIdToDelete] = useState<string | null>(null);
+  const [projectToRename, setProjectToRename] = useState<{ id: string; name: string } | null>(null);
 
   const handleDelete = (id: string) => {
     setProjectIdToDelete(id);
+  };
+
+  const handleRename = (project: any) => {
+    setProjectToRename({ id: project.id, name: project.name });
   };
 
   const confirmDelete = () => {
@@ -182,6 +192,19 @@ export default function Page() {
           setProjectIdToDelete(null);
         },
       });
+    }
+  };
+
+  const confirmRename = (newName: string) => {
+    if (projectToRename) {
+      updateProject(
+        { id: projectToRename.id, name: newName },
+        {
+          onSuccess: () => {
+            setProjectToRename(null);
+          },
+        }
+      );
     }
   };
 
@@ -224,7 +247,12 @@ export default function Page() {
           ) : (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
               {projects.map((project: any) => (
-                <ProjectCard key={project.id} project={project} onDelete={handleDelete} />
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  onDelete={handleDelete}
+                  onRename={handleRename}
+                />
               ))}
             </div>
           )}
@@ -236,6 +264,14 @@ export default function Page() {
         onOpenChange={(open) => !open && setProjectIdToDelete(null)}
         onConfirm={confirmDelete}
         isDeleting={isDeleting}
+      />
+
+      <RenameProjectDialog
+        open={!!projectToRename}
+        onOpenChange={(open) => !open && setProjectToRename(null)}
+        onConfirm={confirmRename}
+        isRenaming={isRenaming}
+        currentName={projectToRename?.name}
       />
     </main>
   );
