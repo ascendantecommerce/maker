@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/color-picker";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { IClip, AnimationOptions, KeyframeData } from "openvideo";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -58,6 +59,8 @@ type WordsPerLineMode = "single" | "multiple";
 
 export function CaptionProperties({ clip }: CaptionPropertiesProps) {
   const { studio } = useStudioStore();
+  const [applyToAll, setApplyToAll] = React.useState(true);
+  
   if (!studio) return null;
   const captionClip = clip as any;
   const allCaptionClips: any[] = studio.clips.filter((c) => c.type === "Caption");
@@ -76,7 +79,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
 
   const { setFloatingControl } = useLayoutStore();
 
-  const handleUpdate = (updates: any, option: "single" | "multiple" = "single") => {
+  const handleUpdate = (updates: any, option: "single" | "multiple" = applyToAll ? "multiple" : "single") => {
     if (option === "multiple") {
       for (const clip of allCaptionClips) {
         Object.keys(updates).forEach((key) => {
@@ -95,7 +98,8 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
   };
 
   const handleCaptionColorUpdate = (colorUpdates: any) => {
-    for (const clip of allCaptionClips) {
+    const clipsToUpdate = applyToAll ? allCaptionClips : [captionClip];
+    for (const clip of clipsToUpdate) {
       // Directly update the internal opts object
       if (colorUpdates.appeared !== undefined) {
         (clip as any).opts.appeared = colorUpdates.appeared;
@@ -140,7 +144,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
         fontFamily: font.postScriptName,
         fontUrl: font.url,
       },
-      "multiple",
+      applyToAll ? "multiple" : "single",
     );
     studio.emit("propsChange", {});
   };
@@ -168,8 +172,10 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
 
     const videoHeight = (studio as any).opts.height || 1080;
 
+    const clipsToUpdate = applyToAll ? allCaptionClips : [captionClip];
+
     // Aplicamos la actualización a todos
-    allCaptionClips.forEach((clip) => {
+    clipsToUpdate.forEach((clip) => {
       const clipHeight = clip.height || 0;
       let newTop = clip.top;
 
@@ -203,6 +209,21 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
 
   return (
     <div className="flex flex-col gap-5">
+      {/* Apply to all toggle */}
+      <div className="flex items-center space-x-2">
+        <Checkbox 
+          id="apply-to-all" 
+          checked={applyToAll} 
+          onCheckedChange={(checked) => setApplyToAll(checked === true)} 
+        />
+        <label
+          htmlFor="apply-to-all"
+          className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer"
+        >
+          Apply to all captions
+        </label>
+      </div>
+
       {/* Content */}
       <div className="flex flex-col gap-2">
         <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
@@ -210,7 +231,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
         </label>
         <Textarea
           value={captionClip.text || ""}
-          onChange={(e) => handleUpdate({ text: e.target.value })}
+          onChange={(e) => handleUpdate({ text: e.target.value }, "single")}
           className="resize-none text-sm"
           placeholder="Enter caption text..."
         />
@@ -419,7 +440,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
               value={opts.fontSize || 40}
               onChange={(e) => {
                 const newSize = e || 0;
-                handleUpdate({ fontSize: newSize }, "multiple");
+                handleUpdate({ fontSize: newSize });
               }}
               className="text-sm"
             />
@@ -444,7 +465,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
             ].map((item) => (
               <button
                 key={item.value}
-                onClick={() => handleUpdate({ textCase: item.value }, "multiple")}
+                onClick={() => handleUpdate({ textCase: item.value })}
                 className={cn(
                   "flex-1 text-[10px] font-medium flex items-center justify-center rounded-sm py-1 transition-colors",
                   (captionClip.textCase || "none") === item.value
@@ -474,7 +495,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
                   <ColorPicker
                     onChange={(colorValue) => {
                       const hexColor = color.rgb(colorValue).hex();
-                      handleUpdate({ fill: hexColor }, "multiple");
+                      handleUpdate({ fill: hexColor });
                     }}
                     className="w-72 h-72 rounded-md border bg-background p-4 shadow-sm"
                   >
@@ -495,7 +516,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
             </InputGroupAddon>
             <InputGroupInput
               value={opts.fill?.toUpperCase() || "#FFFFFF"}
-              onChange={(e) => handleUpdate({ fill: e.target.value }, "multiple")}
+              onChange={(e) => handleUpdate({ fill: e.target.value })}
               className="text-sm p-0 text-[10px] font-mono"
             />
           </InputGroup>
