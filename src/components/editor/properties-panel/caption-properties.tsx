@@ -7,7 +7,11 @@ import {
   ColorPickerSelection,
   ColorPickerEyeDropper,
 } from "@/components/ui/color-picker";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { IClip, AnimationOptions, KeyframeData } from "openvideo";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -60,10 +64,12 @@ type WordsPerLineMode = "single" | "multiple";
 export function CaptionProperties({ clip }: CaptionPropertiesProps) {
   const { studio } = useStudioStore();
   const [applyToAll, setApplyToAll] = React.useState(true);
-  
+
   if (!studio) return null;
   const captionClip = clip as any;
-  const allCaptionClips: any[] = studio.clips.filter((c) => c.type === "Caption");
+  const allCaptionClips: any[] = studio.clips.filter(
+    (c) => c.type === "Caption",
+  );
 
   const opts = {
     ...((allCaptionClips[0] as any)?.opts || {}),
@@ -79,7 +85,10 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
 
   const { setFloatingControl } = useLayoutStore();
 
-  const handleUpdate = (updates: any, option: "single" | "multiple" = applyToAll ? "multiple" : "single") => {
+  const handleUpdate = (
+    updates: any,
+    option: "single" | "multiple" = applyToAll ? "multiple" : "single",
+  ) => {
     if (option === "multiple") {
       for (const clip of allCaptionClips) {
         Object.keys(updates).forEach((key) => {
@@ -117,7 +126,14 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
         (clip as any).opts.keyword = colorUpdates.keyword;
       }
       Object.assign((clip as any).caption.colors, colorUpdates);
-      clip.emit("propsChange", {});
+
+      if (typeof (clip as any).refreshCaptions === "function") {
+        (clip as any).refreshCaptions().then(() => {
+          clip.emit("propsChange", {});
+        });
+      } else {
+        clip.emit("propsChange", {});
+      }
     }
 
     studio.emit("propsChange", {});
@@ -203,18 +219,20 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
     });
   }
 
-  const currentFont = getFontByPostScriptName(opts.fontFamily) || GROUPED_FONTS[0].mainFont;
+  const currentFont =
+    getFontByPostScriptName(opts.fontFamily) || GROUPED_FONTS[0].mainFont;
   const currentFamily =
-    GROUPED_FONTS.find((f) => f.family === currentFont.family) || GROUPED_FONTS[0];
+    GROUPED_FONTS.find((f) => f.family === currentFont.family) ||
+    GROUPED_FONTS[0];
 
   return (
     <div className="flex flex-col gap-5">
       {/* Apply to all toggle */}
       <div className="flex items-center space-x-2">
-        <Checkbox 
-          id="apply-to-all" 
-          checked={applyToAll} 
-          onCheckedChange={(checked) => setApplyToAll(checked === true)} 
+        <Checkbox
+          id="apply-to-all"
+          checked={applyToAll}
+          onCheckedChange={(checked) => setApplyToAll(checked === true)}
         />
         <label
           htmlFor="apply-to-all"
@@ -245,23 +263,31 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
         <div className="grid grid-cols-2 gap-2">
           <InputGroup>
             <InputGroupAddon align="inline-start">
-              <span className="text-[10px] font-medium text-muted-foreground">X</span>
+              <span className="text-[10px] font-medium text-muted-foreground">
+                X
+              </span>
             </InputGroupAddon>
             <InputGroupInput
               type="number"
               value={Math.round(captionClip.left || 0)}
-              onChange={(e) => handleUpdate({ left: parseInt(e.target.value) || 0 })}
+              onChange={(e) =>
+                handleUpdate({ left: parseInt(e.target.value) || 0 })
+              }
               className="text-sm p-0"
             />
           </InputGroup>
           <InputGroup>
             <InputGroupAddon align="inline-start">
-              <span className="text-[10px] font-medium text-muted-foreground">Y</span>
+              <span className="text-[10px] font-medium text-muted-foreground">
+                Y
+              </span>
             </InputGroupAddon>
             <InputGroupInput
               type="number"
               value={Math.round(captionClip.top || 0)}
-              onChange={(e) => handleUpdate({ top: parseInt(e.target.value) || 0 })}
+              onChange={(e) =>
+                handleUpdate({ top: parseInt(e.target.value) || 0 })
+              }
               className="text-sm p-0"
             />
           </InputGroup>
@@ -269,23 +295,31 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
         <div className="grid grid-cols-2 gap-2">
           <InputGroup>
             <InputGroupAddon align="inline-start">
-              <span className="text-[10px] font-medium text-muted-foreground">W</span>
+              <span className="text-[10px] font-medium text-muted-foreground">
+                W
+              </span>
             </InputGroupAddon>
             <InputGroupInput
               type="number"
               value={Math.round(captionClip.width || 0)}
-              onChange={(e) => handleUpdate({ width: parseInt(e.target.value) || 0 })}
+              onChange={(e) =>
+                handleUpdate({ width: parseInt(e.target.value) || 0 })
+              }
               className="text-sm p-0"
             />
           </InputGroup>
           <InputGroup>
             <InputGroupAddon align="inline-start">
-              <span className="text-[10px] font-medium text-muted-foreground">H</span>
+              <span className="text-[10px] font-medium text-muted-foreground">
+                H
+              </span>
             </InputGroupAddon>
             <InputGroupInput
               type="number"
               value={Math.round(captionClip.height || 0)}
-              onChange={(e) => handleUpdate({ height: parseInt(e.target.value) || 0 })}
+              onChange={(e) =>
+                handleUpdate({ height: parseInt(e.target.value) || 0 })
+              }
               className="text-sm p-0"
             />
           </InputGroup>
@@ -300,7 +334,11 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
         <Select
           value={opts.verticalAlign || "bottom"}
           onValueChange={(v) =>
-            updateVerticalAlign(v as VerticalAlignMode, captionClip, handleUpdate)
+            updateVerticalAlign(
+              v as VerticalAlignMode,
+              captionClip,
+              handleUpdate,
+            )
           }
         >
           <SelectTrigger className="w-full h-9">
@@ -351,7 +389,9 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
             <InputGroupInput
               type="number"
               value={Math.round(captionClip.angle ?? 0)}
-              onChange={(e) => handleUpdate({ angle: parseInt(e.target.value) || 0 })}
+              onChange={(e) =>
+                handleUpdate({ angle: parseInt(e.target.value) || 0 })
+              }
               className="text-sm p-0 text-center"
             />
             <InputGroupAddon align="inline-end" className="p-0 pr-2">
@@ -378,7 +418,9 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
         >
           <SelectTrigger className="w-full h-12">
             <SelectValue placeholder="Select font">
-              <div className="flex items-center h-full">{currentFamily.family}</div>
+              <div className="flex items-center h-full">
+                {currentFamily.family}
+              </div>
             </SelectValue>
           </SelectTrigger>
           <SelectContent className="max-h-[300px]">
@@ -397,14 +439,18 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
         </Select>
 
         <div className="grid grid-cols-2 gap-2">
-          <Select value={currentFont.postScriptName} onValueChange={(v) => handleFontChange(v)}>
+          <Select
+            value={currentFont.postScriptName}
+            onValueChange={(v) => handleFontChange(v)}
+          >
             <SelectTrigger className="bg-input border h-9 w-full overflow-hidden">
               <SelectValue placeholder="Style" />
             </SelectTrigger>
             <SelectContent>
               {currentFamily.styles.map((style) => (
                 <SelectItem key={style.id} value={style.postScriptName}>
-                  {style.fullName.replace(currentFamily.family, "").trim() || "Regular"}
+                  {style.fullName.replace(currentFamily.family, "").trim() ||
+                    "Regular"}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -482,7 +528,11 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
             <InputGroupAddon align="inline-start" className="relative p-0">
               <Popover modal={true}>
                 <PopoverTrigger asChild>
-                  <InputGroupButton variant="ghost" size="icon-xs" className="h-full w-8">
+                  <InputGroupButton
+                    variant="ghost"
+                    size="icon-xs"
+                    className="h-full w-8"
+                  >
                     <div
                       className="h-4 w-4 border border-white/10 shadow-sm"
                       style={{
@@ -541,7 +591,9 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
             <InputGroupInput
               type="number"
               value={Math.round((captionClip.opacity ?? 1) * 100)}
-              onChange={(e) => handleUpdate({ opacity: (parseInt(e.target.value) || 0) / 100 })}
+              onChange={(e) =>
+                handleUpdate({ opacity: (parseInt(e.target.value) || 0) / 100 })
+              }
               className="text-sm p-0 text-center"
             />
             <InputGroupAddon align="inline-end" className="p-0 pr-2">
@@ -646,7 +698,11 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
             <InputGroupAddon align="inline-start" className="relative p-0">
               <Popover modal={true}>
                 <PopoverTrigger asChild>
-                  <InputGroupButton variant="ghost" size="icon-xs" className="h-full w-8">
+                  <InputGroupButton
+                    variant="ghost"
+                    size="icon-xs"
+                    className="h-full w-8"
+                  >
                     <div
                       className="h-4 w-4 border border-white/10 shadow-sm"
                       style={{
@@ -680,7 +736,9 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
             </InputGroupAddon>
             <InputGroupInput
               value={captionColors.appeared?.toUpperCase() || "#FFFFFF"}
-              onChange={(e) => handleCaptionColorUpdate({ appeared: e.target.value })}
+              onChange={(e) =>
+                handleCaptionColorUpdate({ appeared: e.target.value })
+              }
               className="text-sm p-0 text-[10px] font-mono"
             />
           </InputGroup>
@@ -693,7 +751,11 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
             <InputGroupAddon align="inline-start" className="relative p-0">
               <Popover modal={true}>
                 <PopoverTrigger asChild>
-                  <InputGroupButton variant="ghost" size="icon-xs" className="h-full w-8">
+                  <InputGroupButton
+                    variant="ghost"
+                    size="icon-xs"
+                    className="h-full w-8"
+                  >
                     <div
                       className="h-4 w-4 border border-white/10 shadow-sm"
                       style={{
@@ -727,7 +789,9 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
             </InputGroupAddon>
             <InputGroupInput
               value={captionColors.active?.toUpperCase() || "#FFFFFF"}
-              onChange={(e) => handleCaptionColorUpdate({ active: e.target.value })}
+              onChange={(e) =>
+                handleCaptionColorUpdate({ active: e.target.value })
+              }
               className="text-sm p-0 text-[10px] font-mono"
             />
           </InputGroup>
@@ -740,7 +804,11 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
             <InputGroupAddon align="inline-start" className="relative p-0">
               <Popover modal={true}>
                 <PopoverTrigger asChild>
-                  <InputGroupButton variant="ghost" size="icon-xs" className="h-full w-8">
+                  <InputGroupButton
+                    variant="ghost"
+                    size="icon-xs"
+                    className="h-full w-8"
+                  >
                     <div
                       className="h-4 w-4 border border-white/10 shadow-sm"
                       style={{
@@ -774,7 +842,9 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
             </InputGroupAddon>
             <InputGroupInput
               value={captionColors.activeFill?.toUpperCase() || "#FF5700"}
-              onChange={(e) => handleCaptionColorUpdate({ activeFill: e.target.value })}
+              onChange={(e) =>
+                handleCaptionColorUpdate({ activeFill: e.target.value })
+              }
               className="text-sm p-0 text-[10px] font-mono"
             />
           </InputGroup>
@@ -787,7 +857,11 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
             <InputGroupAddon align="inline-start" className="relative p-0">
               <Popover modal={true}>
                 <PopoverTrigger asChild>
-                  <InputGroupButton variant="ghost" size="icon-xs" className="h-full w-8">
+                  <InputGroupButton
+                    variant="ghost"
+                    size="icon-xs"
+                    className="h-full w-8"
+                  >
                     <div
                       className="h-4 w-4 border border-white/10 shadow-sm"
                       style={{
@@ -821,7 +895,9 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
             </InputGroupAddon>
             <InputGroupInput
               value={captionColors.background?.toUpperCase() || ""}
-              onChange={(e) => handleCaptionColorUpdate({ background: e.target.value })}
+              onChange={(e) =>
+                handleCaptionColorUpdate({ background: e.target.value })
+              }
               className="text-sm p-0 text-[10px] font-mono"
               placeholder="Transparent"
             />
@@ -835,7 +911,11 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
             <InputGroupAddon align="inline-start" className="relative p-0">
               <Popover modal={true}>
                 <PopoverTrigger asChild>
-                  <InputGroupButton variant="ghost" size="icon-xs" className="h-full w-8">
+                  <InputGroupButton
+                    variant="ghost"
+                    size="icon-xs"
+                    className="h-full w-8"
+                  >
                     <div
                       className="h-4 w-4 border border-white/10 shadow-sm"
                       style={{
@@ -869,7 +949,9 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
             </InputGroupAddon>
             <InputGroupInput
               value={captionColors.keyword?.toUpperCase() || "#FFFFFF"}
-              onChange={(e) => handleCaptionColorUpdate({ keyword: e.target.value })}
+              onChange={(e) =>
+                handleCaptionColorUpdate({ keyword: e.target.value })
+              }
               className="text-sm p-0 text-[10px] font-mono"
             />
           </InputGroup>
