@@ -2,10 +2,15 @@
 
 import { cn } from "@/lib/utils";
 import { type RightTab, rightTabs, useRightPanelStore } from "./store";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
+import { IClip } from "openvideo";
 
-export function TabBar() {
+export function TabBar({ selectedClips }: { selectedClips: IClip[] }) {
   const { activeTab, setActiveTab } = useRightPanelStore();
 
   return (
@@ -14,6 +19,12 @@ export function TabBar() {
         {(Object.keys(rightTabs) as RightTab[]).map((tabKey) => {
           const tab = rightTabs[tabKey];
           const isActive = activeTab === tabKey;
+          if (
+            tabKey === "adjustments" &&
+            !["Video", "Image"].includes(selectedClips[0]?.type)
+          ) {
+            return null;
+          }
           return (
             <Tooltip key={tabKey} delayDuration={0}>
               <TooltipTrigger asChild>

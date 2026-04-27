@@ -2,7 +2,7 @@ import { Icons } from "@/components/shared/icons";
 import { IconAdjustmentsHorizontal, IconSparkles, type IconProps } from "@tabler/icons-react";
 import { create } from "zustand";
 
-export type RightTab = "properties" | "ai" | "animations";
+export type RightTab = "properties" | "ai" | "animations" | "adjustments";
 
 export const rightTabs: {
   [key in RightTab]: { icon: any; label: string };
@@ -14,6 +14,10 @@ export const rightTabs: {
   animations: {
     icon: Icons.animations,
     label: "Animations",
+  },
+  adjustments: {
+    icon: Icons.adjustments,
+    label: "Color Adjustment",
   },
   ai: {
     icon: IconSparkles,
