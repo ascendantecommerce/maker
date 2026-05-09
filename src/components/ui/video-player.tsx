@@ -33,17 +33,31 @@ const videoPlayerVariants = cva(
 
 export interface VideoPlayerProps
   extends
-    Omit<React.VideoHTMLAttributes<HTMLVideoElement>, "controls">,
-    VariantProps<typeof videoPlayerVariants> {
+  Omit<React.VideoHTMLAttributes<HTMLVideoElement>, "controls">,
+  VariantProps<typeof videoPlayerVariants> {
   src: string;
   poster?: string;
   showControls?: boolean;
+  showCenterButton?: boolean;
+  showBottomControls?: boolean;
+  objectFit?: "cover" | "contain";
   autoHide?: boolean;
   className?: string;
 }
 
 const VideoPlayer = React.forwardRef<HTMLVideoElement, VideoPlayerProps>(
-  ({ className, size, src, poster, showControls = true, autoHide = true, ...props }, ref) => {
+  ({
+    className,
+    size,
+    src,
+    poster,
+    showControls = true,
+    showCenterButton = true,
+    showBottomControls = true,
+    objectFit = "cover",
+    autoHide = true,
+    ...props
+  }, ref) => {
     const [isPlaying, setIsPlaying] = React.useState(false);
     const [currentTime, setCurrentTime] = React.useState(0);
     const [duration, setDuration] = React.useState(0);
@@ -254,7 +268,10 @@ const VideoPlayer = React.forwardRef<HTMLVideoElement, VideoPlayerProps>(
         <div aria-atomic="true" aria-live="polite" className="sr-only" ref={liveRef} />
         <video
           aria-label="Video"
-          className="h-full w-full object-cover"
+          className={cn(
+            "h-full w-full",
+            objectFit === "contain" ? "object-contain" : "object-cover"
+          )}
           onClick={togglePlay}
           poster={poster}
           ref={videoRef}
@@ -263,35 +280,38 @@ const VideoPlayer = React.forwardRef<HTMLVideoElement, VideoPlayerProps>(
         />
         {showControls && (
           <>
-            <div
-              className={cn(
-                "pointer-events-none absolute inset-0 flex items-center justify-center transition-opacity motion-safe:duration-200",
-                !isPlaying || showControlsState ? "opacity-100" : "opacity-0",
-              )}
-            >
-              <button
-                aria-label={isPlaying ? "Pause" : "Play"}
-                className="pointer-events-auto flex size-16 items-center justify-center rounded-full border border-white/30 bg-white/20 text-white backdrop-blur-sm transition-colors hover:bg-white/30 motion-safe:duration-200"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  togglePlay();
-                }}
-                type="button"
-              >
-                {isPlaying ? (
-                  <Pause aria-hidden="true" className="size-6" />
-                ) : (
-                  <Play aria-hidden="true" className="size-6" />
+            {showCenterButton && (
+              <div
+                className={cn(
+                  "pointer-events-none absolute inset-0 flex items-center justify-center transition-opacity motion-safe:duration-200",
+                  !isPlaying || showControlsState ? "opacity-100" : "opacity-0",
                 )}
-              </button>
-            </div>
+              >
+                <button
+                  aria-label={isPlaying ? "Pause" : "Play"}
+                  className="pointer-events-auto flex size-16 items-center justify-center rounded-full border border-white/30 bg-white/20 text-white backdrop-blur-sm transition-colors hover:bg-white/30 motion-safe:duration-200"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    togglePlay();
+                  }}
+                  type="button"
+                >
+                  {isPlaying ? (
+                    <Pause aria-hidden="true" className="size-6" />
+                  ) : (
+                    <Play aria-hidden="true" className="size-6" />
+                  )}
+                </button>
+              </div>
+            )}
 
-            <div
-              className={cn(
-                "pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 via-black/40 to-transparent transition-opacity motion-safe:duration-200",
-                showControlsState ? "opacity-100" : "opacity-0",
-              )}
-            >
+            {showBottomControls && isPlaying && (
+              <div
+                className={cn(
+                  "pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 via-black/40 to-transparent transition-opacity motion-safe:duration-200",
+                  showControlsState ? "opacity-100" : "opacity-0",
+                )}
+              >
               <div className="pointer-events-auto flex flex-col gap-2 p-4">
                 <div className="flex items-center gap-2 text-sm text-white">
                   <span aria-live="off" className="min-w-0 font-mono text-xs">
@@ -429,6 +449,8 @@ const VideoPlayer = React.forwardRef<HTMLVideoElement, VideoPlayerProps>(
                 </div>
               </div>
             </div>
+            )}
+
           </>
         )}
       </div>

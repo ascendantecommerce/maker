@@ -30,10 +30,7 @@ export const productVideoOrchestrator = inngest.createFunction(
     let scheme: VideoSchema = event.data.scheme;
     const schemeId = scheme.id;
     const channel = workflowChannel(schemeId);
-    const services = initializeServices({
-      provider: "fal-veo",
-      videoModel: "fal-ai/veo3.1/lite/image-to-video",
-    });
+    const services = initializeServices();
     let resultPreviewUrl: string | undefined = undefined;
 
     try {
@@ -177,8 +174,11 @@ export const productVideoOrchestrator = inngest.createFunction(
           scheme.segments = dbSegments.map((s: any) => ensureObject(s.segment_data));
           context = { services, scheme, schemeId, attempt };
 
-          const step3Results = await step.run("Generating shot first frames", () =>
-            productVisuals.generateShotFirstFrames(context, userId, projectId),
+          const step3Results = await productVisuals.generateShotFirstFrames(
+            step,
+            context,
+            userId,
+            projectId,
           );
           if (step3Results.previewUrl) resultPreviewUrl = step3Results.previewUrl;
           if (step3Results.prices) allVisualPrices.push(...step3Results.prices);
@@ -218,8 +218,11 @@ export const productVideoOrchestrator = inngest.createFunction(
             return advanceGenerationTask(schemeId, PRODUCT_TASK_KEYS.MEDIA, PRODUCT_TASKS);
           });
 
-          const { prices } = await step.run("Generating shot videos", () =>
-            productVisuals.generateShotVideos(context, userId, projectId),
+          const { prices } = await productVisuals.generateShotVideos(
+            step,
+            context,
+            userId,
+            projectId,
           );
           if (prices) allVisualPrices.push(...prices);
         }

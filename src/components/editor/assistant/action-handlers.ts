@@ -1,160 +1,134 @@
-import { clipToJSON, Effect, IClip, jsonToClip, Studio } from "openvideo";
-import { generateUUID } from "@/utils/id";
-import { usePlaybackStore } from "@/stores/playback-store";
+import { core, projectStore } from '@/lib/project';
+import { nanoid } from '@openvideo/core';
 
-export const duplicateClip = async (clipId: string, studio: Studio | null, timelineStore: any) => {
-  if (!studio) return;
-
-  const state = timelineStore.getState();
+export const duplicateClip = async (clipId: string) => {
+  const state = projectStore.getState();
   const originalClip = state.clips[clipId];
   if (!originalClip) return;
 
   const track = state.tracks.find((t: any) => t.clipIds.includes(clipId));
   if (!track) return;
 
-  const studioClip = studio.getClip(clipId);
-  if (!studioClip) {
-    return;
-  }
+  const newClipId = nanoid();
+  const newClip = {
+    ...originalClip,
+    id: newClipId,
+  };
 
-  const json = clipToJSON(studioClip as any);
-  const newClip = await jsonToClip(json);
-  const newClipId = generateUUID();
-  newClip.id = newClipId;
-
-  const newTrackId = generateUUID();
+  const newTrackId = 'track_' + nanoid(10);
   const newTrackName = `${track.name} (Copy)`;
 
-  studio.addTrack({
-    id: newTrackId,
-    name: newTrackName,
-    type: track.type,
-  });
-
-  await studio.addClip(newClip, { trackId: newTrackId });
-  studio.selectClipsByIds([newClipId]);
+  core.batch([
+    {
+      id: nanoid(),
+      type: 'track.add',
+      payload: { id: newTrackId, name: newTrackName, type: track.type },
+    },
+    {
+      id: nanoid(),
+      type: 'clip.add',
+      payload: { clip: newClip, trackId: newTrackId },
+    },
+  ] as any[]);
 
   return newClipId;
 };
 
-export const deleteClip = async (
-  clipId: string,
-  studio: any,
-  removeClips: (ids: string[]) => void,
-) => {
-  removeClips([clipId]);
-  if (studio) {
-    await studio.removeClipById(clipId);
-  }
+export const deleteClip = async (clipId: string) => {
+  core.clip.remove([clipId]);
 };
 
-export const splitClip = async (
-  clipId: string,
-  splitTime: number,
-  studio: Studio | null,
-  timelineStore: any,
-  updateClip: (id: string, updates: any) => void,
-) => {
-  const splitTimeUs = splitTime * 1000;
+export const splitClip = async (clipId: string, splitTime: number) => {
+  const splitTimeUs = splitTime * 1000000;
+  const state = projectStore.getState();
+  const clip = state.clips[clipId];
 
-  if (!studio) return;
+  if (!clip) return;
 
-  const studioClip = studio.getClip(clipId);
-  if (!studioClip) {
-    return;
-  }
-
-  const originalJson = clipToJSON(studioClip as any);
-  const splitOffset = splitTimeUs - studioClip.display.from;
-  const playbackRate = studioClip.playbackRate || 1;
+  const splitOffset = splitTimeUs - clip.display.from;
+  const playbackRate = clip.playbackRate || 1;
   const splitOffsetInSource = splitOffset * playbackRate;
 
   const updates: any = {
     duration: splitOffset,
     display: {
-      from: studioClip.display.from,
+      from: clip.display.from,
       to: splitTimeUs,
     },
   };
 
-  if (studioClip.trim) {
+  if (clip.trim) {
     updates.trim = {
-      from: studioClip.trim.from,
-      to: studioClip.trim.from + splitOffsetInSource,
+      from: clip.trim.from,
+      to: clip.trim.from + splitOffsetInSource,
     };
   }
 
-  await studio.updateClip(clipId, updates);
-  updateClip(clipId, updates);
-
-  const newJson = { ...originalJson };
-  newJson.display = {
-    from: splitTimeUs,
-    to: newJson.display.to,
+  const splitClipUpdateCommand = {
+    id: nanoid(),
+    type: 'clip.update',
+    payload: { id: clipId, updates },
   };
-  newJson.duration = newJson.duration - splitOffset;
 
-  if (newJson.trim) {
-    newJson.trim = {
-      from: newJson.trim.from + splitOffsetInSource,
-      to: newJson.trim.to,
+  const newClipId = nanoid();
+  const newClip = {
+    ...clip,
+    id: newClipId,
+    display: {
+      from: splitTimeUs,
+      to: clip.display.to,
+    },
+    duration: clip.duration - splitOffset,
+  };
+
+  if (newClip.trim) {
+    newClip.trim = {
+      from: newClip.trim.from + splitOffsetInSource,
+      to: newClip.trim.to,
     };
   }
 
-  const newClip = await jsonToClip(newJson);
-  const newClipId = generateUUID();
-  newClip.id = newClipId;
-
-  const track = timelineStore.getState().tracks.find((t: any) => t.clipIds.includes(clipId));
+  const track = state.tracks.find((t: any) => t.clipIds.includes(clipId));
   if (track) {
-    await studio.addClip(newClip, { trackId: track.id });
-    studio.selectClipsByIds([newClipId]);
+    core.batch([
+      splitClipUpdateCommand,
+      {
+        id: nanoid(),
+        type: 'clip.add',
+        payload: { clip: newClip, trackId: track.id },
+      },
+    ] as any[]);
   }
 
-  return newClipId;
+  return newClip.id;
 };
 
 export const trimClip = async (
   clipId: string,
-  timeline: { from: number; to: number }, // milliseconds (source trim range)
-  display: { from: number; to: number }, // milliseconds (timeline position)
-  studio: Studio | null,
-  updateClip: (
-    clipId: string,
-    updates: {
-      displayFrom?: number;
-      duration?: number;
-      trim?: { from: number; to: number };
-    },
-  ) => void,
+  timeline: { from: number; to: number }, // seconds
+  display: { from: number; to: number } // seconds
 ) => {
-  if (!studio) return;
-
-  const currentClip = studio.getClip(clipId);
-  if (!currentClip) {
-    return;
-  }
+  const state = projectStore.getState();
+  const currentClip = state.clips[clipId];
+  if (!currentClip) return;
 
   const playbackRate = currentClip.playbackRate || 1;
 
-  // 1. Calculate Trim (Source Range) in microseconds
-  // Default to current trim if not provided
   const currentTrimFromUs = currentClip.trim?.from ?? 0;
-  const currentTrimToUs =
-    currentClip.trim?.to ?? ((currentClip as any).sourceDuration || currentClip.duration);
+  const currentTrimToUs = currentClip.trim?.to ?? currentClip.duration;
 
-  const newTrimFromUs = timeline.from !== undefined ? timeline.from * 1000 : currentTrimFromUs;
-  const newTrimToUs = timeline.to !== undefined ? timeline.to * 1000 : currentTrimToUs;
+  const newTrimFromUs =
+    timeline.from !== undefined ? timeline.from * 1000000 : currentTrimFromUs;
+  const newTrimToUs =
+    timeline.to !== undefined ? timeline.to * 1000000 : currentTrimToUs;
 
-  // 2. Calculate Duration based on Trim and PlaybackRate
-  // The user specified that the timeline range (trim) should predominate for duration
   const newSourceDurationUs = newTrimToUs - newTrimFromUs;
   const newDurationUs = newSourceDurationUs / playbackRate;
 
-  // 3. Calculate Display (Timeline Position) in microseconds
-  // Default to current display.from if not provided
   const newDisplayFromUs =
-    display.from !== undefined ? display.from * 1000 : currentClip.display.from;
+    display.from !== undefined
+      ? display.from * 1000000
+      : currentClip.display.from;
   const newDisplayToUs = newDisplayFromUs + newDurationUs;
 
   const updates: any = {
@@ -169,30 +143,21 @@ export const trimClip = async (
     },
   };
 
-  await studio.updateClip(clipId, updates);
-
-  // 4. Sync changes back to the store
-  updateClip(clipId, {
-    displayFrom: newDisplayFromUs,
-    duration: newDurationUs,
-    trim: { from: newTrimFromUs, to: newTrimToUs },
-  });
-
-  // Update global duration
-  usePlaybackStore.getState().setDuration(studio.getMaxDuration() / 1_000_000);
+  core.clip.update(clipId, updates);
 };
 
 export const applyEffectClip = async (
   name: string,
-  timeline: { from: number; to: number },
-  addClip: (clip: IClip, options?: any) => Promise<void>,
+  timeline: { from: number; to: number }
 ) => {
-  const from = timeline.from * 1000;
-  const to = timeline.to * 1000;
+  const from = timeline.from * 1000000;
+  const to = timeline.to * 1000000;
   const duration = to - from;
 
-  const clip = new Effect(name);
-  clip.duration = duration; // 5 seconds
-  clip.display = { from, to };
-  addClip(clip);
+  await core.clip.add({
+    type: 'Effect',
+    name,
+    duration,
+    display: { from, to },
+  });
 };

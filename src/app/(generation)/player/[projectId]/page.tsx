@@ -3,7 +3,7 @@ import { Player } from "@/components/player";
 import { Header } from "@/components/preview-video/header";
 import { Button } from "@/components/ui/button";
 import { convertSchemaToDesign } from "@/utils/schema-converter";
-import { Compositor, Studio } from "openvideo";
+import { Compositor, Studio } from "@openvideo/engine-pixi";
 import { Pause, Play } from "lucide-react";
 import { useState, useEffect, useRef, use } from "react";
 import { ExportModal } from "@/components/preview-video/export-modal";
@@ -27,6 +27,7 @@ export default function PlayerPage({ params }: { params: Promise<{ projectId: st
     Sentry.setTag("page_name", "player-view");
   }, []);
   const [exportOpen, setExportOpen] = useState(false);
+  const [generationId, setGenerationId] = useState<string | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentLabel, setCurrentLabel] = useState("0:00");
@@ -105,6 +106,7 @@ export default function PlayerPage({ params }: { params: Promise<{ projectId: st
       const response = await fetch(`/api/projects/${id}`);
       if (!response.ok) throw new Error("Failed to fetch project");
       const { project } = await response.json();
+      setGenerationId(project.generation_id);
 
       if (project.generation_output) {
         let scheme = project.generation_output;
@@ -143,7 +145,11 @@ export default function PlayerPage({ params }: { params: Promise<{ projectId: st
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground">
-      <Header projectId={projectId} onExport={() => setExportOpen(true)} />
+      <Header
+        projectId={projectId}
+        generationId={generationId}
+        onExport={() => setExportOpen(true)}
+      />
       <Player canvasRef={previewCanvasRef} />
       <ExportModal open={exportOpen} onOpenChange={setExportOpen} />
 

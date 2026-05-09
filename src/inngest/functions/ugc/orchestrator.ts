@@ -10,8 +10,6 @@ import { initializeUgcServices } from "./services";
 import * as pipelineSteps from "./steps";
 
 import { ResolverStatus } from "@/utils/enum";
-import { workflowChannel } from "../../utils/common";
-import { ToastType } from "../../utils/types";
 import { advanceGenerationTask } from "../../utils/generation-progress";
 import { enhanceUgcSegment } from "./utils/audio-enhancer";
 import { DistributedSemaphore } from "../../services/semaphore";
@@ -32,7 +30,6 @@ export const ugcVideoOrchestrator = inngest.createFunction(
   async ({ event, step }) => {
     let scheme: VideoSchema = event.data.scheme;
     const schemeId = scheme.id;
-    const channel = workflowChannel(schemeId);
 
     try {
       // ========================================================================
@@ -43,7 +40,7 @@ export const ugcVideoOrchestrator = inngest.createFunction(
       const STAGE_3_CUTAWAY_B_ROLL = false; // Phase 3: Generating full-screen B-roll clips
       const STAGE_4_OVERLAY_IMAGE = false; // Phase 4: Generating demonstrative Image Overlays (nano-banana-2)
       const STAGE_5_VOICE_ALIGNMENT = true; // Phase 5: Optional Voice Cloning & Alignment (STS)
-      const STAGE_6_AUDIO_ENHANCEMENT = false; // Phase 6: Phonos Refinement
+      const STAGE_6_AUDIO_ENHANCEMENT = true; // Phase 6: Phonos Refinement
       // ========================================================================
 
       // --- PHASE 1: AI ANALYSIS & SCHEMA GENERATION ---
@@ -95,15 +92,6 @@ export const ugcVideoOrchestrator = inngest.createFunction(
         await step.run("mark-generation-progress-assets", async () => {
           return await advanceGenerationTask(schemeId, UGC_TASK_KEYS.ASSETS, UGC_TASKS);
         });
-
-        // 3. Preprocess assets
-        const processedAssets = await step.run("preprocess-product-assets", async () => {
-          return pipelineSteps.preprocessProductAssets(scheme, services);
-        });
-
-        if (processedAssets && processedAssets.length > 0) {
-          scheme.assets = processedAssets as any;
-        }
 
         await step.run("mark-generation-progress-shots", async () => {
           console.log("Marking generation progress for shots");
@@ -345,52 +333,78 @@ export const ugcVideoOrchestrator = inngest.createFunction(
         );
 
         await step.run("publish-voice-start-toast", async () => {});
-
         await step.run("update-generation-voice-progress", async () => {
           return await advanceGenerationTask(schemeId, UGC_TASK_KEYS.VOICES, UGC_TASKS);
         });
 
-        const bestVoiceSource = await step.run("select-best-voice", async () => {
-          return pipelineSteps.selectBestVoiceSource(dbSegments, services);
+        // 1. Identify potential videos for voice cloning
+        const candidates = await step.run("select-voice-candidates", async () => {
+          return pipelineSteps.selectVoiceCandidates(dbSegments, services);
         });
 
-        const clonedVoiceId = await step.run("clone-voice", async () => {
-          return pipelineSteps.cloneVoice(bestVoiceSource.videoUrl, services);
-        });
+        let stsSuccess = false;
+        const maxRetries = Math.min(candidates.length, 3);
 
-        await step.run("mark-generation-progress-voice-align", async () => {
-          return await advanceGenerationTask(schemeId, UGC_TASK_KEYS.VOICEALIGN, UGC_TASKS);
-        });
+        // 2. Iterate through candidates until one succeeds (or we run out)
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+          const candidate = candidates[attempt];
+          const voiceTag = `v${attempt}`;
 
-        const stsTasks = dbSegments.map(async (segment) => {
-          const sd = segment.segment_data as any;
-          const videoAsset = (sd.assets || sd.shots || []).find(
-            (a: any) => a.type === "video" && a.videoUrl && a.active !== false,
-          );
-          let currentUrl = videoAsset?.videoUrl || sd.shots?.[0]?.videoUrl;
-
-          if (!currentUrl) return;
-
-          const stsResult = await step.run(`process-sts-${segment.id}-${runToken}`, async () => {
-            return await pipelineSteps.processStsSegment(
-              segment,
-              clonedVoiceId!,
-              projectId,
-              services,
-            );
-          });
-
-          return await step.run(`update-segment-sts-${segment.id}-${runToken}`, async () => {
-            return await pipelineSteps.updateVeoSegmentInDb({
-              segmentDbId: segment.id,
-              segData: segment.segment_data,
-              finalR2Url: stsResult.comparison.updated,
-              actualDuration: (segment.segment_data as any).estimatedDuration || 5,
+          try {
+            // Clone the voice from the selected candidate
+            const clonedVoiceId = await step.run(`clone-voice-${voiceTag}-${runToken}`, async () => {
+              return await pipelineSteps.cloneVoice(candidate.videoUrl, services);
             });
-          });
-        });
 
-        await Promise.all(stsTasks);
+            await step.run(`mark-generation-progress-voice-align-${voiceTag}`, async () => {
+              return await advanceGenerationTask(schemeId, UGC_TASK_KEYS.VOICEALIGN, UGC_TASKS);
+            });
+
+            // 3. Process all segments in parallel using the current cloned voice
+            await Promise.all(dbSegments.map(async (segment) => {
+              const sd = segment.segment_data as any;
+              const videoAsset = (sd.assets || sd.shots || []).find(
+                (a: any) => a.type === "video" && a.videoUrl && a.active !== false,
+              );
+              const currentUrl = videoAsset?.videoUrl || sd.shots?.[0]?.videoUrl;
+
+              if (!currentUrl) return;
+
+              // Step A: Speech-to-Speech conversion
+              const stsResult = await step.run(`process-sts-${segment.id}-${voiceTag}-${runToken}`, async () => {
+                return await pipelineSteps.processStsSegment(segment, clonedVoiceId!, projectId, services);
+              });
+
+              // Step B: Update Database with the new aligned video URL
+              return await step.run(`update-segment-sts-${segment.id}-${voiceTag}-${runToken}`, async () => {
+                return await pipelineSteps.updateVeoSegmentInDb({
+                  segmentDbId: segment.id,
+                  segData: segment.segment_data,
+                  finalR2Url: stsResult.comparison.updated,
+                  actualDuration: (segment.segment_data as any).estimatedDuration || 5,
+                });
+              });
+            }));
+
+            stsSuccess = true;
+            break; // All segments processed successfully
+          } catch (err: any) {
+            console.error(`[Voice Alignment] Attempt ${attempt} failed:`, err);
+
+            // If ElevenLabs denied the voice, we retry with the next candidate
+            if (err.message?.includes("VOICE_ACCESS_DENIED")) {
+              console.warn(`[Voice Alignment] Candidate ${attempt} denied. Moving to next candidate...`);
+              continue;
+            }
+            
+            // Re-throw other errors (e.g. database issues, network timeouts) to trigger Inngest retries
+            throw err;
+          }
+        }
+
+        if (!stsSuccess) {
+          console.error("[Voice Alignment] All candidates failed or were denied. Workflow will continue without STS.");
+        }
       }
 
       // ========================================================================

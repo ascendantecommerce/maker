@@ -4,10 +4,9 @@ export interface IBoxShadow {
   y: number;
   blur: number;
 }
-
 export interface ICaptionsControlProps {
   id: string;
-  type?: "word" | "lines";
+  type?: 'word' | 'lines';
   appearedColor: string;
   activeColor: string;
   activeFillColor: string;
@@ -17,24 +16,25 @@ export interface ICaptionsControlProps {
   borderColor: string;
   borderWidth: number;
   boxShadow?: IBoxShadow;
-  animation?: string;
+  animation?: string | string[];
   fontFamily?: string;
   fontUrl?: string;
-  fontSize?: number;
   textTransform?: string;
+  previewUrl?: string;
   previewUrlDynamic?: string;
   previewUrlStatic?: string;
   textAlign?: string;
   preservedColorKeyWord?: boolean;
+  fontSize?: number;
   wordAnimation?: {
-    type: "scale" | "opacity";
-    application: "active" | "keyword" | "none";
+    type: 'scale' | 'opacity';
+    application: 'active' | 'keyword' | 'none';
     value: number;
-    mode?: "static" | "dynamic";
+    mode?: 'static' | 'dynamic';
   };
   textBoxStyle?: {
-    style?: "tiktok" | "none";
-    textAlign?: "left" | "center" | "right" | "";
+    style?: 'tiktok' | 'none';
+    textAlign?: 'left' | 'center' | 'right' | '';
     maxLines?: number;
     borderRadius?: number;
     horizontalPadding?: number;

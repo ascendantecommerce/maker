@@ -9,7 +9,7 @@ import Stripe from "stripe";
 import { STRIPE_PRICE_MAPPING } from "../config/stripe-config";
 
 const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_placeholder", {
-  apiVersion: "2026-01-28.clover",
+  apiVersion: "2026-02-25.clover",
 });
 
 export const auth = betterAuth({

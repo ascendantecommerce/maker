@@ -1,57 +1,59 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
-import * as Sentry from "@sentry/nextjs";
 import { usePostHog } from "posthog-js/react";
 import Editor from "@/components/editor/editor";
 import { convertSchemaToDesign } from "@/utils/schema-converter";
 import { convertUgcSchemaToDesign } from "@/utils/ugc-schema-converter";
-import { useStudioStore } from "@/stores/studio-store";
 import { useSchemaStore } from "@/stores/schema-store";
 import { Design } from "@/types/editor";
-import { Scene } from "@/lib/database";
-
-interface ProjectData {
-  project: any;
-  assets: any[];
-  scene: Scene | null;
-  schemas: any[];
-  segments: any[];
-  isOwner: boolean;
-  isPublic: boolean;
-  scene_data?: any;
-}
+import { Loading } from '@/components/editor/loading';
 
 export default function FolderPage({ params }: { params: Promise<{ schemaId: string }> }) {
   const { schemaId } = use(params);
-  const [projectData, setProjectData] = useState<ProjectData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { studio } = useStudioStore();
   const [isConverting, setIsConverting] = useState(false);
-  const [design, setDesign] = useState<Design | null>(null);
+  const [design, setDesign] = useState<Design | undefined>(undefined);
   const [isOwner, setIsOwner] = useState(true);
-  const posthog = usePostHog();
   const { setSchema } = useSchemaStore();
 
-  useEffect(() => {
-    Sentry.setTag("page_name", "edit-scene");
-    posthog.capture("editor_project_load_started", { schemaId });
-  }, [schemaId, posthog]);
+  const [isGenerating, setIsGeneratingLocal] = useState(false);
+
   const fetchProject = async () => {
     try {
       setLoading(true);
       setError(null);
+      console.log("Fetching schema: ", { schemaId });
+      const response = await fetch(`/api/scheme/${schemaId}`);
+      if (!response.ok) throw new Error("Failed to fetch storyboard schema");
 
-      const response = await fetch(`/api/schemas/${schemaId}`);
+      const data = await response.json();
+      const schema = data.scheme ?? data;
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch project data");
+      const terminalStatuses = ["COMPLETED", "FAILED"];
+      const isCurrentlyGenerating = !!data.message || !terminalStatuses.includes(data.status);
+      setIsGeneratingLocal(isCurrentlyGenerating);
+
+      // Store in global schema store
+      setSchema(schema);
+
+      if (!isCurrentlyGenerating) {
+        setIsConverting(true);
+        let exportedSchema: Design;
+        if (schema?.type === "ugc-video-ad" || schema?.type === "character-driven-ad") {
+          console.log("Using UGC schema converter");
+          exportedSchema = await convertUgcSchemaToDesign(schema);
+        } else {
+          console.log("Using standard schema converter");
+          exportedSchema = await convertSchemaToDesign(schema);
+        }
+
+        console.log({ exportedSchema, schema });
+        setDesign(exportedSchema);
+        setIsConverting(false);
       }
 
-      const data: ProjectData = await response.json();
-      console.log({ data });
-      setProjectData(data);
       setIsOwner(data.isOwner ?? true);
     } catch (err) {
       console.error("Error fetching project:", err);
@@ -61,82 +63,84 @@ export default function FolderPage({ params }: { params: Promise<{ schemaId: str
     }
   };
 
-  useEffect(() => {
-    const convertAndSave = async () => {
-      if (!projectData) return;
+  // useEffect(() => {
+  //   const convertAndSave = async () => {
+  //     if (!projectData) return;
 
-      const mainSchema = projectData.schemas?.[0];
-      if (mainSchema) {
-        setSchema({
-          ...mainSchema,
-          segments: projectData.segments || [],
-        });
-      }
+  //     const mainSchema = projectData.schemas?.[0];
+  //     if (mainSchema) {
+  //       setSchema({
+  //         ...mainSchema,
+  //         segments: projectData.segments || [],
+  //       });
+  //     }
 
-      // 1. If scene exists, load it directly
-      if (projectData.scene?.scene_data || projectData?.scene_data) {
-        console.log("Loading existing scene:", projectData);
+  //     // 1. If scene exists, load it directly
+  //     if (projectData.scene?.scene_data || projectData?.scene_data) {
+  //       console.log("Loading existing scene:", projectData);
 
-        const rawSceneData = projectData.scene?.scene_data ?? projectData?.scene_data;
+  //       const rawSceneData = projectData.scene?.scene_data ?? projectData?.scene_data;
 
-        const sceneData =
-          typeof rawSceneData === "string" ? JSON.parse(rawSceneData) : rawSceneData;
+  //       const sceneData =
+  //         typeof rawSceneData === "string" ? JSON.parse(rawSceneData) : rawSceneData;
 
-        setDesign(sceneData);
-        return;
-      }
+  //       setDesign(sceneData);
+  //       return;
+  //     }
 
-      // 2. If no scene, convert schema and save
-      try {
-        setIsConverting(true);
-        const mainSchema = projectData.schemas[0];
-        const schemaWithSegments = {
-          ...mainSchema,
-          segments: projectData.segments,
-        };
-        console.log({ schemaWithSegments });
+  //     // 2. If no scene, convert schema and save
+  //     try {
+  //       setIsConverting(true);
+  //       const mainSchema = projectData.schemas[0];
+  //       const schemaWithSegments = {
+  //         ...mainSchema,
+  //         segments: projectData.segments,
+  //       };
+  //       console.log({ schemaWithSegments });
 
-        let exportedSchema: Design;
-        if (mainSchema?.type === "ugc-video-ad" || mainSchema?.type === "character-driven-ad") {
-          console.log("Using UGC schema converter");
-          exportedSchema = await convertUgcSchemaToDesign(schemaWithSegments);
-        } else {
-          console.log("Using standard schema converter");
-          exportedSchema = await convertSchemaToDesign(schemaWithSegments);
-        }
+  //       let exportedSchema: Design;
+  //       if (mainSchema?.type === "ugc-video-ad" || mainSchema?.type === "character-driven-ad") {
+  //         console.log("Using UGC schema converter");
+  //         exportedSchema = await convertUgcSchemaToDesign(schemaWithSegments);
+  //       } else {
+  //         console.log("Using standard schema converter");
+  //         exportedSchema = await convertSchemaToDesign(schemaWithSegments);
+  //       }
 
-        console.log({ exportedSchema, projectData });
-        setDesign(exportedSchema);
+  //       console.log({ exportedSchema, projectData });
+  //       setDesign(exportedSchema);
 
-        // Save the generated scene
-        await fetch("/api/scenes", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            schemaId,
-            projectId: projectData.project.id,
-            sceneData: exportedSchema,
-          }),
-        });
+  //       // Save the generated scene
+  //       await fetch("/api/scenes", {
+  //         method: "POST",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //         },
+  //         body: JSON.stringify({
+  //           schemaId,
+  //           projectId: projectData.project.id,
+  //           sceneData: exportedSchema,
+  //         }),
+  //       });
 
-        setIsConverting(false);
-      } catch (err) {
-        console.error("Conversion or save failed:", err);
-        setIsConverting(false);
-      }
-    };
+  //       setIsConverting(false);
+  //     } catch (err) {
+  //       console.error("Conversion or save failed:", err);
+  //       setIsConverting(false);
+  //     }
+  //   };
 
-    convertAndSave();
-  }, [projectData, schemaId]);
+  //   convertAndSave();
+  // }, [projectData, schemaId]);
 
   useEffect(() => {
     fetchProject();
   }, [schemaId]);
 
   if (loading || isConverting) {
-    return <div className="flex h-screen items-center justify-center">Loading project...</div>;
+    return <div className="absolute inset-0 z-100">
+      <Loading />
+    </div>
   }
 
   if (error) {
@@ -147,11 +151,11 @@ export default function FolderPage({ params }: { params: Promise<{ schemaId: str
 
   return (
     <Editor
-      design={design}
-      schemaId={schemaId}
-      projectId={projectData?.project?.id}
-      projectName={projectData?.project?.name}
-      isOwner={isOwner}
+      isDataLoading={isGenerating}
+      initialDesign={design}
+    // projectId={projectData?.project?.id}
+    // projectName={projectData?.project?.name}
+    // isOwner={isOwner}
     />
   );
 }

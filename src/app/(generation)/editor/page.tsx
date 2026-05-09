@@ -8,5 +8,5 @@ export default function EditorPage() {
     Sentry.setTag("page_name", "editor-main");
   }, []);
 
-  return <Editor design={null} />;
+  return <Editor />;
 }

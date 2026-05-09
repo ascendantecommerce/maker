@@ -10,10 +10,7 @@ import { ImageGenerator } from "@/lib/image-generation";
 import { LipSyncService } from "@/lib/lip-sync-generator";
 import { PipelineServices } from "../common/steps/types";
 
-export function initializeServices(options?: {
-  provider?: "veo" | "fal-veo";
-  videoModel?: string;
-}): any {
+export function initializeServices(): any {
   const elevenLabsSemaphore = new DistributedSemaphore("elevenlabs:tts_slots", 2, 30000);
 
   const tts = new TtsService(

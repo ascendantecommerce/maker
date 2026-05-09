@@ -6,6 +6,7 @@ import { sceneQueries } from "@/lib/database/scene-queries";
 import { db } from "@/lib/database";
 
 export async function GET(req: Request, { params }: { params: Promise<{ schemaId: string }> }) {
+  console.log("API schema request");
   // Session is optional — unauthenticated visitors can view public projects
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -16,7 +17,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ schemaId
 
   // 1. Fetch the schema
   const schema = await segmentQueries.findSchemaById(schemaId);
-
+  console.log({ schema });
   if (!schema) {
     return Response.json({ error: "Schema not found" }, { status: 404 });
   }

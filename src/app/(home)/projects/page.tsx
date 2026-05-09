@@ -53,11 +53,15 @@ function ProjectCard({ project, onDelete, onRename }: ProjectCardProps) {
   const router = useRouter();
   const schemaId = project.schemas?.[0]?.id ?? "";
   const handleClick = () => {
+    if (project.generationId) {
+      router.push(`/storyboard/${project.generationId}`);
+      return;
+    }
     console.log(project.type);
     if (project.type === "ai-copilot") {
       router.push(`/script-to-video/${project.id}`);
     } else if (project.type === "ai-editor") {
-      router.push(`/edit/${schemaId}`);
+      router.push(`/edit/${project.generationId}`);
     } else {
       router.push(`/quick-edit/${schemaId}`);
     }
@@ -74,7 +78,7 @@ function ProjectCard({ project, onDelete, onRename }: ProjectCardProps) {
     if (action === "delete") {
       onDelete(project.id);
     } else if (action === "edit") {
-      router.push(`/edit/${schemaId}`);
+      router.push(`/storyboard/${project.generationId}`);
     } else if (action === "rename") {
       onRename(project);
     } else {
@@ -119,8 +123,8 @@ function ProjectCard({ project, onDelete, onRename }: ProjectCardProps) {
           <p className="text-xs text-muted-foreground">
             {project.createdAt
               ? formatDistanceToNow(new Date(project.createdAt), {
-                  addSuffix: true,
-                })
+                addSuffix: true,
+              })
               : "Just now"}
           </p>
         </div>
@@ -203,7 +207,7 @@ export default function Page() {
           onSuccess: () => {
             setProjectToRename(null);
           },
-        }
+        },
       );
     }
   };

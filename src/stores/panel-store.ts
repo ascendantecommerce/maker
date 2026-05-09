@@ -10,12 +10,15 @@ interface PanelState {
   timeline: number;
   isCopilotVisible: boolean;
 
+  activeView: "editor" | "storyboard";
+
   setToolsPanel: (size: number) => void;
   setCopilotPanel: (size: number) => void;
   setPreviewPanel: (size: number) => void;
   setPropertiesPanel: (size: number) => void;
   setMainContent: (size: number) => void;
   setTimeline: (size: number) => void;
+  setActiveView: (view: "editor" | "storyboard") => void;
   toggleCopilot: () => void;
 }
 
@@ -23,12 +26,13 @@ export const usePanelStore = create<PanelState>()(
   persist(
     (set) => ({
       toolsPanel: 30,
-      copilotPanel: 30,
+      copilotPanel: 20,
       previewPanel: 50,
       propertiesPanel: 25,
       mainContent: 70,
       timeline: 30,
-      isCopilotVisible: true,
+      isCopilotVisible: false,
+      activeView: "editor",
 
       setToolsPanel: (size) => set({ toolsPanel: size }),
       setPreviewPanel: (size) => set({ previewPanel: size }),
@@ -36,6 +40,7 @@ export const usePanelStore = create<PanelState>()(
       setMainContent: (size) => set({ mainContent: size }),
       setTimeline: (size) => set({ timeline: size }),
       setCopilotPanel: (size) => set({ copilotPanel: size }),
+      setActiveView: (view) => set({ activeView: view }),
       toggleCopilot: () => set((state) => ({ isCopilotVisible: !state.isCopilotVisible })),
     }),
     {

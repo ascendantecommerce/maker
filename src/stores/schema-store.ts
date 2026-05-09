@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { Clip, Schema, Segment } from "@/lib/schema-generator/types";
+import { Clip, Schema, Segment, VisualShot } from "@/lib/schema-generator/types";
 
 export type UGCClip = Clip;
 
@@ -63,6 +63,7 @@ interface SchemaState {
   setGenerationProgress: (progress: number) => void;
   setError: (error: string | null) => void;
   updateSegment: (segmentId: string, updates: Partial<Segment>) => void;
+  updateShot: (segmentId: string, shotIndex: number, updates: Partial<VisualShot>) => void;
   deleteSegment: (segmentId: string) => Promise<void>;
   reset: () => void;
 }
@@ -436,6 +437,26 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
       const segments = state.schema.segments.map((s) =>
         s.id === segmentId ? { ...s, ...updates } : s,
       );
+      const newSchema = { ...state.schema, segments };
+      return {
+        schema: newSchema,
+        schemaJson: JSON.stringify(newSchema, null, 2),
+      };
+    }),
+
+  updateShot: (segmentId, shotIndex, updates) =>
+    set((state) => {
+      if (!state.schema || !state.schema.segments) return state;
+      const segments = state.schema.segments.map((s) => {
+        if (s.id === segmentId) {
+          const shots = [...(s.shots || [])];
+          if (shots[shotIndex]) {
+            shots[shotIndex] = { ...shots[shotIndex], ...updates };
+          }
+          return { ...s, shots };
+        }
+        return s;
+      });
       const newSchema = { ...state.schema, segments };
       return {
         schema: newSchema,

@@ -1,65 +1,87 @@
-import * as React from "react";
-import { useState, useEffect } from "react";
-import { ANIMATABLE_PROPERTIES, AnimationProps, AnimationOptions, KeyframeData } from "openvideo";
-import { getPresetTemplate } from "openvideo";
+import * as React from 'react';
+import { useState, useEffect } from 'react';
+import {
+  ANIMATABLE_PROPERTIES,
+  AnimationProps,
+  AnimationOptions,
+  KeyframeData,
+} from '@openvideo/engine-pixi';
+import { getPresetTemplate } from '@openvideo/engine-pixi';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
-import { NumberInput } from "@/components/ui/number-input";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
-import { IconPlus, IconTrash, IconX } from "@tabler/icons-react";
-import { cn } from "@/lib/utils";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import useLayoutStore from "../store/use-layout-store";
-import { useStudioStore } from "@/stores/studio-store";
-import { useRef } from "react";
-import { animationOptionsIn, animationOptionsOut } from "@/constants/animations";
-import { Switch } from "@/components/ui/switch";
+} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
+import { NumberInput } from '@/components/ui/number-input';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from '@/components/ui/input-group';
+import { IconPlus, IconTrash, IconX } from '@tabler/icons-react';
+import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import useLayoutStore from '../store/use-layout-store';
+import { useStudioStore } from '@/stores/studio-store';
+import { Switch } from '@/components/ui/switch';
+import * as Popover from '@radix-ui/react-popover';
 
 type PropertyKey = keyof typeof ANIMATABLE_PROPERTIES;
 
 const SPECIAL_ANIMATIONS_CAPTIONS = [
-  "charTypewriter",
-  "upDownCaption",
-  "upLeftCaption",
-  "fadeByWord",
+  'charTypewriter',
+  'upDownCaption',
+  'upLeftCaption',
+  'fadeByWord',
 ];
 
 export function AnimationPropertiesPicker() {
   const { floatingControlData, setFloatingControl } = useLayoutStore();
   const { studio } = useStudioStore();
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const { clipId, animationId, mode } = floatingControlData || {};
   const clip = studio?.getClipById(clipId) as any;
-  const animation = animationId ? clip?.animations.find((a: any) => a.id === animationId) : null;
+  const animation = animationId
+    ? clip?.animations.find((a: any) => a.id === animationId)
+    : null;
   const clipDuration = clip?.duration || 0;
+  const typeClip = clip?.type || '';
 
-  const [activeTab, setActiveTab] = useState<string>("in");
-  const [preset, setPreset] = useState<string>(animation?.type || "");
+  const [activeTab, setActiveTab] = useState<string>('in');
+  const [preset, setPreset] = useState<string>(animation?.type || '');
   const [presetParams, setPresetParams] = useState<any>({
-    direction: "left",
+    direction: 'left',
     distance: 300,
     stagger: 0.05,
   });
-  const [keyframes, setKeyframes] = useState<Record<string, Partial<AnimationProps>>>(
-    animation?.params || { "0%": {}, "100%": {} },
+  const [keyframes, setKeyframes] = useState<
+    Record<string, Partial<AnimationProps>>
+  >(animation?.params || { '0%': {}, '100%': {} });
+  const [duration, setDuration] = useState<number>(() => {
+    if (animation?.options?.duration) {
+      return animation.options.duration / 1000;
+    }
+    if (typeClip === 'Caption') {
+      return (clipDuration * 0.2) / 1000;
+    }
+    return 1000;
+  });
+  const [delay, setDelay] = useState<number>(
+    (animation?.options?.delay || 0) / 1000
   );
-  const [duration, setDuration] = useState<number>((animation?.options.duration || 1000000) / 1000);
-  const [delay, setDelay] = useState<number>((animation?.options.delay || 0) / 1000);
-  const [iterCount, setIterCount] = useState<number>(animation?.options.iterCount || 1);
-  const [easing, setEasing] = useState<string>((animation?.options.easing as string) || "linear");
-
+  const [iterCount, setIterCount] = useState<number>(
+    animation?.options?.iterCount || 1
+  );
+  const [easing, setEasing] = useState<string>(
+    (animation?.options?.easing as string) || 'linear'
+  );
   const [mirrorEnabled, setMirrorEnabled] = useState<boolean>(false);
-  const typeClip = clip?.type || "";
 
   // Initialize from animation
   useEffect(() => {
@@ -71,64 +93,47 @@ export function AnimationPropertiesPicker() {
 
       // Check if mirror is enabled in any keyframe
       const hasMirror = Object.values(animation.params as KeyframeData).some(
-        (p: any) => p && p.mirror > 0,
+        (p: any) => p && p.mirror > 0
       );
       setMirrorEnabled(hasMirror);
 
       // Determine active tab based on delay and type
-      const currentDelayMicro = animation.options.delay;
-      const currentDurationMicro = animation.options.duration;
+      const currentDelayMicro = animation.options?.delay;
+      const currentDurationMicro = animation.options?.duration;
       const isOut =
-        animation.type.toLowerCase().includes("out") ||
+        animation.type.toLowerCase().includes('out') ||
         (currentDelayMicro > 0 &&
-          Math.abs(currentDelayMicro + currentDurationMicro - clipDuration) < 1000); // within 1ms tolerance
+          Math.abs(currentDelayMicro + currentDurationMicro - clipDuration) <
+          1000); // within 1ms tolerance
 
-      if (animation.type === "keyframes") {
-        setActiveTab("custom");
+      if (animation.type === 'keyframes') {
+        setActiveTab('custom');
       } else {
-        setActiveTab(isOut ? "out" : "in");
+        setActiveTab(isOut ? 'out' : 'in');
       }
     }
   }, [animation, clipDuration]);
 
-  // Click outside handling
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(target) &&
-        !target.closest("[data-radix-portal]") &&
-        !target.closest("[data-radix-popper-content-wrapper]")
-      ) {
-        setFloatingControl("");
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [setFloatingControl]);
+  // Removed manual click outside handling in favor of Radix Popover
 
   // Handle Tab Change
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    if (tab === "in") {
+    if (tab === 'in') {
       setDelay(0);
-      setPreset("");
-    } else if (tab === "out") {
+      setPreset('');
+    } else if (tab === 'out') {
       const newDelay = Math.max(0, clipDuration / 1000 - duration);
       setDelay(newDelay);
-      setPreset("");
+      setPreset('');
     } else {
-      setPreset("");
+      setPreset('');
     }
   };
 
   // Keep 'Out' delay synced with duration
   useEffect(() => {
-    if (activeTab === "out") {
+    if (activeTab === 'out') {
       const newDelay = Math.max(0, clipDuration / 1000 - duration);
       setDelay(newDelay);
     }
@@ -136,11 +141,14 @@ export function AnimationPropertiesPicker() {
 
   // Update keyframes only when preset or params change via UI
   useEffect(() => {
-    if (preset !== "custom" && preset !== "") {
+    if (preset !== 'custom' && preset !== '') {
       const template = getPresetTemplate(preset, presetParams);
       setKeyframes(template);
-    } else if (preset === "" || (preset === "custom" && Object.keys(keyframes).length === 0)) {
-      setKeyframes({ "0%": {}, "100%": {} });
+    } else if (
+      preset === '' ||
+      (preset === 'custom' && Object.keys(keyframes).length === 0)
+    ) {
+      setKeyframes({ '0%': {}, '100%': {} });
     }
   }, [preset, presetParams]);
 
@@ -148,7 +156,11 @@ export function AnimationPropertiesPicker() {
     setPreset(value);
   };
 
-  const handlePropertyChange = (keyframe: string, property: PropertyKey, value: number) => {
+  const handlePropertyChange = (
+    keyframe: string,
+    property: PropertyKey,
+    value: number
+  ) => {
     setKeyframes((prev) => ({
       ...prev,
       [keyframe]: {
@@ -158,7 +170,11 @@ export function AnimationPropertiesPicker() {
     }));
   };
 
-  const handlePropertyToggle = (keyframe: string, property: PropertyKey, enabled: boolean) => {
+  const handlePropertyToggle = (
+    keyframe: string,
+    property: PropertyKey,
+    enabled: boolean
+  ) => {
     setKeyframes((prev) => {
       const newKeyframes = { ...prev };
       if (enabled) {
@@ -198,7 +214,10 @@ export function AnimationPropertiesPicker() {
       if (maxGap > 5) {
         newProgress = Math.round(gapStart + maxGap / 2);
       } else {
-        newProgress = Math.min(existingProgress[existingProgress.length - 1] + 10, 100);
+        newProgress = Math.min(
+          existingProgress[existingProgress.length - 1] + 10,
+          100
+        );
       }
     }
 
@@ -214,14 +233,15 @@ export function AnimationPropertiesPicker() {
   };
 
   const handleRemoveKeyframe = (keyframe: string) => {
-    if (keyframe === "0%" || keyframe === "100%") return;
+    if (keyframe === '0%' || keyframe === '100%') return;
     setKeyframes((prev) => {
       const { [keyframe]: _, ...rest } = prev;
       return rest;
     });
   };
+
   const buildAnimationConfig = () => {
-    const opts: AnimationOptions = {
+    const options: AnimationOptions = {
       duration: duration * 1000,
       delay: delay * 1000,
       iterCount,
@@ -231,194 +251,209 @@ export function AnimationPropertiesPicker() {
     const finalParams: any = structuredClone(keyframes);
 
     Object.keys(finalParams).forEach((key) => {
-      if (key.includes("%")) {
+      if (key.includes('%')) {
         finalParams[key].mirror = mirrorEnabled ? 1 : 0;
       }
     });
 
-    if (preset !== "custom") {
+    if (preset !== 'custom') {
       const filteredParams: any = {};
 
-      if (preset === "slideIn" || preset === "slideOut") {
+      if (preset === 'slideIn' || preset === 'slideOut') {
         filteredParams.direction = presetParams.direction;
         filteredParams.distance = presetParams.distance;
-      } else if (preset.startsWith("char")) {
+      } else if (preset.startsWith('char')) {
         filteredParams.stagger = presetParams.stagger;
       }
 
       finalParams.presetParams = filteredParams;
     }
 
-    const type = preset === "custom" || preset === "" ? "keyframes" : preset;
+    const type = preset === 'custom' || preset === '' ? 'keyframes' : preset;
 
-    return { type, opts, finalParams };
+    return { type, options, finalParams };
   };
 
   const handleSave = () => {
-    const { type, opts, finalParams } = buildAnimationConfig();
+    const { type, options, finalParams } = buildAnimationConfig();
 
-    if (mode === "edit" && animationId) {
-      clip.updateAnimation(animationId, type, opts, finalParams);
+    if (mode === 'edit' && animationId) {
+      clip.updateAnimation(animationId, type, options, finalParams);
     } else {
-      clip.addAnimation(type, opts, finalParams);
+      clip.addAnimation(type, options, finalParams);
     }
 
-    clip.emit("propsChange", {});
-    setFloatingControl("");
+    clip.emit('propsChange', {});
+    setFloatingControl('');
   };
 
   const handleApplyToAllCaptions = () => {
     if (!studio) return;
 
-    const { type, opts, finalParams } = buildAnimationConfig();
+    const { type, options, finalParams } = buildAnimationConfig();
 
     studio.clips.forEach((c: any) => {
-      if (c.type === "Caption") {
+      if (c.type === 'Caption') {
         c.animations = [];
         const special = SPECIAL_ANIMATIONS_CAPTIONS.includes(type);
         const targetDuration = special ? c.duration : c.duration * 0.2;
-        let targetDelay = opts.delay;
-        if (type.toLowerCase().includes("out") || activeTab === "out") {
+        let targetDelay = options.delay;
+        if (type.toLowerCase().includes('out') || activeTab === 'out') {
           targetDelay = Math.max(0, c.duration - targetDuration);
         }
 
         c.addAnimation(
           type,
-          { ...opts, duration: targetDuration, delay: targetDelay },
-          finalParams,
+          { ...options, duration: targetDuration, delay: targetDelay },
+          finalParams
         );
-        c.emit("propsChange", {});
+        c.emit('propsChange', {});
       }
     });
 
-    setFloatingControl("");
+    setFloatingControl('');
   };
 
   const sortedKeyframes = Object.keys(keyframes)
-    .filter((k) => k.includes("%"))
+    .filter((k) => k.includes('%'))
     .sort((a, b) => {
-      const aNum = parseInt(a.replace("%", ""));
-      const bNum = parseInt(b.replace("%", ""));
+      const aNum = parseInt(a.replace('%', ''));
+      const bNum = parseInt(b.replace('%', ''));
       return aNum - bNum;
     });
 
-  const isTextLike = clip?.type === "Text" || clip?.type === "Caption";
-  const isImage = clip?.type === "Image";
-  const baseInPresets = [
-    { label: "Fade In", value: "fadeIn" },
-    { label: "Zoom In", value: "zoomIn" },
-    { label: "Slide In", value: "slideIn" },
-    { label: "Blur In", value: "blurIn" },
-    { label: "Pulse", value: "pulse" },
-  ];
-
-  const imageExtraPresets = [
-    { label: "Blur Slide Right In", value: "blurSlideRightIn" },
-    { label: "Wobble Zoom In", value: "wobbleZoomIn" },
-    { label: "Spin Zoom In", value: "spinZoomIn" },
-    { label: "Blur Slide Left In", value: "blurSlideLeftIn" },
-    { label: "Blur Slide Right Strong In", value: "blurSlideRightStrongIn" },
-    { label: "Cinematic Zoom Slide In", value: "cinematicZoomSlideIn" },
-    { label: "Elastic Twist In", value: "elasticTwistIn" },
-    { label: "Spin Fade In", value: "spinFadeIn" },
-    { label: "Flash Zoom In", value: "flashZoomIn" },
-  ];
-
-  const textLikePresets = [
-    { label: "Char Fade In", value: "charFadeIn" },
-    { label: "Char Slide Up", value: "charSlideUp" },
-    { label: "Char Typewriter", value: "charTypewriter" },
-  ];
+  const isTextLike = typeClip === 'Text' || typeClip === 'Caption';
 
   const inPresets = [
-    ...baseInPresets,
-    ...(isImage ? imageExtraPresets : []),
-    ...(isImage ? animationOptionsIn : []),
-    ...(isTextLike ? textLikePresets : []),
-  ];
-
-  const baseOutPresets = [
-    { label: "Fade Out", value: "fadeOut" },
-    { label: "Zoom Out", value: "zoomOut" },
-    { label: "Slide Out", value: "slideOut" },
-    { label: "Blur Out", value: "blurOut" },
-    { label: "Pulse", value: "pulse" },
-  ];
-
-  const imageExtraOutPresets = [
-    { label: "Tilt Slide Right Out", value: "tiltSlideRightOut" },
-    { label: "Tilt Zoom Out", value: "tiltZoomOut" },
-    { label: "Glitch Slide Out", value: "glitchSlideOut" },
-    { label: "Drop Blur Out", value: "dropBlurOut" },
-    { label: "Fall Zoom Out", value: "fallZoomOut" },
-    { label: "Zoom Spin Out", value: "zoomSpinOut" },
-    { label: "Dramatic Spin Slide Out", value: "dramaticSpinSlideOut" },
+    { label: 'Fade In', value: 'fadeIn' },
+    { label: 'Zoom In', value: 'zoomIn' },
+    { label: 'Slide In', value: 'slideIn' },
+    { label: 'Blur In', value: 'blurIn' },
+    { label: 'Pulse', value: 'pulse' },
+    ...(isTextLike
+      ? [
+        { label: 'Pop', value: 'popCaption' },
+        { label: 'Bounce', value: 'bounceCaption' },
+        { label: 'Scale', value: 'scaleCaption' },
+        { label: 'Slide Left', value: 'slideLeftCaption' },
+        { label: 'Slide Right', value: 'slideRightCaption' },
+        { label: 'Slide Up', value: 'slideUpCaption' },
+        { label: 'Slide Down', value: 'slideDownCaption' },
+        { label: 'Slide Fade By Word', value: 'slideFadeByWord' },
+        { label: 'Up Down', value: 'upDownCaption' },
+        { label: 'Up Left', value: 'upLeftCaption' },
+        { label: 'Char Fade In', value: 'charFadeIn' },
+        { label: 'Char Slide Up', value: 'charSlideUp' },
+        { label: 'Char Typewriter', value: 'charTypewriter' },
+        { label: 'Fade By Word', value: 'fadeByWord' },
+        { label: 'Pop By Word', value: 'popByWord' },
+        { label: 'Scale Fade By Word', value: 'scaleFadeByWord' },
+        { label: 'Bounce By Word', value: 'bounceByWord' },
+        { label: 'Rotate In By Word', value: 'rotateInByWord' },
+        { label: 'Slide Right By Word', value: 'slideRightByWord' },
+        { label: 'Slide Left By Word', value: 'slideLeftByWord' },
+        { label: 'Fade Rotate By Word', value: 'fadeRotateByWord' },
+        { label: 'Skew By Word', value: 'skewByWord' },
+        { label: 'Wave By Word', value: 'waveByWord' },
+        { label: 'Blur In By Word', value: 'blurInByWord' },
+        { label: 'Drop Soft By Word', value: 'dropSoftByWord' },
+        { label: 'Elastic Pop By Word', value: 'elasticPopByWord' },
+        { label: 'Flip Up By Word', value: 'flipUpByWord' },
+        { label: 'Spin In By Word', value: 'spinInByWord' },
+        { label: 'Stretch In By Word', value: 'stretchInByWord' },
+        { label: 'Reveal Zoom By Word', value: 'revealZoomByWord' },
+        { label: 'Float Wave By Word', value: 'floatWaveByWord' },
+      ]
+      : []),
   ];
 
   const outPresets = [
-    ...baseOutPresets,
-    ...(isImage ? imageExtraOutPresets : []),
-    ...(isImage ? animationOptionsOut : []),
+    { label: 'Fade Out', value: 'fadeOut' },
+    { label: 'Zoom Out', value: 'zoomOut' },
+    { label: 'Slide Out', value: 'slideOut' },
+    { label: 'Blur Out', value: 'blurOut' },
+    { label: 'Pulse', value: 'pulse' },
   ];
 
   const comboPresets = [
-    { label: "Combo Zoom 1", value: "comboZoom1" },
-    { label: "Combo Zoom 2", value: "comboZoom2" },
-    { label: "Combo Pendulum 1", value: "comboPendulum1" },
-    { label: "Combo Pendulum 2", value: "comboPendulum2" },
-    { label: "Combo Right Distort", value: "comboRightDistort" },
-    { label: "Combo Left Distort", value: "comboLeftDistort" },
-    { label: "Combo Wobble", value: "comboWobble" },
-    { label: "Combo Spinning Top 1", value: "comboSpinningTop1" },
-    { label: "Combo Spinning Top 2", value: "comboSpinningTop2" },
-    { label: "Combo Sway Out", value: "comboSwayOut" },
-    { label: "Combo Bounce 1", value: "comboBounce1" },
-    { label: "Combo Sway In", value: "comboSwayIn" },
+    { label: 'Combo Zoom 1', value: 'comboZoom1' },
+    { label: 'Combo Zoom 2', value: 'comboZoom2' },
+    { label: 'Combo Pendulum 1', value: 'comboPendulum1' },
+    { label: 'Combo Pendulum 2', value: 'comboPendulum2' },
+    { label: 'Combo Right Distort', value: 'comboRightDistort' },
+    { label: 'Combo Left Distort', value: 'comboLeftDistort' },
+    { label: 'Combo Wobble', value: 'comboWobble' },
+    { label: 'Combo Spinning Top 1', value: 'comboSpinningTop1' },
+    { label: 'Combo Spinning Top 2', value: 'comboSpinningTop2' },
+    { label: 'Combo Sway Out', value: 'comboSwayOut' },
+    { label: 'Combo Bounce 1', value: 'comboBounce1' },
+    { label: 'Combo Sway In', value: 'comboSwayIn' },
   ];
 
   useEffect(() => {
     let newDuration = 1000;
     let mirror = false;
-    if (activeTab === "combo") {
+    if (activeTab === 'combo') {
       newDuration = clipDuration / 1000;
       mirror = true;
     } else {
       if (animation?.options?.duration) {
         newDuration = animation.options.duration / 1000;
-      } else if (typeClip === "Caption") {
+      } else if (typeClip === 'Caption') {
         newDuration = (clipDuration * 0.2) / 1000;
       }
       if (animation?.params) {
         mirror = Object.values(animation.params as KeyframeData).some(
-          (p: any) => p && p.mirror > 0,
+          (p: any) => p && p.mirror > 0
         );
       }
     }
     setDuration(newDuration);
     setMirrorEnabled(mirror);
   }, [clipDuration, activeTab, animation, typeClip]);
+
+  useEffect(() => {
+    const hasProperties = Object.values(keyframes).some(
+      (frame) => Object.keys(frame).length > 0
+    );
+
+    console.log(hasProperties);
+  }, [keyframes]);
+
   return (
-    <div
-      ref={containerRef}
-      className="absolute right-full top-0 z-[200] mr-2 w-72 border bg-background p-0 shadow-xl rounded-lg overflow-hidden"
-    >
-      <div className="max-h-[600px]">
-        <ScrollArea className="h-full mb-4">
-          <div className="flex flex-col gap-4 p-4 max-h-[600px]">
+    <Popover.Root open={!!clipId} onOpenChange={(open) => !open && setFloatingControl('')}>
+      <Popover.Anchor className="absolute left-full top-0" />
+      <Popover.Content
+        side="right"
+        align="start"
+        sideOffset={8}
+        className="z-[200] w-72 border bg-background p-0 shadow-xl rounded-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[85vh]"
+        onInteractOutside={(e) => {
+          // Prevent closing when interacting with portals (Select dropdowns)
+          const target = e.target as HTMLElement;
+          if (target.closest('[data-radix-portal]') || target.closest('[data-radix-popper-content-wrapper]')) {
+            e.preventDefault();
+          }
+        }}
+      >
+        <ScrollArea className="flex-1 overflow-y-auto">
+          <div className="flex flex-col gap-4 p-4">
             {/* Header */}
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold">
-                {mode === "add" ? "Add Animation" : "Edit Animation"}
+                {mode === 'add' ? 'Add Animation' : 'Edit Animation'}
               </h3>
               <button
-                onClick={() => setFloatingControl("")}
+                onClick={() => setFloatingControl('')}
                 className="text-muted-foreground hover:text-white"
               >
                 <IconX className="size-4" />
               </button>
             </div>
 
-            {typeClip === "Caption" ? (
+            {/* Tabs */}
+
+            {typeClip === 'Caption' ? (
               <div className="mt-4 flex flex-col gap-4">
                 <PresetOptions
                   preset={preset}
@@ -431,7 +466,11 @@ export function AnimationPropertiesPicker() {
                 <EasingOptions easing={easing} setEasing={setEasing} />
               </div>
             ) : (
-              <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+              <Tabs
+                value={activeTab}
+                onValueChange={handleTabChange}
+                className="w-full"
+              >
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="in">In</TabsTrigger>
                   <TabsTrigger value="out">Out</TabsTrigger>
@@ -450,10 +489,12 @@ export function AnimationPropertiesPicker() {
                   />
 
                   {/* Preset Parameters (Slide Only) */}
-                  {(preset === "slideIn" || preset === "slideOut") && (
+                  {(preset === 'slideIn' || preset === 'slideOut') && (
                     <div className="grid grid-cols-2 gap-2 p-2 bg-secondary/20 rounded-md">
                       <div className="flex flex-col gap-1">
-                        <label className="text-[10px] text-muted-foreground">Direction</label>
+                        <label className="text-[10px] text-muted-foreground">
+                          Direction
+                        </label>
                         <Select
                           value={presetParams.direction}
                           onValueChange={(val) =>
@@ -475,7 +516,9 @@ export function AnimationPropertiesPicker() {
                         </Select>
                       </div>
                       <div className="flex flex-col gap-1">
-                        <label className="text-[10px] text-muted-foreground">Distance (px)</label>
+                        <label className="text-[10px] text-muted-foreground">
+                          Distance (px)
+                        </label>
                         <NumberInput
                           value={presetParams.distance}
                           onChange={(val) =>
@@ -491,7 +534,7 @@ export function AnimationPropertiesPicker() {
                   )}
 
                   {/* Stagger (for character animations) */}
-                  {preset.startsWith("char") && (
+                  {preset.startsWith('char') && (
                     <div className="flex flex-col gap-2 p-2 bg-secondary/20 rounded-md">
                       <div className="flex items-center justify-between">
                         <label className="text-[10px] text-muted-foreground">
@@ -514,41 +557,40 @@ export function AnimationPropertiesPicker() {
                   )}
 
                   {/* Keyframes */}
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                      Keyframes
+                    </label>
 
-                  {/* <div className="flex flex-col gap-2">
-                  <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                    Keyframes
-                  </label>
+                    {sortedKeyframes.map((keyframe) => (
+                      <KeyframeItem
+                        key={keyframe}
+                        keyframe={keyframe}
+                        properties={keyframes[keyframe] || {}}
+                        onPropertyChange={(prop, val) =>
+                          handlePropertyChange(keyframe, prop, val)
+                        }
+                        onPropertyToggle={(prop, enabled) =>
+                          handlePropertyToggle(keyframe, prop, enabled)
+                        }
+                        onRemove={() => handleRemoveKeyframe(keyframe)}
+                        canRemove={keyframe !== '0%' && keyframe !== '100%'}
+                      />
+                    ))}
 
-                  {sortedKeyframes.map((keyframe) => (
-                    <KeyframeItem
-                      key={keyframe}
-                      keyframe={keyframe}
-                      properties={keyframes[keyframe] || {}}
-                      onPropertyChange={(prop, val) =>
-                        handlePropertyChange(keyframe, prop, val)
-                      }
-                      onPropertyToggle={(prop, enabled) =>
-                        handlePropertyToggle(keyframe, prop, enabled)
-                      }
-                      onRemove={() => handleRemoveKeyframe(keyframe)}
-                      canRemove={keyframe !== "0%" && keyframe !== "100%"}
-                    />
-                  ))}
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleAddKeyframe}
-                    className="w-full"
-                  >
-                    <IconPlus className="size-3.5 mr-1" />
-                    Add Keyframe
-                  </Button>
-                </div> */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddKeyframe}
+                      className="w-full"
+                    >
+                      <IconPlus className="size-3.5 mr-1" />
+                      Add Keyframe
+                    </Button>
+                  </div>
 
                   {/* Mirror Effect */}
-                  {typeClip !== "Text" && (
+                  {typeClip !== 'Text' && (
                     <div className="flex items-center justify-between p-2 bg-secondary/20 rounded-md border border-dashed">
                       <div className="flex flex-col gap-0.5">
                         <span className="text-xs font-medium">Mirror Effect</span>
@@ -556,7 +598,10 @@ export function AnimationPropertiesPicker() {
                           Repeat edges to fill frame
                         </span>
                       </div>
-                      <Switch checked={mirrorEnabled} onCheckedChange={setMirrorEnabled} />
+                      <Switch
+                        checked={mirrorEnabled}
+                        onCheckedChange={setMirrorEnabled}
+                      />
                     </div>
                   )}
 
@@ -572,28 +617,43 @@ export function AnimationPropertiesPicker() {
                             Duration
                           </span>
                         </InputGroupAddon>
-                        <NumberInput value={duration} onChange={setDuration} className="p-0" />
+                        <NumberInput
+                          value={duration}
+                          onChange={setDuration}
+                          className="p-0"
+                        />
                         <InputGroupAddon align="inline-end">
-                          <span className="text-[10px] text-muted-foreground">ms</span>
+                          <span className="text-[10px] text-muted-foreground">
+                            ms
+                          </span>
                         </InputGroupAddon>
                       </InputGroup>
 
                       <InputGroup
-                        className={cn(activeTab !== "custom" && "opacity-60 pointer-events-none")}
+                        className={cn(
+                          activeTab !== 'custom' &&
+                          'opacity-60 pointer-events-none'
+                        )}
                       >
                         <InputGroupAddon align="inline-start">
                           <span className="text-[10px] font-medium text-muted-foreground">
                             Delay
                           </span>
                         </InputGroupAddon>
-                        <NumberInput value={delay} onChange={setDelay} className="p-0" />
+                        <NumberInput
+                          value={delay}
+                          onChange={setDelay}
+                          className="p-0"
+                        />
                         <InputGroupAddon align="inline-end">
-                          <span className="text-[10px] text-muted-foreground">ms</span>
+                          <span className="text-[10px] text-muted-foreground">
+                            ms
+                          </span>
                         </InputGroupAddon>
                       </InputGroup>
                     </div>
 
-                    {activeTab === "out" && (
+                    {activeTab === 'out' && (
                       <div className="text-[10px] text-muted-foreground italic px-1">
                         * Delay matches clip end automatically
                       </div>
@@ -605,7 +665,11 @@ export function AnimationPropertiesPicker() {
                           Iterations
                         </span>
                       </InputGroupAddon>
-                      <NumberInput value={iterCount} onChange={setIterCount} className="p-0" />
+                      <NumberInput
+                        value={iterCount}
+                        onChange={setIterCount}
+                        className="p-0"
+                      />
                     </InputGroup>
                   </div>
 
@@ -618,22 +682,33 @@ export function AnimationPropertiesPicker() {
             {/* Actions */}
             <div className="flex flex-col gap-2 pt-2 border-t mt-4">
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setFloatingControl("")} className="flex-1">
+                <Button
+                  variant="outline"
+                  onClick={() => setFloatingControl('')}
+                  className="flex-1"
+                >
                   Cancel
                 </Button>
                 <Button
-                  onClick={typeClip === "Caption" ? handleApplyToAllCaptions : handleSave}
-                  disabled={!preset}
+                  onClick={
+                    typeClip === 'Caption' ? handleApplyToAllCaptions : handleSave
+                  }
                   className="flex-1"
+                  disabled={
+                    !preset &&
+                    !Object.values(keyframes).some(
+                      (frame) => Object.keys(frame).length > 0
+                    )
+                  }
                 >
-                  {mode === "add" ? "Add" : "Save"}
+                  {mode === 'add' ? 'Add' : 'Save'}
                 </Button>
               </div>
             </div>
           </div>
         </ScrollArea>
-      </div>
-    </div>
+      </Popover.Content>
+    </Popover.Root>
   );
 }
 
@@ -667,8 +742,8 @@ function KeyframeItem({
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-muted-foreground">
-            {Object.keys(properties).length}{" "}
-            {Object.keys(properties).length === 1 ? "property" : "properties"}
+            {Object.keys(properties).length}{' '}
+            {Object.keys(properties).length === 1 ? 'property' : 'properties'}
           </span>
           {canRemove && (
             <button
@@ -687,7 +762,7 @@ function KeyframeItem({
       {expanded && (
         <div className="p-2 pt-0 flex flex-col gap-2">
           {(Object.keys(ANIMATABLE_PROPERTIES) as PropertyKey[])
-            .filter((prop) => prop !== "mirror")
+            .filter((prop) => prop !== 'mirror')
             .map((prop) => {
               const isEnabled = prop in properties;
               const config = ANIMATABLE_PROPERTIES[prop];
@@ -696,7 +771,9 @@ function KeyframeItem({
                 <div key={prop} className="flex items-center gap-2">
                   <Checkbox
                     checked={isEnabled}
-                    onCheckedChange={(checked) => onPropertyToggle(prop, checked === true)}
+                    onCheckedChange={(checked) =>
+                      onPropertyToggle(prop, checked === true)
+                    }
                   />
 
                   <span className="text-[10px] text-muted-foreground min-w-[60px]">
@@ -786,19 +863,19 @@ const PresetOptions = ({
           <SelectValue placeholder="Select a preset" />
         </SelectTrigger>
         <SelectContent className="z-[250] max-h-60">
-          {activeTab === "in" &&
-            Array.from(new Map(inPresets.map((p) => [p.value, p])).values()).map((p) => (
+          {activeTab === 'in' &&
+            inPresets.map((p) => (
               <SelectItem key={p.value} value={p.value}>
                 {p.label}
               </SelectItem>
             ))}
-          {activeTab === "out" &&
-            Array.from(new Map(outPresets.map((p) => [p.value, p])).values()).map((p) => (
+          {activeTab === 'out' &&
+            outPresets.map((p) => (
               <SelectItem key={p.value} value={p.value}>
                 {p.label}
               </SelectItem>
             ))}
-          {activeTab === "combo" &&
+          {activeTab === 'combo' &&
             comboPresets.map((p) => (
               <SelectItem key={p.value} value={p.value}>
                 {p.label}

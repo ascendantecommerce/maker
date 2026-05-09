@@ -20,13 +20,14 @@ export interface CharacterAdServices {
  */
 export function initializeCharacterAdServices(): CharacterAdServices {
   const gemini = new GeminiService(config.gemini.key, config.gemini.imageModel);
+  const VEO_MODEL = "veo-3.1-lite-generate-preview";
 
   // Video Generator: Veo 3.1 Fast
   const videoGenerator = new VideoGenerator({
-    provider: "fal-veo",
+    provider: "veo",
     params: {
-      apiKey: config.fal.key,
-      model: "fal-ai/veo3.1/fast/image-to-video",
+      geminiApiKey: config.gemini.key,
+      model: VEO_MODEL,
     },
   });
 

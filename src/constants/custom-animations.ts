@@ -10,7 +10,7 @@
 const zoomPulseGrow = (duration: number) => {
   return {
     type: "keyframes",
-    opts: {
+    options: {
       duration: duration,
       delay: 0,
       easing: "slow",
@@ -58,7 +58,7 @@ const zoomPulseGrow = (duration: number) => {
 const zoomRotateBounceMega = (duration: number) => {
   return {
     type: "keyframes",
-    opts: {
+    options: {
       duration: duration,
       delay: 0,
       easing: "slow",
@@ -112,7 +112,7 @@ const zoomRotateBounceMega = (duration: number) => {
 const slideLeftCenterBottom = (duration: number) => {
   return {
     type: "keyframes",
-    opts: {
+    options: {
       duration: duration,
       delay: 0,
       easing: "slow",
@@ -171,7 +171,7 @@ const slideLeftCenterBottom = (duration: number) => {
 const slideRightCenterBottom = (duration: number) => {
   return {
     type: "keyframes",
-    opts: {
+    options: {
       duration: duration,
       delay: 0,
       easing: "slow",
@@ -230,7 +230,7 @@ const slideRightCenterBottom = (duration: number) => {
 const zoomInBounce = (duration: number) => {
   return {
     type: "keyframes",
-    opts: {
+    options: {
       duration: duration,
       delay: 0,
       easing: "slow",
@@ -277,7 +277,7 @@ const zoomInBounce = (duration: number) => {
 const zoomOutBounce = (duration: number) => {
   return {
     type: "keyframes",
-    opts: {
+    options: {
       duration: duration,
       delay: 0,
       easing: "slow",
@@ -324,7 +324,7 @@ const zoomOutBounce = (duration: number) => {
 const zoomBounceOut = (duration: number) => {
   return {
     type: "keyframes",
-    opts: {
+    options: {
       duration: duration,
       delay: 0,
       easing: "slow",
@@ -376,7 +376,7 @@ const zoomBounceOut = (duration: number) => {
 const slideBlurLeft = (duration: number) => {
   return {
     type: "keyframes",
-    opts: {
+    options: {
       duration: duration,
       delay: 0,
       easing: "slow",
@@ -435,7 +435,7 @@ const slideBlurLeft = (duration: number) => {
 const slideBlurRight = (duration: number) => {
   return {
     type: "keyframes",
-    opts: {
+    options: {
       duration: duration,
       delay: 0,
       easing: "slow",
@@ -499,7 +499,7 @@ const slideBlurRight = (duration: number) => {
 const waveFlow = (duration: number) => {
   return {
     type: "keyframes",
-    opts: {
+    options: {
       duration: duration,
       delay: 0,
       easing: "slow",
@@ -553,7 +553,7 @@ const waveFlow = (duration: number) => {
 const floatDrift = (duration: number) => {
   return {
     type: "keyframes",
-    opts: {
+    options: {
       duration: duration,
       delay: 0,
       easing: "slow",

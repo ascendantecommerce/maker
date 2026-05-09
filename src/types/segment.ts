@@ -61,6 +61,9 @@ export interface VisualShot {
   emotion?: string;
   cameraMotion?: string;
 
+  status?: "completed" | "failed" | "generating";
+  error?: string;
+
   productSizing?: string;
   display?: {
     from: number; // start time in milliseconds

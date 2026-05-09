@@ -1,14 +1,14 @@
-"use client";
-import { useEffect, useRef } from "react";
-import { CircleOff, XIcon } from "lucide-react";
-import useLayoutStore from "../store/use-layout-store";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { ICaptionsControlProps } from "../interface/captions";
-import { CAPTION_PRESETS, NONE_PRESET } from "../constant/caption";
+'use client';
+import React, { useEffect, useRef } from 'react';
+import { CircleOff, XIcon } from 'lucide-react';
+import useLayoutStore from '../store/use-layout-store';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { ICaptionsControlProps } from '../interface/captions';
+import { NONE_PRESET, CAPTION_PRESETS } from '../constant/caption';
 
-import { useStudioStore } from "@/stores/studio-store";
-import { fontManager } from "openvideo";
-import { regenerateCaptionClips } from "@/utils/caption";
+import { useStudioStore } from '@/stores/studio-store';
+import { fontManager } from '@openvideo/engine-pixi';
+import { regenerateCaptionClips } from '@/lib/caption-utils';
 
 const CaptionPresetPicker = () => {
   const { setFloatingControl } = useLayoutStore();
@@ -18,39 +18,38 @@ const CaptionPresetPicker = () => {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setFloatingControl("");
+        setFloatingControl('');
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [setFloatingControl]);
 
   const handleApplyPreset = async (preset: ICaptionsControlProps) => {
-    if (!studio) return;
 
     // Filter for Captions
-    const captionClips = selectedClips.filter((c) => c.type === "Caption");
+    const captionClips = selectedClips.filter((c) => c.type === 'Caption');
     if (captionClips.length === 0) return;
     if (preset.fontFamily === undefined) {
-      preset.fontFamily = "Bangers-Regular";
+      preset.fontFamily = 'Bangers-Regular';
     }
     if (preset.fontUrl === undefined) {
-      preset.fontUrl = "https://fonts.gstatic.com/s/bangers/v13/FeVQS0BTqb0h60ACL5la2bxii28.ttf";
+      preset.fontUrl = 'https://fonts.gstatic.com/s/bangers/v13/FeVQS0BTqb0h60ACL5la2bxii28.ttf';
     }
     if (preset.boxShadow === undefined) {
-      preset.boxShadow = { color: "transparent", x: 0, y: 0, blur: 0 };
+      preset.boxShadow = { color: 'transparent', x: 0, y: 0, blur: 0 };
     }
     if (preset.textTransform === undefined) {
-      preset.textTransform = "none";
+      preset.textTransform = 'none';
     }
     if (preset.textAlign === undefined) {
-      preset.textAlign = "center";
+      preset.textAlign = 'center';
     }
     if (preset.isKeywordColor === undefined) {
-      preset.isKeywordColor = "transparent";
+      preset.isKeywordColor = 'transparent';
     }
 
     if (preset.preservedColorKeyWord === undefined) {
@@ -86,14 +85,14 @@ const CaptionPresetPicker = () => {
           active: preset.activeColor,
           activeFill: preset.activeFillColor,
           background: preset.backgroundColor,
-          keyword: preset.isKeywordColor ?? "transparent",
+          keyword: preset.isKeywordColor ?? 'transparent',
         },
         preserveKeywordColor: preset.preservedColorKeyWord ?? false,
       },
-      animation: preset.animation || "undefined",
-      textCase: preset.textTransform || "normal",
+      animation: preset.animation || 'undefined',
+      textCase: preset.textTransform || 'normal',
       dropShadow: {
-        color: preset.boxShadow?.color ?? "transparent",
+        color: preset.boxShadow?.color ?? 'transparent',
         alpha: 0.5,
         blur: preset.boxShadow?.blur ?? 4,
         distance: Math.sqrt(x * x + y * y) ?? 4,
@@ -111,17 +110,14 @@ const CaptionPresetPicker = () => {
       }
     }
 
-    const allCaptionClips = studio.clips.filter((c) => c.type === "Caption");
-    // const targetClips = allCaptionClips.filter(
-    //   (c) => captionClips.includes(c) || mediaIds.has((c as any).mediaId),
-    // );
+    const allCaptionClips = studio?.clips.filter((c) => c.type === 'Caption') || [];
+    console.log('preset.type', preset);
 
-    if (preset.type === "word") {
+    if (preset.type === 'word') {
       for (const clip of allCaptionClips) {
         await regenerateCaptionClips({
-          studio,
           captionClip: clip,
-          mode: "single",
+          mode: 'single',
           fontSize:
             preset.fontSize === undefined ? (clip as any).originalOpts?.fontSize : preset.fontSize,
           fontFamily: preset.fontFamily,
@@ -132,9 +128,8 @@ const CaptionPresetPicker = () => {
     } else {
       for (const clip of allCaptionClips) {
         await regenerateCaptionClips({
-          studio,
           captionClip: clip,
-          mode: "multiple",
+          mode: 'multiple',
           fontSize:
             preset.fontSize === undefined ? (clip as any).originalOpts?.fontSize : preset.fontSize,
           fontFamily: preset.fontFamily,
@@ -146,9 +141,9 @@ const CaptionPresetPicker = () => {
   };
 
   const PresetGrid = ({ presets }: { presets: ICaptionsControlProps[] }) => (
-    <div className="grid gap-2 p-4 pt-2">
+    <div className="grid grid-cols-2 gap-2 p-4">
       <div
-        className="flex h-[70px] cursor-pointer items-center justify-center bg-secondary hover:bg-secondary/80 transition-colors border border-border/50 rounded-md text-muted-foreground hover:text-foreground"
+        className="flex h-[70px] cursor-pointer items-center justify-center bg-zinc-800 rounded-lg hover:bg-zinc-700 transition-colors"
         onClick={() => {
           handleApplyPreset(NONE_PRESET);
         }}
@@ -159,40 +154,43 @@ const CaptionPresetPicker = () => {
       {presets.map((preset, index) => (
         <div
           key={index}
-          className="text-md flex h-[70px] cursor-pointer items-center justify-center bg-secondary hover:bg-secondary/80 transition-colors border border-border/50 rounded-md overflow-hidden relative"
+          className="text-md flex h-[70px] cursor-pointer items-center justify-center bg-zinc-800 overflow-hidden rounded-lg hover:ring-2 hover:ring-primary transition-all"
           onClick={() => handleApplyPreset(preset)}
         >
-          <video
-            src={preset.previewUrlDynamic}
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="h-40 place-content-center rounded-lg"
-          />
+          {preset.previewUrl ? (
+            <video
+              src={preset.previewUrl}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="text-[10px] text-muted-foreground uppercase">Preset {index + 1}</div>
+          )}
         </div>
       ))}
     </div>
   );
+
   return (
     <div
       ref={containerRef}
-      className="absolute right-full top-0 z-[200] mr-2 w-72 border bg-card p-0 shadow-xl rounded-lg overflow-hidden"
+      className="absolute left-[calc(100%+8px)] top-0 z-[200] w-64 border bg-background rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-left-2 duration-200"
     >
-      <div className="flex items-center justify-between p-4 pb-0">
-        <h3 className="text-sm font-semibold">Presets</h3>
-        <button
-          onClick={() => setFloatingControl("")}
-          className="text-muted-foreground hover:text-white"
-        >
-          <XIcon className="size-4" />
+      <div className="flex items-center justify-between px-4 py-3 border-b">
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Presets</p>
+        <button onClick={() => setFloatingControl('')}>
+          <XIcon className="h-4 w-4 cursor-pointer text-muted-foreground hover:text-white transition-colors" />
         </button>
       </div>
-      <ScrollArea className="h-[500px] w-full">
+      <ScrollArea className="h-[400px]">
         <PresetGrid presets={CAPTION_PRESETS} />
       </ScrollArea>
     </div>
   );
 };
+
 
 export default CaptionPresetPicker;

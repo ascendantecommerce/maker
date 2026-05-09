@@ -50,9 +50,7 @@ export function RenameProjectDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Rename project</DialogTitle>
-          <DialogDescription>
-            Enter a new name for your project.
-          </DialogDescription>
+          <DialogDescription>Enter a new name for your project.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="py-4">

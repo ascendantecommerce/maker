@@ -1,4 +1,3 @@
-import { TIMELINE_CONSTANTS } from "../components/editor/timeline/timeline-constants";
 
 export interface TextElement {
   id: string;
@@ -39,7 +38,7 @@ export const DEFAULT_TEXT_ELEMENT: Omit<TextElement, "id"> = {
   y: 0,
   rotation: 0,
   opacity: 1,
-  duration: TIMELINE_CONSTANTS.DEFAULT_TEXT_DURATION,
+  duration: 5_000_000,
   startTime: 0,
   trimStart: 0,
   trimEnd: 0,

@@ -2,7 +2,6 @@ import { Geist_Mono, Inter } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { ReactQueryProvider } from "@/lib/react-query";
 import { PostHogProvider } from "@/lib/PostHogProvider";
-import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 import { baseUrl, createMetadata } from "@/utils/metadata";
 import { Analytics } from "@vercel/analytics/next";
@@ -38,16 +37,14 @@ export default function RootLayout({
       suppressHydrationWarning
       className={cn(geistMono.variable, "font-sans", inter.variable)}
     >
-      <body className={`antialiased`}>
-        <ThemeProvider>
-          <ReactQueryProvider>
-            <NextIntlClientProvider>
-              <PostHogProvider>
-                <TooltipProvider>{children}</TooltipProvider>
-              </PostHogProvider>
-            </NextIntlClientProvider>
-          </ReactQueryProvider>
-        </ThemeProvider>
+      <body className={`antialiased dark`}>
+        <ReactQueryProvider>
+          <NextIntlClientProvider>
+            <PostHogProvider>
+              <TooltipProvider>{children}</TooltipProvider>
+            </PostHogProvider>
+          </NextIntlClientProvider>
+        </ReactQueryProvider>
         <Analytics />
       </body>
     </html>

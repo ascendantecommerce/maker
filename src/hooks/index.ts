@@ -10,6 +10,5 @@ export * from "./use-poll-generation-progress";
 export * from "./use-projects";
 export * from "./use-storyboard-editor";
 export * from "./use-subscription";
-export * from "./use-timeline-playhead";
 export * from "./use-timeline-zoom";
 export * from "./use-ugc-generation";

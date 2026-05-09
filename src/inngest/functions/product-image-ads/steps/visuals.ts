@@ -9,8 +9,9 @@ import { persistAsset } from "../../common/steps/utils";
 import { ensureObject } from "../../common/services/utils";
 import { generateId } from "@/utils/id";
 import { convertMsToSeconds, convertSecondsToMs } from "@/inngest/utils/common";
-import { VOICEOVER_PAUSE, VOICEOVER_INIT_PAUSE } from "@/inngest/utils/constant";
-
+// import { VOICEOVER_PAUSE, VOICEOVER_INIT_PAUSE } from "@/inngest/utils/constant";
+export const VOICEOVER_PAUSE = 0; // seconds
+export const VOICEOVER_INIT_PAUSE = 0; // seconds - pause before first segment
 /**
  * Resilient async retry wrapper with exponential backoff for spotty APIs (like Gemini Image Gen)
  */
@@ -64,50 +65,62 @@ export async function generateShotFirstFrames(
         const isProductShot = shot.type === "product";
 
         return step.run(`Generate image for segment ${seg.id} shot ${index}`, async () => {
-          return await withRetry(async (attempt) => {
-            console.log("GENERATING IMAGE FOR SHOT", seg.id, index);
-            const fallbackModel = attempt > 0 ? "gemini-3.1-pro-image-preview" : undefined;
-            const { imageUrl: img, price: imgPrice } = await generateImage(
-              context,
-              seg,
-              isProductShot,
-              shot.firstFramePrompt || "",
-              shot.type,
-              fallbackModel,
-            );
+          try {
+            return await withRetry(async (attempt) => {
+              console.log("GENERATING IMAGE FOR SHOT", seg.id, index);
+              const fallbackModel = attempt > 0 ? "gemini-3.1-pro-image-preview" : undefined;
+              const { imageUrl: img, price: imgPrice } = await generateImage(
+                context,
+                seg,
+                isProductShot,
+                shot.firstFramePrompt || "",
+                shot.type,
+                fallbackModel,
+              );
 
-            const { buffer, extension } = await fileUrlToBuffer(img);
-            const assetId = generateId();
-            const filePath = `VIDEOS/${schemeId}/${seg.id}/IMAGE/${assetId}.${extension}`;
-            const currentFrame = await services.storage.uploadData(filePath, buffer);
+              const { buffer, extension } = await fileUrlToBuffer(img);
+              const assetId = generateId();
+              const filePath = `VIDEOS/${schemeId}/${seg.id}/IMAGE/${assetId}.${extension}`;
+              const currentFrame = await services.storage.uploadData(filePath, buffer);
 
-            const asset: SegmentAsset = {
-              id: assetId,
-              type: "image",
-              status: "completed",
-              url: currentFrame,
-              prompt: `${shot.type}-${shot.firstFramePrompt}`,
-            };
+              const asset: SegmentAsset = {
+                id: assetId,
+                type: "image",
+                status: "completed",
+                url: currentFrame,
+                prompt: `${shot.type}-${shot.firstFramePrompt}`,
+              };
 
-            await persistAsset(userId, projectId, schemeId, filePath, currentFrame, {
-              sourceType: "ai_generated",
-              assetType: "image",
-              originalFilename: `shot_frame_${seg.id}_${assetId}.${extension}`,
+              await persistAsset(userId, projectId, schemeId, filePath, currentFrame, {
+                sourceType: "ai_generated",
+                assetType: "image",
+                originalFilename: `shot_frame_${seg.id}_${assetId}.${extension}`,
+              });
+
+              return { currentFrame, imgPrice, asset, index, success: true };
             });
-
-            return { currentFrame, imgPrice, asset, index };
-          });
+          } catch (err: any) {
+            console.error(`Failed to generate image for shot`, err);
+            return { index, success: false, error: err.message };
+          }
         });
       }),
     );
 
-    shotResults.forEach((result) => {
+    shotResults.forEach((result: any) => {
       if (result) {
-        seg.shots![result.index].imageUrl = result.currentFrame;
-        prices.push(result.imgPrice);
-        segmentUpdated = true;
-        currentAssets.push(result.asset);
-        if (!previewUrl) previewUrl = result.currentFrame;
+        if (result.success) {
+          seg.shots![result.index].imageUrl = result.currentFrame;
+          seg.shots![result.index].status = "completed";
+          prices.push(result.imgPrice);
+          segmentUpdated = true;
+          currentAssets.push(result.asset);
+          if (!previewUrl) previewUrl = result.currentFrame;
+        } else {
+          seg.shots![result.index].status = "failed";
+          seg.shots![result.index].error = result.error;
+          segmentUpdated = true;
+        }
       }
     });
 
@@ -240,6 +253,7 @@ export async function generateShotTimings(
  * Modular Step 3: Generate Shot Videos
  */
 export async function generateShotVideos(
+  step: any,
   context: StepContext,
   userId: string | null,
   projectId: string | null,
@@ -250,25 +264,26 @@ export async function generateShotVideos(
   const segmentAssets: Record<string, SegmentAsset[]> = {};
   const tmpDir = "/tmp";
 
-  const updates = await Promise.all(
-    segments.map(async (seg) => {
-      if (!seg.shots?.length) return null;
+  const updates: any[] = [];
 
-      let segmentUpdated = false;
-      const currentAssets: SegmentAsset[] = [];
+  for (const seg of segments) {
+    if (!seg.shots?.length) continue;
 
-      await Promise.all(
-        seg.shots.map(async (shot, i) => {
-          if (!shot.videoUrl && shot.display) {
-            const isProductShot = shot.type === "product";
-            const combinedVideoPrompt =
-              `${shot.videoPrompt || ""}. ${shot.scenePrompt || ""}`.trim() || shot.words || "";
+    let segmentUpdated = false;
+    const currentAssets: SegmentAsset[] = [];
 
-            const clipDurationSec = convertMsToSeconds(shot.duration || 5000);
-
+    const shotResults = await Promise.all(
+      seg.shots.map(async (shot, i) => {
+        if (!shot.videoUrl && shot.display) {
+          return step.run(`Generate video for segment ${seg.id} shot ${i}`, async () => {
             try {
-              await withRetry(async (attempt) => {
+              return await withRetry(async (attempt) => {
+                const isProductShot = shot.type === "product";
+                const combinedVideoPrompt =
+                  `${shot.videoPrompt || ""}. ${shot.scenePrompt || ""}`.trim() || shot.words || "";
+                const clipDurationSec = convertMsToSeconds(shot.duration || 5000);
                 const fallbackModel = attempt > 0 ? "veo-3.1-fast-generate-preview" : undefined;
+
                 const { videoPath, price } = await generateVideoClip(context, {
                   seg,
                   imageUrl: shot.imageUrl,
@@ -279,13 +294,9 @@ export async function generateShotVideos(
                   fallbackModel,
                 });
 
-                prices.push(price);
-
                 const buffer = await fs.promises.readFile(videoPath);
                 const r2Path = `VIDEOS/${schemeId}/${seg.id}/VIDEOS/${generateId()}.mp4`;
                 const uploadedUrl = await context.services.storage.uploadData(r2Path, buffer);
-
-                shot.videoUrl = uploadedUrl;
 
                 const asset: SegmentAsset = {
                   id: generateId(),
@@ -294,7 +305,6 @@ export async function generateShotVideos(
                   url: uploadedUrl,
                   prompt: combinedVideoPrompt,
                 };
-                currentAssets.push(asset);
 
                 await persistAsset(userId, projectId, schemeId, r2Path, uploadedUrl, {
                   sourceType: "ai_generated",
@@ -302,25 +312,43 @@ export async function generateShotVideos(
                   originalFilename: `shot_video_${seg.id}_${generateId()}.mp4`,
                   duration: shot.duration,
                 });
-              });
-            } catch (err) {
-              console.error(`Failed to generate video for shot in segment ${seg.id}`, err);
-            }
-          }
-          segmentUpdated = true;
-        }),
-      );
 
-      if (segmentUpdated) {
-        segmentAssets[seg.id] = currentAssets;
-        return {
-          id: seg.id,
-          segment_data: JSON.parse(JSON.stringify(ensureObject(seg))),
-        };
+                return { i, uploadedUrl, price, asset, success: true };
+              });
+            } catch (err: any) {
+              console.error(`Failed to generate video for shot in segment ${seg.id}`, err);
+              return { i, success: false, error: err.message };
+            }
+          });
+        }
+        return null;
+      }),
+    );
+
+    shotResults.forEach((result: any) => {
+      if (result) {
+        if (result.success) {
+          seg.shots![result.i].videoUrl = result.uploadedUrl;
+          seg.shots![result.i].status = "completed";
+          prices.push(result.price);
+          segmentUpdated = true;
+          currentAssets.push(result.asset);
+        } else {
+          seg.shots![result.i].status = "failed";
+          seg.shots![result.i].error = result.error;
+          segmentUpdated = true;
+        }
       }
-      return null;
-    }),
-  );
+    });
+
+    if (segmentUpdated) {
+      segmentAssets[seg.id] = currentAssets;
+      updates.push({
+        id: seg.id,
+        segment_data: JSON.parse(JSON.stringify(ensureObject(seg))),
+      });
+    }
+  }
 
   const validUpdates = updates.filter((u): u is NonNullable<typeof u> => u !== null);
   if (validUpdates.length > 0) {

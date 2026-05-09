@@ -6,7 +6,7 @@ import { db } from "@/lib/database";
 import { UgcServices } from "../index";
 import { ffmpegAsync } from "../../../services/ffmpeg";
 
-export const selectBestVoiceSource = async (segments: any[], services: UgcServices) => {
+export const selectVoiceCandidates = async (segments: any[], services: UgcServices) => {
   if (!segments || segments.length === 0) throw new Error("No segments found");
 
   const geminiService = services.gemini;
@@ -37,16 +37,18 @@ export const selectBestVoiceSource = async (segments: any[], services: UgcServic
     candidates.map((c) => ({ index: c.index, url: c.videoUrl })),
   );
 
-  const best = candidates[bestIndex] ?? candidates[0];
   console.log(
-    `[Voice Selection] Selected candidate index ${bestIndex} → segment ${best.segment.id}`,
+    `[Voice Selection] Gemini selected candidate index ${bestIndex}`,
   );
 
-  return {
-    id: best.segment.id,
-    videoUrl: best.videoUrl,
-    text: (best.segment.segment_data as any).text,
-  };
+  return candidates
+    .map((c) => ({
+      id: c.segment.id,
+      videoUrl: c.videoUrl,
+      text: (c.segment.segment_data as any).text,
+      isBest: c.index === bestIndex,
+    }))
+    .sort((a, b) => (a.isBest ? -1 : b.isBest ? 1 : 0));
 };
 
 const cleanupOldVoices = async (elevenlabs: any) => {
@@ -154,19 +156,37 @@ export const processStsSegment = async (
     originalAudioPath,
   ]);
 
-  const stsResponse = await elevenlabs.speechToSpeech.convert(clonedVoiceId, {
-    audio: fs.createReadStream(originalAudioPath) as any,
-    modelId: "eleven_multilingual_sts_v2",
-    outputFormat: "mp3_44100_128",
-    removeBackgroundNoise: true,
-  });
+  let stsResponse;
+  try {
+    stsResponse = await elevenlabs.speechToSpeech.convert(clonedVoiceId, {
+      audio: fs.createReadStream(originalAudioPath) as any,
+      modelId: "eleven_multilingual_sts_v2",
+      outputFormat: "mp3_44100_128",
+      removeBackgroundNoise: true,
+    });
 
-  const chunks = [];
-  // @ts-ignore
-  for await (const chunk of stsResponse as any) {
-    chunks.push(chunk);
+    const chunks = [];
+    // @ts-ignore
+    for await (const chunk of stsResponse as any) {
+      chunks.push(chunk);
+    }
+    fs.writeFileSync(newAudioPath, Buffer.concat(chunks));
+  } catch (err: any) {
+    console.error(`[ElevenLabs STS] Failed for segment ${segment.id}:`, err);
+
+    // Handle 403/Authorization Error specifically by falling back to original audio
+    if (err.statusCode === 403 || err.body?.detail?.type === "authorization_error") {
+      console.warn(`[ElevenLabs STS] Voice denied for segment ${segment.id}.`);
+
+      [inputVideoPath, originalAudioPath].forEach((p) => {
+        if (fs.existsSync(p)) fs.unlinkSync(p);
+      });
+
+      // Throw a specific error that the orchestrator can catch and use to trigger a retry with a different voice
+      throw new Error("VOICE_ACCESS_DENIED");
+    }
+    throw err; // Re-throw other errors
   }
-  fs.writeFileSync(newAudioPath, Buffer.concat(chunks));
 
   await ffmpegAsync([
     "-y",

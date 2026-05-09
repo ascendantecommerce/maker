@@ -11,8 +11,11 @@ export function useStoryboardEditor() {
     videos,
     updateFrame,
     updateVideo,
+    updateShot,
     deleteSegmentAsset,
     deleteSegment,
+    updateSchema,
+    updateSegment,
   } = useSchemaStore();
 
   const [editMode, setEditMode] = useState(false);
@@ -118,5 +121,8 @@ export function useStoryboardEditor() {
     handleSegmentUpdate,
     updateFrame,
     updateVideo,
+    updateShot,
+    updateSchema,
+    updateSegment,
   };
 }

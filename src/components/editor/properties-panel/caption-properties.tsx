@@ -1,4 +1,4 @@
-import * as React from "react";
+import * as React from 'react';
 import {
   ColorPicker,
   ColorPickerHue,
@@ -6,23 +6,23 @@ import {
   ColorPickerFormat,
   ColorPickerSelection,
   ColorPickerEyeDropper,
-} from "@/components/ui/color-picker";
+} from '@/components/ui/color-picker';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { IClip, AnimationOptions, KeyframeData } from "openvideo";
-import { Checkbox } from "@/components/ui/checkbox";
+} from '@/components/ui/popover';
+import { IClip, AnimationOptions, KeyframeData } from '@openvideo/engine-pixi';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { jsonToClip } from "openvideo";
-import { generateCaptionClips } from "@/lib/caption-generator";
+} from '@/components/ui/select';
+import { jsonToClip } from '@openvideo/engine-pixi';
+import { generateCaptionClips } from '@/lib/caption-generator';
+import { regenerateCaptionClips, WordsPerLineMode } from '@/lib/caption-utils';
 import {
   IconTextSize,
   IconRotate,
@@ -31,49 +31,58 @@ import {
   IconCircle,
   IconMovie,
   IconEdit,
-} from "@tabler/icons-react";
-import { cn } from "@/lib/utils";
+} from '@tabler/icons-react';
+import { cn } from '@/lib/utils';
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-} from "@/components/ui/input-group";
-import { Textarea } from "@/components/ui/textarea";
-import { Slider } from "@/components/ui/slider";
-import color from "color";
+} from '@/components/ui/input-group';
+import { Textarea } from '@/components/ui/textarea';
+import { Slider } from '@/components/ui/slider';
+import color from 'color';
 
-import { fontManager } from "openvideo";
-import { getGroupedFonts, getFontByPostScriptName } from "@/utils/font-utils";
+import { fontManager } from '@openvideo/engine-pixi';
+import { getGroupedFonts, getFontByPostScriptName } from '@/utils/font-utils';
 
-import useLayoutStore from "../store/use-layout-store";
-import { Button } from "@/components/ui/button";
-import { ChevronDown } from "lucide-react";
-import { useStudioStore } from "@/stores/studio-store";
-import { regenerateCaptionClips } from "@/utils/caption";
-import { NumberInput } from "@/components/ui/number-input";
+import useLayoutStore from '../store/use-layout-store';
+import { Button } from '@/components/ui/button';
+import { ChevronDown } from 'lucide-react';
+import { NumberInput } from '@/components/ui/number-input';
+import { useStore } from 'zustand';
+import { useEphemeralClip } from '@/hooks/use-ephemeral-clip';
+import { projectStore, core } from '@/lib/project';
+import { nanoid } from 'nanoid';
 
 const GROUPED_FONTS = getGroupedFonts();
 
 interface CaptionPropertiesProps {
   clip: IClip;
 }
-type VerticalAlignMode = "top" | "center" | "bottom";
-type WordsPerLineMode = "single" | "multiple";
+type VerticalAlignMode = 'top' | 'center' | 'bottom';
 
 export function CaptionProperties({ clip }: CaptionPropertiesProps) {
-  const { studio } = useStudioStore();
-  const [applyToAll, setApplyToAll] = React.useState(true);
-
-  if (!studio) return null;
+  const coreClipBase = useStore(projectStore, (s) => s.clips[clip.id]) as any;
+  const coreClip = useEphemeralClip(clip.id, coreClipBase);
+  const clips = useStore(projectStore, (s) => s.clips);
   const captionClip = clip as any;
-  const allCaptionClips: any[] = studio.clips.filter(
-    (c) => c.type === "Caption",
+  const allCaptionIds = React.useMemo(
+    () => Object.keys(clips).filter((id) => clips[id].type === 'Caption'),
+    [clips]
   );
 
+
+  const allCaptionClips = Object.values(clips).filter(
+  (c: any) => c.type === "Caption"
+  );
+
+  if (!coreClip) return null;
+
+
   const opts = {
-    ...((allCaptionClips[0] as any)?.opts || {}),
-    ...(captionClip.style || {}),
+    ...((allCaptionClips[0] as any)?.caption?.colors || {}),
+    ...(coreClip.style || {}),
   };
   const captionColors = opts || {
     appeared: "#ffffff",
@@ -83,69 +92,80 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
     keyword: "#ffffff",
   };
 
+
   const { setFloatingControl } = useLayoutStore();
 
   const handleUpdate = (
     updates: any,
-    option: "single" | "multiple" = applyToAll ? "multiple" : "single",
+    option: 'single' | 'multiple' = 'single'
   ) => {
-    if (option === "multiple") {
-      for (const clip of allCaptionClips) {
-        Object.keys(updates).forEach((key) => {
-          (clip as any)[key] = updates[key];
-        });
-        clip.emit("propsChange", {});
-      }
-    } else {
-      Object.keys(updates).forEach((key) => {
-        (captionClip as any)[key] = updates[key];
-      });
-      captionClip.emit("propsChange", {});
-    }
+    if (option === 'multiple') {
+      const commands = allCaptionIds.map((id) => {
+        const c = projectStore.getState().clips[id];
+        const finalUpdates = { ...updates };
 
-    studio.emit("propsChange", {});
+        if (updates.style && c?.style) {
+          finalUpdates.style = { ...c.style, ...updates.style };
+        }
+        if (updates.caption && c?.caption) {
+          finalUpdates.caption = { ...c.caption, ...updates.caption };
+        }
+
+        return {
+          id: nanoid(),
+          type: 'clip.update',
+          payload: { id, updates: finalUpdates },
+        };
+      });
+      core.batch(commands);
+    } else {
+      const finalUpdates = { ...updates };
+      if (updates.style && coreClip?.style) {
+        finalUpdates.style = { ...coreClip.style, ...updates.style };
+      }
+      if (updates.caption && coreClip?.caption) {
+        finalUpdates.caption = { ...coreClip.caption, ...updates.caption };
+      }
+      core.clip.update(clip.id, finalUpdates);
+    }
   };
 
   const handleCaptionColorUpdate = (colorUpdates: any) => {
-    const clipsToUpdate = applyToAll ? allCaptionClips : [captionClip];
-    for (const clip of clipsToUpdate) {
-      // Directly update the internal opts object
-      if (colorUpdates.appeared !== undefined) {
-        (clip as any).opts.appeared = colorUpdates.appeared;
-      }
-      if (colorUpdates.active !== undefined) {
-        (clip as any).opts.active = colorUpdates.active;
-      }
-      if (colorUpdates.activeFill !== undefined) {
-        (clip as any).opts.activeFill = colorUpdates.activeFill;
-      }
-      if (colorUpdates.background !== undefined) {
-        (clip as any).opts.background = colorUpdates.background;
-      }
-      if (colorUpdates.keyword !== undefined) {
-        (clip as any).opts.keyword = colorUpdates.keyword;
-      }
-      Object.assign((clip as any).caption.colors, colorUpdates);
-
-      if (typeof (clip as any).refreshCaptions === "function") {
-        (clip as any).refreshCaptions().then(() => {
-          clip.emit("propsChange", {});
-        });
-      } else {
-        clip.emit("propsChange", {});
-      }
-    }
-
-    studio.emit("propsChange", {});
+    handleUpdate({ style: colorUpdates }, 'multiple');
   };
 
   const handleAnimationRemove = (id: string) => {
-    captionClip.removeAnimation(id);
-    captionClip.emit("propsChange", {});
-    studio.emit("propsChange", {});
+    const anim = (coreClip.animations || []).find((a: any) => a.id === id);
+    const typeToRemove = anim?.type;
+
+    if (typeToRemove) {
+      const commands = allCaptionIds
+        .map((cId) => {
+          const c = projectStore.getState().clips[cId];
+          if (c && c.animations) {
+            const newAnims = c.animations.filter(
+              (a: any) => a.type !== typeToRemove
+            );
+            return {
+              id: nanoid(),
+              type: 'clip.update',
+              payload: { id: cId, updates: { animations: newAnims } },
+            };
+          }
+          return null;
+        })
+        .filter(Boolean) as any[];
+
+      core.batch(commands);
+    } else {
+      const newAnims = (coreClip.animations || []).filter(
+        (a: any) => a.id !== id
+      );
+      core.clip.update(clip.id, { animations: newAnims });
+    }
   };
 
-  const animations = captionClip.animations || [];
+  const animations = coreClip.animations || [];
 
   const handleFontChange = async (postScriptName: string) => {
     const font = getFontByPostScriptName(postScriptName);
@@ -155,22 +175,22 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
       name: font.postScriptName,
       url: font.url,
     });
+
     handleUpdate(
       {
-        fontFamily: font.postScriptName,
-        fontUrl: font.url,
+        style: {
+          fontFamily: font.postScriptName,
+          fontUrl: font.url,
+        }
       },
-      applyToAll ? "multiple" : "single",
+      'multiple'
     );
-    studio.emit("propsChange", {});
   };
 
   async function changeWordsPerLine(v: string, captionClip: any, opts: any) {
     const val = v as WordsPerLineMode;
-    if (!studio) return;
 
     await regenerateCaptionClips({
-      studio,
       captionClip,
       mode: val,
       fontSize: opts.fontSize,
@@ -180,42 +200,54 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
   }
 
   function updateVerticalAlign(
-    v: VerticalAlignMode,
+    v: string,
     captionClip: any,
-    handleUpdate: (updates: { top: number }) => void,
+    handleUpdate: (updates: { top: number }) => void
   ) {
-    if (!studio) return;
+    const project = projectStore.getState();
+    const videoHeight = project.settings.height || 1080;
+    const mediaId = coreClip.mediaId;
 
-    const videoHeight = (studio as any).opts.height || 1080;
+    // Find siblings if part of a group
+    let clipsToUpdate: any[] = [captionClip];
 
-    const clipsToUpdate = applyToAll ? allCaptionClips : [captionClip];
+    if (mediaId) {
+      const tracks = project.tracks;
+      const siblingClips: any[] = [];
+      tracks.forEach((track: any) => {
+        track.clipIds.forEach((id: string) => {
+          const c = project.clips[id];
+          if (c && c.type === 'Caption' && (c as any).mediaId === mediaId) {
+            siblingClips.push(c);
+          }
+        });
+      });
+      if (siblingClips.length > 0) {
+        clipsToUpdate = siblingClips;
+      }
+    }
 
-    // Aplicamos la actualización a todos
+    // Apply updates
     clipsToUpdate.forEach((clip) => {
       const clipHeight = clip.height || 0;
       let newTop = clip.top;
 
-      if (v === "top") {
+      if (v === 'top') {
         newTop = 80;
-      } else if (v === "center") {
+      } else if (v === 'center') {
         newTop = (videoHeight - clipHeight) / 2;
-      } else if (v === "bottom") {
+      } else if (v === 'bottom') {
         newTop = videoHeight - clipHeight - 80;
       }
 
-      if (clip.id === captionClip.id) {
+      if (clip.id === coreClip.id) {
         handleUpdate({ top: newTop });
       } else {
-        clip.top = newTop;
-        clip.emit && clip.emit("propsChange", { top: newTop });
+        core.clip.update(clip.id, { top: newTop });
       }
 
-      if (clip.originalOpts) {
-        clip.originalOpts.verticalAlign = v;
-      }
-      if (clip.opts) {
-        clip.opts.verticalAlign = v;
-      }
+      // Metadata updates if needed
+      // These will be handled by the engine.updateClip calls above
     });
   }
 
@@ -227,29 +259,14 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Apply to all toggle */}
-      <div className="flex items-center space-x-2">
-        <Checkbox
-          id="apply-to-all"
-          checked={applyToAll}
-          onCheckedChange={(checked) => setApplyToAll(checked === true)}
-        />
-        <label
-          htmlFor="apply-to-all"
-          className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer"
-        >
-          Apply to all captions
-        </label>
-      </div>
-
       {/* Content */}
       <div className="flex flex-col gap-2">
         <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
           Content
         </label>
         <Textarea
-          value={captionClip.text || ""}
-          onChange={(e) => handleUpdate({ text: e.target.value }, "single")}
+          value={coreClip.text || ''}
+          onChange={(e) => handleUpdate({ text: e.target.value })}
           className="resize-none text-sm"
           placeholder="Enter caption text..."
         />
@@ -269,7 +286,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
             </InputGroupAddon>
             <InputGroupInput
               type="number"
-              value={Math.round(captionClip.left || 0)}
+              value={Math.round(coreClip.left || 0)}
               onChange={(e) =>
                 handleUpdate({ left: parseInt(e.target.value) || 0 })
               }
@@ -284,7 +301,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
             </InputGroupAddon>
             <InputGroupInput
               type="number"
-              value={Math.round(captionClip.top || 0)}
+              value={Math.round(coreClip.top || 0)}
               onChange={(e) =>
                 handleUpdate({ top: parseInt(e.target.value) || 0 })
               }
@@ -301,7 +318,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
             </InputGroupAddon>
             <InputGroupInput
               type="number"
-              value={Math.round(captionClip.width || 0)}
+              value={Math.round(coreClip.width || 0)}
               onChange={(e) =>
                 handleUpdate({ width: parseInt(e.target.value) || 0 })
               }
@@ -316,7 +333,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
             </InputGroupAddon>
             <InputGroupInput
               type="number"
-              value={Math.round(captionClip.height || 0)}
+              value={Math.round(coreClip.height || 0)}
               onChange={(e) =>
                 handleUpdate({ height: parseInt(e.target.value) || 0 })
               }
@@ -332,14 +349,8 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
           Position
         </label>
         <Select
-          value={opts.verticalAlign || "bottom"}
-          onValueChange={(v) =>
-            updateVerticalAlign(
-              v as VerticalAlignMode,
-              captionClip,
-              handleUpdate,
-            )
-          }
+          value={opts.verticalAlign || 'bottom'}
+          onValueChange={(v) => updateVerticalAlign(v, coreClip, handleUpdate)}
         >
           <SelectTrigger className="w-full h-9">
             <SelectValue placeholder="Vertical Position" />
@@ -358,8 +369,8 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
           Words per line
         </label>
         <Select
-          value={captionClip.wordsPerLine || "multiple"}
-          onValueChange={(v) => changeWordsPerLine(v, captionClip, opts)}
+          value={coreClip.wordsPerLine || 'multiple'}
+          onValueChange={(v) => changeWordsPerLine(v, coreClip, opts)}
         >
           <SelectTrigger className="w-full h-9">
             <SelectValue placeholder="Words per line" />
@@ -379,7 +390,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
         <div className="flex items-center gap-4">
           <IconRotate className="size-4 text-muted-foreground" />
           <Slider
-            value={[Math.round(captionClip.angle ?? 0)]}
+            value={[Math.round(coreClip.angle ?? 0)]}
             onValueChange={(v) => handleUpdate({ angle: v[0] })}
             max={360}
             step={1}
@@ -388,7 +399,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
           <InputGroup className="w-20">
             <InputGroupInput
               type="number"
-              value={Math.round(captionClip.angle ?? 0)}
+              value={Math.round(coreClip.angle ?? 0)}
               onChange={(e) =>
                 handleUpdate({ angle: parseInt(e.target.value) || 0 })
               }
@@ -449,44 +460,19 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
             <SelectContent>
               {currentFamily.styles.map((style) => (
                 <SelectItem key={style.id} value={style.postScriptName}>
-                  {style.fullName.replace(currentFamily.family, "").trim() ||
-                    "Regular"}
+                  {style.fullName.replace(currentFamily.family, '').trim() ||
+                    'Regular'}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-
-          {/* <InputGroup>
-            <InputGroupInput
-              type="number"
-              value={opts.fontSize || 40}
-              onChange={(e) => {
-                const newSize = parseInt(e.target.value) || 0;
-                for (const clip of allCaptionClips) {
-                  (clip as any).opts.fontSize = newSize;
-
-                  const updates = {
-                    fontSize: newSize,
-                  };
-
-                  Object.assign(clip, updates);
-                }
-
-                studio.emit('propsChange', {});
-              }}
-              className="text-sm"
-            />
-            <InputGroupAddon align="inline-end">
-              <IconTextSize className="size-4" />
-            </InputGroupAddon>
-          </InputGroup> */}
 
           <InputGroup>
             <NumberInput
               value={opts.fontSize || 40}
               onChange={(e) => {
                 const newSize = e || 0;
-                handleUpdate({ fontSize: newSize });
+                handleUpdate({ style: { fontSize: newSize } }, 'multiple');
               }}
               className="text-sm"
             />
@@ -505,18 +491,20 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
         <div className="grid grid-cols-2 gap-2">
           <div className="flex bg-secondary/30 rounded-md p-1 gap-1">
             {[
-              { label: "aA", value: "none" },
-              { label: "AA", value: "uppercase" },
-              { label: "aa", value: "lowercase" },
+              { label: 'aA', value: 'none' },
+              { label: 'AA', value: 'uppercase' },
+              { label: 'aa', value: 'lowercase' },
             ].map((item) => (
               <button
                 key={item.value}
-                onClick={() => handleUpdate({ textCase: item.value })}
+                onClick={() =>
+                  handleUpdate({ style: { textCase: item.value } }, 'multiple')
+                }
                 className={cn(
-                  "flex-1 text-[10px] font-medium flex items-center justify-center rounded-sm py-1 transition-colors",
-                  (captionClip.textCase || "none") === item.value
-                    ? "bg-white/10 text-white"
-                    : "text-muted-foreground hover:bg-white/5",
+                  'flex-1 text-[10px] font-medium flex items-center justify-center rounded-sm py-1 transition-colors',
+                  (coreClip.style?.textCase || 'none') === item.value
+                    ? 'bg-white/10 text-white'
+                    : 'text-muted-foreground hover:bg-white/5'
                 )}
               >
                 {item.label}
@@ -536,7 +524,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
                     <div
                       className="h-4 w-4 border border-white/10 shadow-sm"
                       style={{
-                        backgroundColor: (opts.fill as string) || "#ffffff",
+                        backgroundColor: (opts.fill as string) || '#ffffff',
                       }}
                     />
                   </InputGroupButton>
@@ -545,7 +533,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
                   <ColorPicker
                     onChange={(colorValue) => {
                       const hexColor = color.rgb(colorValue).hex();
-                      handleUpdate({ fill: hexColor });
+                      handleUpdate({ style: { fill: hexColor } }, 'multiple');
                     }}
                     className="w-72 h-72 rounded-md border bg-background p-4 shadow-sm"
                   >
@@ -565,8 +553,10 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
               </Popover>
             </InputGroupAddon>
             <InputGroupInput
-              value={opts.fill?.toUpperCase() || "#FFFFFF"}
-              onChange={(e) => handleUpdate({ fill: e.target.value })}
+              value={opts.fill?.toUpperCase() || '#FFFFFF'}
+              onChange={(e) =>
+                handleUpdate({ style: { fill: e.target.value } }, 'multiple')
+              }
               className="text-sm p-0 text-[10px] font-mono"
             />
           </InputGroup>
@@ -581,7 +571,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
         <div className="flex items-center gap-4">
           <IconCircle className="size-4 text-muted-foreground" />
           <Slider
-            value={[Math.round((captionClip.opacity ?? 1) * 100)]}
+            value={[Math.round((coreClip.opacity ?? 1) * 100)]}
             onValueChange={(v) => handleUpdate({ opacity: v[0] / 100 })}
             max={100}
             step={1}
@@ -590,7 +580,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
           <InputGroup className="w-20">
             <InputGroupInput
               type="number"
-              value={Math.round((captionClip.opacity ?? 1) * 100)}
+              value={Math.round((coreClip.opacity ?? 1) * 100)}
               onChange={(e) =>
                 handleUpdate({ opacity: (parseInt(e.target.value) || 0) / 100 })
               }
@@ -604,16 +594,16 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
       </div>
 
       {/* Animations Section */}
-      {/* <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
             Animations
           </label>
           <button
             onClick={() => {
-              setFloatingControl("animation-properties-picker", {
-                clipId: captionClip.id,
-                mode: "add",
+              setFloatingControl('animation-properties-picker', {
+                clipId: coreClip.id,
+                mode: 'add',
               });
             }}
             className="text-muted-foreground hover:text-white transition-colors"
@@ -631,22 +621,24 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
           ) : (
             animations.map((anim: any) => (
               <div
-                key={anim.id}
+                key={anim.options?.id ?? anim.id}
                 className="flex items-center justify-between p-2 bg-secondary/30 rounded-md group"
               >
                 <div className="flex flex-col flex-1">
-                  <span className="text-xs font-medium capitalize">{anim.type}</span>
+                  <span className="text-xs font-medium capitalize">
+                    {anim.type}
+                  </span>
                   <span className="text-[10px] text-muted-foreground">
-                    {Math.round(anim.options.duration / 1e6)}s duration
+                    {Math.round((anim.options?.duration ?? 0) / 1e6)}s duration
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => {
-                      setFloatingControl("animation-properties-picker", {
-                        clipId: captionClip.id,
+                      setFloatingControl('animation-properties-picker', {
+                        clipId: coreClip.id,
                         animationId: anim.id,
-                        mode: "edit",
+                        mode: 'edit',
                       });
                     }}
                     className="p-1 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-white transition-all"
@@ -664,7 +656,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
             ))
           )}
         </div>
-      </div> */}
+      </div>
 
       {/* Caption presets */}
       <div className="flex flex-col gap-2">
@@ -675,7 +667,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
           <Button
             className="flex w-full items-center justify-between text-sm border bg-input/30 h-9"
             variant="secondary"
-            onClick={() => setFloatingControl("caption-preset-picker")}
+            onClick={() => setFloatingControl('caption-preset-picker')}
           >
             <div className="w-full text-left">
               <p className="truncate">None</p>
@@ -706,7 +698,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
                     <div
                       className="h-4 w-4 border border-white/10 shadow-sm"
                       style={{
-                        backgroundColor: captionColors.appeared || "#ffffff",
+                        backgroundColor: captionColors.appeared || '#ffffff',
                       }}
                     />
                   </InputGroupButton>
@@ -735,7 +727,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
               </Popover>
             </InputGroupAddon>
             <InputGroupInput
-              value={captionColors.appeared?.toUpperCase() || "#FFFFFF"}
+              value={captionColors.appeared?.toUpperCase() || '#FFFFFF'}
               onChange={(e) =>
                 handleCaptionColorUpdate({ appeared: e.target.value })
               }
@@ -759,7 +751,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
                     <div
                       className="h-4 w-4 border border-white/10 shadow-sm"
                       style={{
-                        backgroundColor: captionColors.active || "#ffffff",
+                        backgroundColor: captionColors.active || '#ffffff',
                       }}
                     />
                   </InputGroupButton>
@@ -788,7 +780,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
               </Popover>
             </InputGroupAddon>
             <InputGroupInput
-              value={captionColors.active?.toUpperCase() || "#FFFFFF"}
+              value={captionColors.active?.toUpperCase() || '#FFFFFF'}
               onChange={(e) =>
                 handleCaptionColorUpdate({ active: e.target.value })
               }
@@ -812,7 +804,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
                     <div
                       className="h-4 w-4 border border-white/10 shadow-sm"
                       style={{
-                        backgroundColor: captionColors.activeFill || "#FF5700",
+                        backgroundColor: captionColors.activeFill || '#FF5700',
                       }}
                     />
                   </InputGroupButton>
@@ -841,7 +833,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
               </Popover>
             </InputGroupAddon>
             <InputGroupInput
-              value={captionColors.activeFill?.toUpperCase() || "#FF5700"}
+              value={captionColors.activeFill?.toUpperCase() || '#FF5700'}
               onChange={(e) =>
                 handleCaptionColorUpdate({ activeFill: e.target.value })
               }
@@ -865,7 +857,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
                     <div
                       className="h-4 w-4 border border-white/10 shadow-sm"
                       style={{
-                        backgroundColor: captionColors.background || "#000000",
+                        backgroundColor: captionColors.background || '#000000',
                       }}
                     />
                   </InputGroupButton>
@@ -894,7 +886,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
               </Popover>
             </InputGroupAddon>
             <InputGroupInput
-              value={captionColors.background?.toUpperCase() || ""}
+              value={captionColors.background?.toUpperCase() || ''}
               onChange={(e) =>
                 handleCaptionColorUpdate({ background: e.target.value })
               }
@@ -919,7 +911,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
                     <div
                       className="h-4 w-4 border border-white/10 shadow-sm"
                       style={{
-                        backgroundColor: captionColors.keyword || "#ffffff",
+                        backgroundColor: captionColors.keyword || '#ffffff',
                       }}
                     />
                   </InputGroupButton>
@@ -948,7 +940,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
               </Popover>
             </InputGroupAddon>
             <InputGroupInput
-              value={captionColors.keyword?.toUpperCase() || "#FFFFFF"}
+              value={captionColors.keyword?.toUpperCase() || '#FFFFFF'}
               onChange={(e) =>
                 handleCaptionColorUpdate({ keyword: e.target.value })
               }

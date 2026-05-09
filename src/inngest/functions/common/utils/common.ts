@@ -152,10 +152,10 @@ export async function downloadVideo(url: string, outputDir: string): Promise<str
 
       const extension = mime.getExtension(contentType) || "mp4";
       const filename = `${generateId()}.${extension}`;
-      const outputPath = path.join(outputDir, filename);
+      const outputPath = path.join(/*turbopackIgnore: true*/ outputDir, filename);
 
-      fs.mkdirSync(outputDir, { recursive: true });
-      fs.writeFileSync(outputPath, buffer);
+      fs.mkdirSync(/*turbopackIgnore: true*/ outputDir, { recursive: true });
+      fs.writeFileSync(/*turbopackIgnore: true*/ outputPath, buffer);
 
       console.log(`[DOWNLOAD_VIDEO] Processed Data URI. Saved to: ${outputPath}`);
       return outputPath;
@@ -168,22 +168,22 @@ export async function downloadVideo(url: string, outputDir: string): Promise<str
   // Handle standard URLs
   try {
     const filename = path.basename(new URL(url).pathname);
-    const outputPath = path.join(outputDir, filename);
+    const outputPath = path.join(/*turbopackIgnore: true*/ outputDir, filename);
 
-    fs.mkdirSync(outputDir, { recursive: true });
+    fs.mkdirSync(/*turbopackIgnore: true*/ outputDir, { recursive: true });
     const response: any = await fetch(url);
     if (!response.ok || !response.body) {
       throw new Error(`Failed to download video: ${response.status} ${response.statusText}`);
     }
 
     const contentLength = parseInt(response.headers.get("content-length") || "0", 10);
-    await streamPipeline(response.body, fs.createWriteStream(outputPath));
+    await streamPipeline(response.body, fs.createWriteStream(/*turbopackIgnore: true*/ outputPath));
 
-    if (!fs.existsSync(outputPath)) {
+    if (!fs.existsSync(/*turbopackIgnore: true*/ outputPath)) {
       throw new Error(`File not found after download: ${outputPath}`);
     }
 
-    const stats = fs.statSync(outputPath);
+    const stats = fs.statSync(/*turbopackIgnore: true*/ outputPath);
     if (contentLength && stats.size !== contentLength) {
       throw new Error("Downloaded video is incomplete");
     }
@@ -215,9 +215,9 @@ export async function fileUrlToBuffer(
       return { buffer, contentType, extension, numBytes: buffer.length };
     } else if (!fileUrl.startsWith("http://") && !fileUrl.startsWith("https://")) {
       // Check if it's a local file path before assuming base64
-      if (fileUrl.startsWith("/") && fs.existsSync(fileUrl)) {
+      if (fileUrl.startsWith("/") && fs.existsSync(/*turbopackIgnore: true*/ fileUrl)) {
         console.log(`[COMMON] Reading local file: ${fileUrl}`);
-        const buffer = fs.readFileSync(fileUrl);
+        const buffer = fs.readFileSync(/*turbopackIgnore: true*/ fileUrl);
         const contentType =
           mime.getType(fileUrl) || (defaultType === "png" ? "image/png" : "image/jpeg");
         const extension = mime.getExtension(contentType) || defaultType;

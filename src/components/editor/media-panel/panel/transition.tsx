@@ -1,82 +1,277 @@
-import { useState } from "react";
-import { GL_TRANSITION_OPTIONS } from "openvideo";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useStudioStore } from "@/stores/studio-store";
+import { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  getTransitionOptions,
+  registerCustomTransition,
+} from '@openvideo/engine-pixi';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2 } from 'lucide-react';
+import { Icons } from '@/components/shared/icons';
+import { core } from '@/lib/project';
+import Draggable from '@/components/shared/draggable';
 
-const PanelTransition = () => {
-  const { studio } = useStudioStore();
-  const TRANSITION_DURATION_DEFAULT = 2_000_000;
+const TRANSITION_DURATION_DEFAULT = 2_000_000;
 
-  const [hovered, setHovered] = useState<Record<string, boolean>>({});
+const gridClasses = `
+  grid
+  grid-cols-[repeat(auto-fill,minmax(80px,1fr))]
+  gap-4
+  justify-items-center
+`;
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type CustomPreset = {
+  id: string;
+  name: string;
+  category: string;
+  data: { label: string; fragment: string };
+  published: boolean;
+  userId: string;
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+// ─── Shared card for built-in transitions ─────────────────────────────────────
+
+type TransitionCardProps = {
+  effectKey: string;
+  label: string;
+  previewStatic: string;
+  previewDynamic: string;
+  onClick: () => void;
+  badge?: string;
+};
+
+const TransitionCard = ({
+  effectKey,
+  label,
+  previewStatic,
+  previewDynamic,
+  onClick,
+  badge,
+}: TransitionCardProps) => {
+  const [isHovered, setIsHovered] = useState(false);
+
+  const dragData = {
+    type: 'Transition',
+    name: label,
+    transitionEffect: {
+      id: effectKey,
+      key: effectKey,
+      name: label,
+    },
+    duration: TRANSITION_DURATION_DEFAULT,
+  };
 
   return (
-    <div className="py-4 h-full">
-      <ScrollArea className="h-full px-4">
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(92px,1fr))] gap-2.5 justify-items-center">
-          {GL_TRANSITION_OPTIONS.map((effect) => {
-            const isHovered = hovered[effect.key];
-
-            return (
-              <div
-                key={effect.key}
-                draggable
-                onDragStart={(e) => {
-                  e.dataTransfer.setData("text/plain", effect.key);
-                  e.dataTransfer.setData("type", "transition");
-                }}
-                className="flex w-full items-center gap-2 flex-col group cursor-pointer select-none"
-                onMouseEnter={() => setHovered((prev) => ({ ...prev, [effect.key]: true }))}
-                onMouseLeave={() => setHovered((prev) => ({ ...prev, [effect.key]: false }))}
-                onClick={() => {
-                  if (!studio) return;
-
-                  studio.addTransition(effect.key, TRANSITION_DURATION_DEFAULT);
-
-                  // const clip = selectedClips[0];
-                  // if (clip instanceof Transition) {
-                  //   const fromClipId = clip.fromClipId;
-                  //   const toClipId = clip.toClipId;
-                  //   studio.addTransition(
-                  //     effect.key,
-                  //     TRANSITION_DURATION_DEFAULT,
-                  //     fromClipId,
-                  //     toClipId
-                  //   );
-                  // } else {
-                  //   alert('Please select a transition clip');
-                  // }
-                }}
-              >
-                <div className="relative w-full aspect-video rounded-md bg-input/30 border overflow-hidden">
-                  <img
-                    src={effect.previewStatic}
-                    loading="lazy"
-                    className="
-                      absolute inset-0 w-full h-full object-cover rounded-sm
-                      transition-opacity duration-150
-                      opacity-100 group-hover:opacity-0
-                    "
-                  />
-
-                  {isHovered && (
-                    <img
-                      src={effect.previewDynamic}
-                      className="
-                        absolute inset-0 w-full h-full object-cover rounded-sm
-                        transition-opacity duration-150
-                        opacity-0 group-hover:opacity-100
-                      "
-                    />
-                  )}
-                  <div className="absolute bottom-0 left-0 w-full p-2 bg-gradient-to-t from-black/80 to-transparent text-white text-xs font-medium truncate text-center transition-opacity duration-150 group-hover:opacity-0">
-                    {effect.label}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+    <Draggable
+      data={dragData}
+      renderCustomPreview={
+        <div className="w-12 h-12 bg-black rounded flex items-center justify-center opacity-90 shadow-lg border border-primary/50">
+          <Icons.transition className="text-white w-6 h-6" />
         </div>
-      </ScrollArea>
+      }
+    >
+      <div
+        className="flex w-full items-center gap-2 flex-col group cursor-pointer"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        onClick={onClick}
+      >
+        <div className="relative w-full aspect-video rounded-md bg-input/30 border overflow-hidden">
+          {previewStatic || previewDynamic ? (
+            <div
+              className="absolute inset-0 w-full h-full bg-cover bg-center transition-opacity duration-150"
+              style={{
+                backgroundImage: `url(${isHovered && previewDynamic ? previewDynamic : previewStatic})`,
+              }}
+            />
+          ) : (
+            <div className="text-xs text-muted-foreground text-center px-2 bg-primary/40 h-full w-full"></div>
+          )}
+
+          {badge && (
+            <div className="absolute top-1 right-1 bg-primary/80 text-primary-foreground text-[9px] font-semibold px-1.5 py-0.5 rounded-full leading-none">
+              {badge}
+            </div>
+          )}
+
+          <div className="absolute bottom-0 left-0 w-full p-2 bg-gradient-to-t from-black/80 to-transparent text-white text-xs font-medium truncate text-center transition-opacity duration-150 group-hover:opacity-0">
+            {label}
+          </div>
+        </div>
+      </div>
+    </Draggable>
+  );
+};
+
+// ─── Default Transitions ──────────────────────────────────────────────────────
+
+const TransitionDefault = () => {
+  const allTransitions = getTransitionOptions();
+
+  return (
+    <>
+      {allTransitions.map((effect) => (
+        <TransitionCard
+          key={effect.key}
+          effectKey={effect.key}
+          label={effect.label}
+          previewStatic={effect.previewStatic}
+          previewDynamic={effect.previewDynamic}
+          onClick={async () => {
+            await core.clip.add({
+              type: 'Transition',
+              name: effect.label,
+              transitionEffect: {
+                id: effect.key,
+                key: effect.key,
+                name: effect.label,
+              },
+              duration: TRANSITION_DURATION_DEFAULT,
+            });
+          }}
+        />
+      ))}
+    </>
+  );
+};
+
+// ─── Custom Transitions (from DB) ────────────────────────────────────────────
+
+const TransitionCustom = () => {
+  const [ownPresets, setOwnPresets] = useState<CustomPreset[]>([]);
+  const [publishedPresets, setPublishedPresets] = useState<CustomPreset[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchPresets = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await fetch('/api/custom-presets?category=transitions');
+        if (!res.ok) throw new Error('Failed to fetch custom transitions');
+        const json = await res.json();
+        setOwnPresets(json.own ?? []);
+        setPublishedPresets(json.published ?? []);
+      } catch {
+        setError('Could not load custom transitions.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchPresets();
+  }, []);
+
+  const handleClick = async (preset: CustomPreset) => {
+    const key = `custom_transition_${preset.id}`;
+    await registerCustomTransition(key, {
+      key,
+      label: preset.data.label || preset.name,
+      fragment: preset.data.fragment,
+    } as any);
+
+    await core.clip.add({
+      type: 'Transition',
+      name: preset.data.label || preset.name,
+      transitionEffect: {
+        id: key,
+        key: key,
+        name: preset.data.label || preset.name,
+      },
+      duration: TRANSITION_DURATION_DEFAULT,
+      metadata: {
+        fragment: preset.data.fragment,
+      },
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground">
+        <Loader2 className="size-5 animate-spin" />
+        <span className="text-xs">Loading custom transitions…</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center py-12 text-xs text-destructive">
+        {error}
+      </div>
+    );
+  }
+
+  if (ownPresets.length === 0 && publishedPresets.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground">
+        <span className="text-xs">No custom transitions yet.</span>
+        <span className="text-[10px]">
+          Create one from the Gallery to see it here.
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {ownPresets.map((preset) => (
+        <TransitionCard
+          key={preset.id}
+          effectKey={preset.id}
+          label={preset.data.label || preset.name}
+          previewStatic=""
+          previewDynamic=""
+          onClick={() => handleClick(preset)}
+        />
+      ))}
+      {publishedPresets.map((preset) => (
+        <TransitionCard
+          key={preset.id}
+          effectKey={preset.id}
+          label={preset.data.label || preset.name}
+          previewStatic=""
+          previewDynamic=""
+          onClick={() => handleClick(preset)}
+          badge="Public"
+        />
+      ))}
+    </>
+  );
+};
+
+// ─── Panel ────────────────────────────────────────────────────────────────────
+
+const PanelTransition = () => {
+  return (
+    <div className="p-4 h-full">
+      <Tabs defaultValue="default" className="w-full h-full">
+        <TabsList className="w-full">
+          <TabsTrigger value="default" className="flex-1">
+            Default
+          </TabsTrigger>
+          <TabsTrigger value="custom" className="flex-1">
+            Custom
+          </TabsTrigger>
+        </TabsList>
+
+        {[
+          { value: 'default', Component: TransitionDefault },
+          { value: 'custom', Component: TransitionCustom },
+        ].map(({ value, Component }) => (
+          <TabsContent key={value} value={value} className="h-full">
+            <ScrollArea className="h-[calc(100%-60px)]">
+              <div className={gridClasses}>
+                <Component />
+              </div>
+            </ScrollArea>
+          </TabsContent>
+        ))}
+      </Tabs>
     </div>
   );
 };

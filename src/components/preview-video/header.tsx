@@ -8,7 +8,15 @@ import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useFolders } from "@/hooks/use-folders";
 
-export const Header = ({ projectId, onExport }: { projectId: string; onExport: () => void }) => {
+export const Header = ({
+  projectId,
+  generationId,
+  onExport,
+}: {
+  projectId: string;
+  generationId: string | null;
+  onExport: () => void;
+}) => {
   const [exporting, setExporting] = useState(false);
   const router = useRouter();
   const isMobile = useIsMobile();
@@ -22,7 +30,7 @@ export const Header = ({ projectId, onExport }: { projectId: string; onExport: (
   const handleEdit = () => {
     // TODO: Implement edit functionality
     console.log("Edit clicked");
-    router.push(`/edit/${projectId}`);
+    router.push(`/edit/${generationId || projectId}`);
   };
 
   const handleDelete = () => {

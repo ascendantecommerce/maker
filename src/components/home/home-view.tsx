@@ -114,10 +114,10 @@ export default function HomeView() {
 
       if (type === "ai-editor") {
         const { project, schemaId } = await response.json();
-        if (schemaId) {
-          router.push(`/edit/${schemaId}`);
+        if (project.generationId) {
+          router.push(`/storyboard/${project.generationId}`);
         } else {
-          router.push(`/edit/${project.id}`);
+          router.push(`/edit/${project.generationId}`);
         }
       }
     } catch (error) {
@@ -156,19 +156,26 @@ export default function HomeView() {
           </motion.div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
             <ModeCard
+              index={4}
+              title="Product Image Ads"
+              description="Generate dynamic, fast-pacing promo videos from your product image assets."
+              icon={ImageIcon}
+              href="/script-to-video?mode=product-image-ad"
+            />
+            <ModeCard
+              index={3}
+              title="Product Video Ads"
+              description="Generate high-converting promo videos from your product assets and descriptions."
+              icon={Scissors}
+              href="/script-to-video?mode=product-video-ad"
+            />
+
+            <ModeCard
               index={0}
               title="UGC Video Ads"
               description="Create authentic user-style ads with AI avatars interacting with your product."
               icon={Video}
               href="/script-to-video?mode=ugc-video-ad"
-            />
-
-            <ModeCard
-              index={1}
-              title="Character-Driven Ad"
-              description="Generate multi-character ads with native lip-sync and cinematic consistency."
-              icon={Users}
-              href="/script-to-video?mode=character-driven-ad"
             />
 
             <ModeCard
@@ -180,19 +187,11 @@ export default function HomeView() {
             />
 
             <ModeCard
-              index={3}
-              title="Product Video Ads"
-              description="Generate high-converting promo videos from your product assets and descriptions."
-              icon={Scissors}
-              href="/script-to-video?mode=product-video-ad"
-            />
-
-            <ModeCard
-              index={4}
-              title="Product Image Ads"
-              description="Generate dynamic, fast-pacing promo videos from your product image assets."
-              icon={ImageIcon}
-              href="/script-to-video?mode=product-image-ad"
+              index={1}
+              title="Character-Driven Ad"
+              description="Generate multi-character ads with native lip-sync and cinematic consistency."
+              icon={Users}
+              href="/script-to-video?mode=character-driven-ad"
             />
 
             {/* <ModeCard

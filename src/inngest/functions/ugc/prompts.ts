@@ -11,7 +11,7 @@ export const DELIVERY_CONTROL =
   "Confident, fluent delivery with smooth, continuous speech and natural professional cadence. NO hesitation, NO stumbled words, NO filler words, NO vocal clutter. STICKLY FORBIDDEN: 'um', 'uh', 'er', 'ah', 'meh', 'hmm', or any other non-script sounds. Subject must deliver the SCRIPT exactly as written with perfect professional articulation.";
 
 export const UGC_NEGATIVE_PROMPT =
-  "text, captions, overlays, on-screen graphics, subtitles, zoom, camera transitions, visual effects, blurred, low quality, distorted features.";
+  "text, captions, overlays, on-screen graphics, subtitles, typography, letters, words, watermark, logos, branding, zoom, camera transitions, visual effects, blurred, low quality, distorted features, static image.";
 
 export function buildUgcNegativePrompt() {
   return UGC_NEGATIVE_PROMPT;
@@ -26,11 +26,12 @@ export function buildUgcPrompt(
   const cleanText = text ? text.trim() + (text.endsWith(".") ? "" : ".") : "";
 
   return `
-SCRIPT: "${cleanText}"
+AUDIO DIALOGUE (SPOKEN ONLY): "${cleanText}"
 ${AUDIO_CONTROL}
 DELIVERY: ${DELIVERY_CONTROL}
 ACTION: ${productSizing ? `Scale: ${productSizing}. ` : ""} Subject speaks directly to camera with highly accurate articulation. ${videoPrompt || "natural speaking"}. ${MOUTH_CONTROL}
 SCENE: ${scenePrompt || "professional environment"}
+STRICTLY NO ON-SCREEN TEXT, NO CAPTIONS, NO OVERLAYS. THE FRAME MUST BE CLEAN OF ALL TYPOGRAPHY.
 `.trim();
 }
 

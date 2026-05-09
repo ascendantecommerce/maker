@@ -1,4 +1,4 @@
-import { fontManager, getPresetTemplate } from "openvideo";
+import { fontManager, getPresetTemplate } from "@openvideo/engine-pixi";
 import { Design } from "@/types/editor";
 import { FONT_DEFAULT, FONT_SIZE_DEFAULT, FONT_URL_DEFAULT } from "@/constants/captions";
 import { ICaptionsControlProps } from "@/components/editor/interface/captions";
@@ -111,7 +111,6 @@ export const getImageDimensions = (url: string): Promise<{ width: number; height
 export const getVideoMetadata = (
   url: string,
 ): Promise<{ width: number; height: number; duration: number }> => {
-  console.log("getVideoMetadata", url);
   return new Promise((resolve, reject) => {
     const video = document.createElement("video");
     video.onloadedmetadata = () => {
@@ -258,11 +257,8 @@ export const convertUgcSchemaToDesign = async (
   schemaType?: string,
 ): Promise<Design> => {
   const type = schemaType || schemaJson.type;
-  console.log(`Converting schema of type: ${type}`);
 
-  if (type === "ugc-video") {
-    // Specific logic for UGC videos can go here if needed in the future
-  }
+
 
   const clips: any[] = [];
   const tracks: any[] = [];
@@ -300,8 +296,7 @@ export const convertUgcSchemaToDesign = async (
   };
 
   // Find the style preset based on the caption ID
-  const styleCaptions: ICaptionsControlProps =
-    CAPTION_PRESETS.find((preset) => preset.id === captionConfig.id) || CAPTION_PRESETS[6];
+  const styleCaptions: ICaptionsControlProps = CAPTION_PRESETS[1];
 
   // Map size to fontSize
   const sizeToFontSize: Record<string, number> = {
@@ -397,8 +392,6 @@ export const convertUgcSchemaToDesign = async (
             segmentMediaClipId = clipId;
             videoClipIds.push(clipId);
 
-            console.log({ videoSrc });
-
             let videoWidth = width;
             let videoHeight = height;
             let videoLeft = 0;
@@ -424,7 +417,7 @@ export const convertUgcSchemaToDesign = async (
             // Use calculated lastWordEndMs if available, otherwise fallback to shot.duration or metadata duration
             let durationMs = metadataDurationMs;
             const durationUs = durationMs * 1000;
-            console.log({ lastWordEndMs, metadataDurationMs, videoSrc });
+
             const fromUs = timelineCursorUs;
             const toUs = fromUs + durationUs;
             timelineCursorUs = toUs;
@@ -556,7 +549,7 @@ export const convertUgcSchemaToDesign = async (
 
                   const animationObj: any = {
                     type: animationData,
-                    opts: {
+                    options: {
                       duration: durationUs,
                       delay: 0,
                       easing: "linear",

@@ -1,70 +1,308 @@
-import React, { useState } from "react";
-import { Effect, GL_EFFECT_OPTIONS } from "openvideo";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useStudioStore } from "@/stores/studio-store";
+import { useEffect, useState } from 'react';
+import {
+  Effect,
+  getEffectOptions,
+  VALUES_FILTER_SPECIAL,
+  registerCustomEffect,
+} from '@openvideo/engine-pixi';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { formatFilterName } from '@/utils/effects';
+import { core } from '@/lib/project';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2 } from 'lucide-react';
+import Draggable from '@/components/shared/draggable';
+
+const EFFECT_DURATION_DEFAULT = 5000000;
+
+const gridClasses = `
+  grid
+  grid-cols-[repeat(auto-fill,minmax(80px,1fr))]
+  gap-4
+  justify-items-center
+`;
+
+type EffectCardProps = {
+  label: string;
+  staticSrc: string;
+  dynamicSrc: string;
+  onClick: () => void;
+  badge?: string;
+};
+
+const EffectCard = ({
+  label,
+  staticSrc,
+  dynamicSrc,
+  onClick,
+  badge,
+}: EffectCardProps) => {
+  const [isDynamicLoaded, setIsDynamicLoaded] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
+
+  return (
+    <Draggable
+      data={{
+        type: 'Effect',
+        name: label,
+        display: { from: 0, to: EFFECT_DURATION_DEFAULT },
+        duration: EFFECT_DURATION_DEFAULT,
+        effect: {
+          id: 'eff_' + Date.now(),
+          key: label, // We use label as a placeholder if key is not passed, but cards are rendered by components that know the key
+          name: label,
+        },
+      }}
+      renderCustomPreview={
+        <div className="w-20 aspect-video rounded-md overflow-hidden shadow-xl border-2 border-primary bg-zinc-900 flex items-center justify-center">
+          <span className="text-[10px] text-white font-medium px-2 text-center">
+            {label}
+          </span>
+        </div>
+      }
+    >
+      <div
+        className="flex w-full flex-col items-center gap-2 cursor-pointer group"
+        onClick={onClick}
+        onMouseEnter={() => {
+          setIsHovering(true);
+
+          if (!isDynamicLoaded) {
+            const img = new Image();
+            img.src = dynamicSrc;
+          }
+        }}
+        onMouseLeave={() => setIsHovering(false)}
+      >
+        <div className="relative w-full aspect-video rounded-md bg-input/30 border overflow-hidden">
+          {staticSrc || dynamicSrc ? (
+            <div
+              className="absolute inset-0 w-full h-full bg-cover bg-center transition-opacity duration-200"
+              style={{
+                backgroundImage: `url(${isHovering && isDynamicLoaded ? dynamicSrc : staticSrc})`,
+              }}
+              onLoad={() => {
+                // Background images don't have onLoad on the div, but we preloaded the dynamic one
+                if (isHovering) setIsDynamicLoaded(true);
+              }}
+            />
+          ) : (
+            <div className="text-xs text-muted-foreground text-center px-2 bg-primary/40 h-full w-full"></div>
+          )}
+          {isHovering && dynamicSrc && !isDynamicLoaded && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+              <div className="w-6 h-6 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+            </div>
+          )}
+
+          {badge && (
+            <div className="absolute top-1 right-1 bg-primary/80 text-primary-foreground text-[9px] font-semibold px-1.5 py-0.5 rounded-full leading-none">
+              {badge}
+            </div>
+          )}
+
+          <div
+            className={`absolute bottom-0 left-0 w-full p-2 bg-linear-to-t from-black/80 to-transparent text-white text-xs font-medium truncate text-center transition-opacity duration-200 ${
+              dynamicSrc ? 'group-hover:opacity-0' : ''
+            }`}
+          >
+            {label}
+          </div>
+        </div>
+      </div>
+    </Draggable>
+  );
+};
+
+// ─── Default Effects ──────────────────────────────────────────────────────────
+
+const EffectDefault = () => {
+  const effects = getEffectOptions();
+  const specialEffects = Object.keys(VALUES_FILTER_SPECIAL).map(
+    (filterName) => ({
+      key: filterName,
+      label: formatFilterName(filterName),
+      previewStatic: `https://cdn.subgen.co/previews/effects/static/effect_${filterName}_static.webp`,
+      previewDynamic: `https://cdn.subgen.co/previews/effects/dynamic/effect_${filterName}_dynamic.webp`,
+    })
+  );
+  const allEffects = [...specialEffects, ...effects];
+
+  const handleClick = async (key: string) => {
+    const effectValues: Record<string, any> = {};
+    if (key === 'embossFilter') effectValues.strength = 5;
+    if (key === 'pixelateFilter') effectValues.size = 10;
+
+    await core.clip.add({
+      type: 'Effect',
+      name: formatFilterName(key),
+      display: { from: 0, to: EFFECT_DURATION_DEFAULT },
+      duration: EFFECT_DURATION_DEFAULT,
+      effect: {
+        id: 'eff_' + Date.now(),
+        key: key,
+        name: key,
+        values: effectValues,
+      },
+    });
+  };
+
+  return (
+    <>
+      {allEffects.map((effect) => (
+        <EffectCard
+          key={effect.key}
+          label={effect.label}
+          staticSrc={effect.previewStatic}
+          dynamicSrc={effect.previewDynamic}
+          onClick={() => handleClick(effect.key)}
+        />
+      ))}
+    </>
+  );
+};
+
+// ─── Custom Effects (from DB) ─────────────────────────────────────────────────
+
+type CustomPreset = {
+  id: string;
+  name: string;
+  category: string;
+  data: { label: string; fragment: string };
+  published: boolean;
+  userId: string;
+};
+
+const EffectCustom = () => {
+  const [ownPresets, setOwnPresets] = useState<CustomPreset[]>([]);
+  const [publishedPresets, setPublishedPresets] = useState<CustomPreset[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchPresets = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await fetch('/api/custom-presets?category=effects');
+        if (!res.ok) throw new Error('Failed to fetch custom effects');
+        const json = await res.json();
+        setOwnPresets(json.own ?? []);
+        setPublishedPresets(json.published ?? []);
+      } catch (err) {
+        setError('Could not load custom effects.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchPresets();
+  }, []);
+
+  const handleClick = async (preset: CustomPreset) => {
+    // Use a stable key derived from the preset id
+    const key = `custom_effect_${preset.id}`;
+    // Register the custom GLSL shader so the engine knows how to render it
+    await registerCustomEffect(key, {
+      key,
+      label: preset.data.label || preset.name,
+      fragment: preset.data.fragment,
+    } as any);
+    await core.clip.add({
+      type: 'Effect',
+      name: preset.data.label || preset.name,
+      display: { from: 0, to: EFFECT_DURATION_DEFAULT },
+      duration: EFFECT_DURATION_DEFAULT,
+      effect: {
+        id: 'eff_' + preset.id,
+        key: key,
+        name: key,
+      },
+      metadata: {
+        fragment: preset.data.fragment,
+      },
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="col-span-full flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground">
+        <Loader2 className="size-5 animate-spin" />
+        <span className="text-xs">Loading custom effects…</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="col-span-full flex items-center justify-center py-12 text-xs text-destructive">
+        {error}
+      </div>
+    );
+  }
+
+  if (ownPresets.length === 0 && publishedPresets.length === 0) {
+    return (
+      <div className="col-span-full flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground">
+        <span className="text-xs">No custom effects yet.</span>
+        <span className="text-[10px]">
+          Create one from the Gallery to see it here.
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {ownPresets.map((preset) => (
+        <EffectCard
+          key={preset.id}
+          label={preset.data.label || preset.name}
+          staticSrc=""
+          dynamicSrc=""
+          onClick={() => handleClick(preset)}
+        />
+      ))}
+      {publishedPresets.map((preset) => (
+        <EffectCard
+          key={preset.id}
+          label={preset.data.label || preset.name}
+          staticSrc=""
+          dynamicSrc=""
+          onClick={() => handleClick(preset)}
+          badge="Public"
+        />
+      ))}
+    </>
+  );
+};
+
+// ─── Panel ────────────────────────────────────────────────────────────────────
 
 const PanelEffect = () => {
-  const { studio } = useStudioStore();
-  const EFFECT_DURATION_DEFAULT = 5000000;
-
-  const [hovered, setHovered] = useState<Record<string, boolean>>({});
   return (
-    <div className="py-4 h-full">
-      <ScrollArea className="h-full px-4">
-        <div
-          className="
-        grid
-        grid-cols-[repeat(auto-fill,minmax(80px,1fr))]
-        gap-4
-        justify-items-center
-      "
-        >
-          {GL_EFFECT_OPTIONS.map((effect) => {
-            const isHovered = hovered[effect.key];
+    <div className="p-4 h-full">
+      <Tabs defaultValue="default" className="w-full h-full">
+        <TabsList className="w-full">
+          <TabsTrigger value="default" className="flex-1">
+            Default
+          </TabsTrigger>
+          <TabsTrigger value="custom" className="flex-1">
+            Custom
+          </TabsTrigger>
+        </TabsList>
 
-            return (
-              <div
-                key={effect.key}
-                className="flex w-full items-center gap-2 flex-col group cursor-pointer"
-                onMouseEnter={() => setHovered((prev) => ({ ...prev, [effect.key]: true }))}
-                onMouseLeave={() => setHovered((prev) => ({ ...prev, [effect.key]: false }))}
-                onClick={() => {
-                  if (!studio) return;
-                  const clip = new Effect(effect.key);
-                  clip.duration = EFFECT_DURATION_DEFAULT;
-                  studio.addClip(clip);
-                }}
-              >
-                <div className="relative w-full aspect-video rounded-md bg-input/30 border overflow-hidden">
-                  <img
-                    src={effect.previewStatic}
-                    loading="lazy"
-                    className="
-                      absolute inset-0 w-full h-full object-cover rounded-sm
-                      transition-opacity duration-150
-                      opacity-100 group-hover:opacity-0
-                    "
-                  />
-
-                  {isHovered && (
-                    <img
-                      src={effect.previewDynamic}
-                      className="
-                        absolute inset-0 w-full h-full object-cover rounded-sm
-                        transition-opacity duration-150
-                        opacity-0 group-hover:opacity-100
-                      "
-                    />
-                  )}
-                  <div className="absolute bottom-0 left-0 w-full p-2 bg-linear-to-t from-black/80 to-transparent text-white text-xs font-medium truncate text-center transition-opacity duration-150 group-hover:opacity-0">
-                    {effect.label}
-                  </div>
-                </div>
+        {[
+          { value: 'default', Component: EffectDefault },
+          { value: 'custom', Component: EffectCustom },
+        ].map(({ value, Component }) => (
+          <TabsContent key={value} value={value} className="h-full">
+            <ScrollArea className="h-[calc(100%-60px)]">
+              <div className={gridClasses}>
+                <Component />
               </div>
-            );
-          })}
-        </div>
-      </ScrollArea>
+            </ScrollArea>
+          </TabsContent>
+        ))}
+      </Tabs>
     </div>
   );
 };

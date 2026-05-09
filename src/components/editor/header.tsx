@@ -1,118 +1,185 @@
-import { useState, useCallback, useEffect } from "react";
-import { IconShare } from "@tabler/icons-react";
-import { Button } from "@/components/ui/button";
-import { useStudioStore } from "@/stores/studio-store";
-import { usePanelStore } from "@/stores/panel-store";
-import { Log, type IClip } from "openvideo";
-import { ExportModal } from "./export-modal";
-import { DriveExportModal } from "./drive-export-modal";
-import { LogoIcons } from "../shared/logos";
-import Link from "next/link";
-import { Icons } from "../shared/icons";
-import { Keyboard, ArrowLeftIcon } from "lucide-react";
-import { ShortcutsModal } from "./shortcuts-modal";
+'use client';
+import { useState } from 'react';
+import { cn } from '@/lib/utils';
+import { IconShare } from '@tabler/icons-react';
+import { Button } from '@/components/ui/button';
+import { useStudioStore } from '@/stores/studio-store';
+import { usePanelStore } from '@/stores/panel-store';
+import { useProjectStore } from '@/stores/project-store';
+import { fontManager, Log, type IClip } from '@openvideo/engine-pixi';
+import { ExportModal } from './export-modal';
+import { LogoIcons } from '../shared/logos';
+import Link from 'next/link';
+import { Icons } from '../shared/icons';
+import {
+  Keyboard,
+  FileJson,
+  Download,
+  Upload,
+  MessageSquare,
+  Settings,
+  Database,
+  FilePlus,
+  Square,
+  Smartphone,
+  Monitor,
+  ChevronLeft,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { Compositor } from '@openvideo/engine-pixi';
+import { ShortcutsModal } from './shortcuts-modal';
+import { useEffect } from 'react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useRouter, useParams } from 'next/navigation';
+import { storageService } from '@/lib/storage/storage-service';
+import { Save } from 'lucide-react';
+import AutosizeInput from '../ui/autosize-input';
+import { authClient } from '@/lib/auth-client';
+import { core, projectStore } from '@/lib/project';
+import { useStore } from 'zustand';
+import { template } from './sample';
 
-import { Separator } from "../ui/separator";
-import AutosizeInput from "../ui/autosize-input";
-import { debounce } from "lodash";
-import GoogleIcon from "../logos/google";
-
-export default function Header({
-  projectId,
-  projectName,
-  isOwner = true,
-}: {
-  projectId?: string;
-  projectName?: string;
-  isOwner?: boolean;
-}) {
+export default function Header() {
   const { studio } = useStudioStore();
   const { toggleCopilot, isCopilotVisible } = usePanelStore();
+  const { aspectRatio, setCanvasSize } = useProjectStore();
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
-  const [canUndo, setCanUndo] = useState(false);
-  const [canRedo, setCanRedo] = useState(false);
-  const [title, setTitle] = useState(projectName || "Untitled video");
-  const [isDriveExportModalOpen, setIsDriveExportModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isBatchExporting, setIsBatchExporting] = useState(false);
+  const [customWidth, setCustomWidth] = useState('');
+  const [customHeight, setCustomHeight] = useState('');
+  const router = useRouter();
+  const params = useParams();
+  const projectId = params.projectId as string;
+  const { data: session } = authClient.useSession();
+  const { projectName, setProjectName } = useProjectStore();
+  const [isSaving, setIsSaving] = useState(false);
+  const [title, setTitle] = useState(projectName || 'Untitled video');
 
+  // Sync title with store when project name changes externally (like on initial load)
   useEffect(() => {
-    if (projectName) {
+    if (projectName && projectName !== title) {
       setTitle(projectName);
     }
   }, [projectName]);
 
-  const saveTitle = useCallback(
-    debounce(async (newTitle: string) => {
-      if (!projectId) return;
-      try {
-        await fetch(`/api/projects/${projectId}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ name: newTitle }),
-        });
-        console.log("Project name saved:", newTitle);
-      } catch (error) {
-        console.error("Failed to save project name:", error);
-      }
-    }, 2000),
-    [projectId],
-  );
 
-  useEffect(() => {
-    if (!studio) return;
+  const handleApplyCustomSize = () => {
+    const w = parseInt(customWidth);
+    const h = parseInt(customHeight);
+    if (!isNaN(w) && !isNaN(h) && w > 0 && h > 0) {
+      setCanvasSize({ width: w, height: h }, 'Custom');
+    } else {
+      toast.error('Invalid dimensions');
+    }
+  };
 
-    setCanUndo(studio.history.canUndo());
-    setCanRedo(studio.history.canRedo());
+  const handleGetStarted = (route: string) => {
+    router.push(route);
+  };
 
-    const handleHistoryChange = ({ canUndo, canRedo }: { canUndo: boolean; canRedo: boolean }) => {
-      setCanUndo(canUndo);
-      setCanRedo(canRedo);
-    };
+  const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
+  // Track undo/redo availability from Core store history
+  const canUndo = useStore(projectStore, (s) => s.history.length > 0);
+  const canRedo = useStore(projectStore, (s) => s.future.length > 0);
 
-    studio.on("history:changed", handleHistoryChange);
+  // NOTE: canUndo/canRedo state now sourced from core.store — no studio history listener needed.
 
-    return () => {
-      studio.off("history:changed", handleHistoryChange);
-    };
-  }, [studio]);
+  // const handleSave = async (showToast = true) => {
+  //   if (!studio || !projectId) return;
+
+  //   setIsSaving(true);
+  //   let toastId;
+  //   if (showToast) {
+  //     toastId = toast.loading('Saving project...');
+  //   }
+
+  //   try {
+  //     const studioJSON = studio.exportToJSON();
+  //     await storageService.saveProjectFull(projectId, studioJSON);
+  //     console.log('Project saved', studioJSON);
+  //     if (showToast) {
+  //       toast.success('Project saved', { id: toastId });
+  //     }
+  //   } catch (error) {
+  //     console.error('Failed to save project', error);
+  //     if (showToast) {
+  //       toast.error('Failed to save project', { id: toastId });
+  //     }
+  //   } finally {
+  //     setIsSaving(false);
+  //   }
+  // };
+  // Auto-save on studio changes (with debounce)
+  // useEffect(() => {
+  //   if (!studio || !projectId) return;
+
+  //   let timeoutId: NodeJS.Timeout;
+
+  //   const onStudioChange = () => {
+  //     clearTimeout(timeoutId);
+  //     timeoutId = setTimeout(() => {
+  //       handleSave(false); // Silent save
+  //     }, 1000); // 1 second debounce
+  //   };
+  //   const eventsToListen = [
+  //     'history:changed',
+  //     'clip:added',
+  //     'clip:removed',
+  //     'clip:updated',
+  //     'clip:moved',
+  //     'track:added',
+  //     'track:removed',
+  //     'clips:removed',
+  //     'clip:replaced',
+  //     'clip:propsChange',
+  //     'propsChange',
+  //   ];
+
+  //   eventsToListen.forEach((event) => {
+  //     studio.on(event, onStudioChange);
+  //   });
+
+  //   return () => {
+  //     eventsToListen.forEach((event) => {
+  //       studio.off(event, onStudioChange);
+  //     });
+  //     clearTimeout(timeoutId);
+  //   };
+  // }, [studio, projectId]);
 
   const handleNew = () => {
-    if (!studio) return;
     const confirmed = window.confirm(
-      "Are you sure you want to start a new project? Unsaved changes will be lost.",
+      'Are you sure you want to start a new project? Unsaved changes will be lost.'
     );
     if (confirmed) {
-      studio.clear();
+      core.project.new();
     }
   };
 
   const handleExportJSON = () => {
-    if (!studio) return;
-
     try {
-      // Get all clips from studio
-      const clips = (studio as any).clips as IClip[];
-      if (clips.length === 0) {
-        alert("No clips to export");
+      const json = core.project.export();
+      if (Object.keys(json.clips).length === 0) {
+        alert('No clips to export');
         return;
       }
 
-      // Export to JSON
-      const json = studio.exportToJSON();
       const jsonString = JSON.stringify(json, null, 2);
-      const blob = new Blob([jsonString], { type: "application/json" });
+      const blob = new Blob([jsonString], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
 
-      // Download the JSON file
-      const aEl = document.createElement("a");
+      const aEl = document.createElement('a');
       document.body.appendChild(aEl);
       aEl.href = url;
-      aEl.download = `combo-project-${Date.now()}.json`;
+      aEl.download = `${projectName || 'project'}-${Date.now()}.json`;
       aEl.click();
 
-      // Cleanup
       setTimeout(() => {
         if (document.body.contains(aEl)) {
           document.body.removeChild(aEl);
@@ -120,16 +187,16 @@ export default function Header({
         URL.revokeObjectURL(url);
       }, 100);
     } catch (error) {
-      Log.error("Export to JSON error:", error);
-      alert("Failed to export to JSON: " + (error as Error).message);
+      Log.error('Export to JSON error:', error);
+      alert('Failed to export to JSON: ' + (error as Error).message);
     }
   };
 
   const handleImportJSON = () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".json,application/json";
-    input.style.display = "none";
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.style.display = 'none';
 
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
@@ -138,93 +205,70 @@ export default function Header({
       try {
         const text = await file.text();
         const json = JSON.parse(text);
-
-        if (!json.clips || !Array.isArray(json.clips)) {
-          throw new Error("Invalid JSON format: missing clips array");
-        }
-
-        if (!studio) {
-          throw new Error("Studio not initialized");
-        }
-
-        // Filter out clips with empty sources (except Text, Caption, and Effect)
-        const validClips = json.clips.filter((clipJSON: any) => {
-          if (
-            clipJSON.type === "Text" ||
-            clipJSON.type === "Caption" ||
-            clipJSON.type === "Effect" ||
-            clipJSON.type === "Transition"
-          ) {
-            return true;
-          }
-          return clipJSON.src && clipJSON.src.trim() !== "";
-        });
-
-        if (validClips.length === 0) {
-          throw new Error("No valid clips found in JSON. All clips have empty source URLs.");
-        }
-
-        const validJson = { ...json, clips: validClips };
-        await studio.loadFromJSON(validJson);
+        core.project.import(json);
+        toast.success('Project imported successfully');
       } catch (error) {
-        Log.error("Load from JSON error:", error);
-        alert("Failed to load from JSON: " + (error as Error).message);
+        Log.error('Load from JSON error:', error);
+        alert('Failed to load from JSON: ' + (error as Error).message);
       } finally {
-        document.body.removeChild(input);
+        if (document.body.contains(input)) {
+          document.body.removeChild(input);
+        }
       }
     };
 
     document.body.appendChild(input);
     input.click();
   };
+
+
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTitle = e.target.value;
-    setTitle(newTitle);
-    saveTitle(newTitle);
+    setTitle(e.target.value);
   };
 
-  const handleSaveToDrive = () => {
-    setIsDriveExportModalOpen(true);
-  };
   return (
-    <header className="relative flex h-13 w-full shrink-0 items-center justify-between px-4 bg-card z-10 border-b">
-      {/* Left Section */}
-      <div className="flex items-center gap-2 h-13">
-        <Link
-          href="/home"
-          className="pointer-events-auto gap-2 flex h-13 text-sm items-center justify-center rounded-md font-semibold hover:bg-stone-800/50 px-2 transition-colors"
-        >
-          <ArrowLeftIcon className="size-5" /> Back
-        </Link>
-        <div className="w-px h-8 bg-border" />
-
-        <div className=" pointer-events-auto flex h-13 items-center">
-          <Button onClick={() => studio?.undo()} disabled={!canUndo} variant="ghost" size="icon">
-            <Icons.undo className="size-5" />
-          </Button>
-          <Button onClick={() => studio?.redo()} disabled={!canRedo} variant="ghost" size="icon">
-            <Icons.redo className="size-5" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Center Section */}
-      <div className="flex h-13 items-center justify-center gap-2">
-        <div className=" pointer-events-auto flex h-10 items-center gap-2 rounded-md px-2.5">
+    <header className="relative flex h-[52px] w-full shrink-0 items-center justify-between px-4 bg-card z-10 border-b">
+      <div className="flex items-center gap-3">
+        <Button variant="outline" size="icon" asChild className="h-8 w-8 shrink-0">
+          <Link href="/home">
+            <ChevronLeft className="h-5 w-5 text-muted-foreground" />
+          </Link>
+        </Button>
+        <div className="pointer-events-auto flex h-10 items-center gap-2 rounded-md">
           <AutosizeInput
             name="title"
             value={title}
             onChange={handleTitleChange}
-            width={200}
-            inputClassName="border-none outline-none px-1 text-sm font-medium disabled:cursor-default disabled:opacity-70"
-            disabled={!isOwner}
+            width={150}
+            inputClassName="border-none outline-none px-1 text-sm font-medium"
           />
         </div>
       </div>
 
       {/* Right Section */}
-      <div className="flex items-center gap-2">
-        <div className="flex items-center mr-2">
+      <div className="flex items-center gap-4 pr-4">
+        <div className="flex items-center">
+          <Button
+            onClick={() => core.undo()}
+            disabled={!canUndo}
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+          >
+            <Icons.undo className="size-4.5" />
+          </Button>
+          <Button
+            onClick={() => core.redo()}
+            disabled={!canRedo}
+            className="text-muted-foreground h-8 w-8"
+            variant="ghost"
+            size="icon"
+          >
+            <Icons.redo className="size-4.5" />
+          </Button>
+        </div>
+
+        <div className="flex items-center">
           <Button
             variant="ghost"
             size="icon"
@@ -235,42 +279,22 @@ export default function Header({
           </Button>
         </div>
 
-        <ExportModal open={isExportModalOpen} onOpenChange={setIsExportModalOpen} />
-        <DriveExportModal
-          open={isDriveExportModalOpen}
-          onOpenChange={setIsDriveExportModalOpen}
-          title={title}
-          onTitleChange={(t) => {
-            setTitle(t);
-            saveTitle(t);
-          }}
-          studio={studio}
-        />
-        <ShortcutsModal open={isShortcutsModalOpen} onOpenChange={setIsShortcutsModalOpen} />
-
-        <Button
-          className="flex h-7 gap-1 border border-border"
-          variant="outline"
-          size={"sm"}
-          onClick={() => {
-            console.log(studio?.exportToJSON());
-          }}
-        >
-          <IconShare width={18} /> <span className="hidden md:block">Share</span>
-        </Button>
-
         <Button
           size="sm"
-          variant="outline"
-          onClick={handleSaveToDrive}
-          title="Export and save to Google Drive"
+          className="gap-2 rounded-full h-8 px-4"
+          onClick={() => setIsExportModalOpen(true)}
         >
-          <span className="hidden md:block">Save to Drive</span>
-        </Button>
-
-        <Button size="sm" className="gap-2 rounded-full" onClick={() => setIsExportModalOpen(true)}>
           Download
         </Button>
+
+        <ExportModal
+          open={isExportModalOpen}
+          onOpenChange={setIsExportModalOpen}
+        />
+        <ShortcutsModal
+          open={isShortcutsModalOpen}
+          onOpenChange={setIsShortcutsModalOpen}
+        />
       </div>
     </header>
   );

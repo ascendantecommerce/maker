@@ -1,7 +1,7 @@
 import { FONT_DEFAULT, FONT_URL_DEFAULT } from "@/constants/captions";
 
 import * as PIXI from "pixi.js";
-import { fontManager } from "openvideo";
+import { fontManager } from "@openvideo/engine-pixi";
 import { groupWordsByWidth } from "@/utils/schema-converter";
 
 interface CaptionClipOptions {
@@ -29,7 +29,11 @@ export async function generateCaptionClips(
     fontFamily = FONT_DEFAULT,
     fontUrl = FONT_URL_DEFAULT,
     mode = "multiple",
+    style
   } = options;
+
+  const textCase = style?.textCase ?? 'normal';
+  
 
   const maxCaptionWidth = videoWidth * 0.8;
   let captionChunks: any[] = [];
@@ -93,6 +97,8 @@ export async function generateCaptionClips(
       fontSize,
       fontFamily,
       maxLines,
+      [],
+      textCase
     );
   }
 

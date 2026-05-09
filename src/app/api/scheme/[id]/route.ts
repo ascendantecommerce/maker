@@ -61,6 +61,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       voice: schema.voice,
       visuals: schema.visuals,
       caption: schema.caption,
+      script: schema.script,
       aspectRatio: schema.aspect_ratio,
       animation: (schema.metadata as any)?.animation,
       avatar: schema.avatar,
@@ -153,6 +154,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         "avatar",
         "assets",
         "metadata",
+        "script",
         "updated_at",
       ];
 

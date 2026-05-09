@@ -95,7 +95,11 @@ export function CreateProjectModal({ open, onOpenChange }: CreateProjectModalPro
 
       const { project } = await response.json();
       onOpenChange(false);
-      router.push(`/projects/${project.id}`);
+      if (project.generationId) {
+        router.push(`/storyboard/${project.generationId}`);
+      } else {
+        router.push(`/projects/${project.id}`);
+      }
     } catch (error) {
       console.error("Error creating project:", error);
       toast.error("Failed to create project. Please try again.");
