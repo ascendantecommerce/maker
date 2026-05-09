@@ -6,7 +6,6 @@ import {
   type TrackType,
 } from "@/types/timeline";
 import { generateUUID } from "@/utils/id";
-import { loadStudioData } from "@/components/editor/timeline/timeline/data";
 
 interface TimelineStore {
   // Normalized State
@@ -56,7 +55,10 @@ interface TimelineStore {
 
 export const useTimelineStore = create<TimelineStore>((set, get) => {
   // Initial Load - using the exported data from data.ts
-  const { tracks: initialTracks, clips: initialClips } = loadStudioData();
+  const { tracks: initialTracks, clips: initialClips } = {
+    tracks: [],
+    clips: {},
+  }
 
   return {
     _tracks: initialTracks,
