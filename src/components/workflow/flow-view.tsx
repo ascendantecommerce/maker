@@ -158,7 +158,7 @@ export default function FlowView({ onReady }: FlowViewProps) {
   );
 
   return (
-    <div className="w-full h-full relative">
+    <div className="w-full h-full relative bg-black">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -169,8 +169,10 @@ export default function FlowView({ onReady }: FlowViewProps) {
         nodeTypes={nodeTypes}
         fitView
         colorMode="dark"
-        className="bg-background [&_.react-flow__node]:p-0"
+        className="[&_.react-flow__node]:p-0"
+        style={{ '--xy-background-color': '#111111' } as React.CSSProperties}
         defaultEdgeOptions={{
+
           type: "default",
           style: { strokeWidth: 1.5, stroke: "#4f4f7a", opacity: 0.85 },
           markerEnd: {
@@ -196,7 +198,7 @@ export default function FlowView({ onReady }: FlowViewProps) {
         // Performance: skip costly attribution badge
         proOptions={{ hideAttribution: true }}
       >
-        <Background variant={BackgroundVariant.Dots} gap={24} size={1} color="hsl(var(--border))" />
+        <Background variant={BackgroundVariant.Cross} gap={50} size={2} color="#555555" />
         <Controls
           showFitView={false}
           showInteractive={false}

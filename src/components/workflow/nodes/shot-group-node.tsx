@@ -18,19 +18,17 @@ function ShotGroupNode({ data, selected }: NodeProps<ShotGroupNode>) {
   return (
     <div
       className={cn(
-        "relative w-full h-full rounded-2xl border-2 transition-all duration-500",
-        selected
-          ? "bg-primary/[0.02] border-primary/30 shadow-[0_0_40px_-10px_rgba(var(--primary),0.1)] ring-1 ring-primary/5"
-          : "bg-muted/5 border-dashed border-border/60 hover:bg-muted/10 hover:border-border",
+        "relative w-full h-full rounded-xl  border-border border-2 transition-all duration-500 bg-card",
+        selected && "border-primary/40"
       )}
     >
       {/* Label for the shot group */}
-      <div className="absolute -top-3 left-6">
+      <div className="absolute -top-9 left-0 flex items-center gap-3">
         <div className={cn(
-          "px-3 py-1 bg-background border rounded-full text-[8px] font-black uppercase tracking-widest shadow-lg",
-          selected ? "text-primary border-primary/20" : "text-muted-foreground/50 border-border"
+          "text-base px-4 font-bold"
+
         )}>
-          {isVideo ? "Motion Segment" : "Visual Segment"} {data.index + 1}
+          {isVideo ? "Motion Shot" : "Visual Shot"} {data.index + 1}
         </div>
       </div>
     </div>

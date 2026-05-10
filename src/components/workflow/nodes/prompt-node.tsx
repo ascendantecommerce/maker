@@ -2,7 +2,7 @@
 
 import React, { memo, useRef } from "react";
 import { Position, type NodeProps, type Node, Handle } from "@xyflow/react";
-import { PencilRuler, Settings2, Play, Sparkles } from "lucide-react";
+import { PencilRuler, Settings2, Play, Sparkles, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CardContent, CardFooter } from "@/components/ui/card";
@@ -28,16 +28,16 @@ function PromptNode({ id, data, selected }: NodeProps<PromptNode>) {
     <div className="relative group/node w-full h-full bg-transparent">
       {/* Label above the card */}
       <div className="absolute -top-7 left-0 flex items-center gap-2 px-1 pointer-events-none whitespace-nowrap z-30">
-        <PencilRuler className="w-3.5 h-3.5 text-muted-foreground/60 drop-shadow-md" />
-        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60 drop-shadow-md">
+        <PencilRuler className="w-3.5 h-3.5" />
+        <span className="text-sm font-bold">
           {isVideo ? "Motion Prompt" : "Visual Prompt"}
         </span>
       </div>
 
       <div
         className={cn(
-          "w-full h-full transition-all duration-500 rounded-[32px] overflow-hidden bg-card shadow-2xl border-2",
-          selected ? "border-primary/50 shadow-[0_0_50px_-12px_rgba(var(--primary),0.3)]" : "border-border/40 group-hover/node:border-border/60"
+          "relative w-full h-full rounded-xl  border-border border-3 transition-all duration-500 bg-card",
+          selected && "border-primary/40"
         )}
       >
         <div className="flex flex-col h-full">
@@ -85,23 +85,27 @@ function PromptNode({ id, data, selected }: NodeProps<PromptNode>) {
         </div>
       </div>
 
-      {/* Handles */}
-      <div className="absolute top-1/2 -left-3 -translate-y-1/2 z-20">
-        <Handle
-          id="asset"
-          type="target"
-          position={Position.Left}
-          className="!w-6 !h-6 !bg-primary !border-[4px] !border-background shadow-2xl hover:scale-110 transition-transform"
-        />
-      </div>
-      <div className="absolute top-1/2 -right-3 -translate-y-1/2 z-20">
-        <Handle
-          id="result"
-          type="source"
-          position={Position.Right}
-          className="!w-6 !h-6 !bg-muted-foreground/30 !border-[4px] !border-background shadow-2xl hover:scale-110 transition-transform"
-        />
-      </div>
+      {/* Input handle — fully outside left border */}
+      {/* <Handle
+        id="asset"
+        type="target"
+        position={Position.Left}
+        className="!w-10 !h-10 !rounded-full !bg-card !border !border-border/60 !shadow-lg !flex !items-center !justify-center"
+        style={{ left: -40, top: "50%", transform: "translateY(-50%)" }}
+      >
+        <Type className="w-4 h-4 text-muted-foreground/70 pointer-events-none" />
+      </Handle> */}
+
+      {/* Output handle — fully outside right border */}
+      <Handle
+        id="result"
+        type="source"
+        position={Position.Right}
+        className="!w-10 !h-10 !rounded-full !border !border-border border-2! bg-card! !shadow-lg !flex !items-center !justify-center"
+        style={{ right: -40, top: "50%", transform: "translateY(-50%)" }}
+      >
+        <Type className="w-4 h-4" />
+      </Handle>
     </div>
   );
 }

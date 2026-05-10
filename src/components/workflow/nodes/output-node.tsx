@@ -2,7 +2,7 @@
 
 import React, { memo } from "react";
 import { Position, type NodeProps, type Node, Handle } from "@xyflow/react";
-import { Eye, RefreshCw, Settings2, Plus, Minus, ChevronDown, Wand2, Loader2 } from "lucide-react";
+import { Eye, RefreshCw, Settings2, Plus, Minus, ChevronDown, Wand2, Loader2, ImageIcon, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { VideoPlayer } from "@/components/ui/video-player";
@@ -25,16 +25,16 @@ function OutputNode({ id, data, selected }: NodeProps<OutputNode>) {
     <div className="relative group/node w-full h-full bg-transparent">
       {/* Label above the card - Moved to absolute -top to sit outside the clipping boundary */}
       <div className="absolute -top-7 left-0 flex items-center gap-2 px-1 pointer-events-none whitespace-nowrap z-30">
-        <Eye className="w-3.5 h-3.5 text-muted-foreground/60 drop-shadow-md" />
-        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60 drop-shadow-md">
+        <Eye className="w-3.5 h-3.5" />
+        <span className="text-sm font-bold">
           {isVideo ? "Motion Output" : "Visual Output"}
         </span>
       </div>
 
       <div
         className={cn(
-          "w-full h-full transition-all duration-500 rounded-[32px] overflow-hidden bg-background shadow-2xl border-2",
-          selected ? "border-primary/50 shadow-[0_0_50px_-12px_rgba(var(--primary),0.3)]" : "border-border/40 group-hover/node:border-border/60"
+          "relative w-full h-full rounded-xl  border-border border-3 transition-all duration-500 bg-card overflow-hidden",
+          selected && "border-primary/40"
         )}
       >
         <div className="relative w-full h-full flex flex-col">
@@ -81,10 +81,7 @@ function OutputNode({ id, data, selected }: NodeProps<OutputNode>) {
             {/* Bottom Overlay Info */}
             <div className="absolute bottom-0 left-0 right-0 z-10 p-6 pt-24 bg-gradient-to-t from-background via-background/80 to-transparent pointer-events-auto">
               <div className="flex flex-col gap-5">
-                {/* Prompt Text */}
-                <p className="text-[12px] leading-relaxed text-foreground/70 font-medium line-clamp-3 pl-1">
-                  {data.promptText || "Connected prompt. Use @ to add references or extra context"}
-                </p>
+
 
                 {/* Toolbar */}
                 <div className="flex items-center justify-between gap-2 mt-1">
@@ -113,23 +110,27 @@ function OutputNode({ id, data, selected }: NodeProps<OutputNode>) {
         </div>
       </div>
 
-      {/* Handles - Positioned relative to the root container for precise edge alignment */}
-      <div className="absolute top-1/2 -left-3 -translate-y-1/2 z-20">
-        <Handle
-          id="input"
-          type="target"
-          position={Position.Left}
-          className="!w-6 !h-6 !bg-primary !border-[4px] !border-background shadow-2xl hover:scale-110 transition-transform"
-        />
-      </div>
-      <div className="absolute top-1/2 -right-3 -translate-y-1/2 z-20">
-        <Handle
-          id="result"
-          type="source"
-          position={Position.Right}
-          className="!w-6 !h-6 !bg-muted-foreground/30 !border-[4px] !border-background shadow-2xl hover:scale-110 transition-transform"
-        />
-      </div>
+      {/* Input handle — fully outside left border */}
+      <Handle
+        id="input"
+        type="target"
+        position={Position.Left}
+        className="!w-10 !h-10 !rounded-full !bg-card !border !border-border border-2! !shadow-lg !flex !items-center !justify-center"
+        style={{ left: -40, top: "50%", transform: "translateY(-50%)" }}
+      >
+        <ImageIcon className="w-4 h-4   pointer-events-none" />
+      </Handle>
+
+      {/* Output handle — fully outside right border */}
+      {/* <Handle
+        id="result"
+        type="source"
+        position={Position.Right}
+        className="!w-10 !h-10 !rounded-full !bg-card !border !border-border/60 !shadow-lg !flex !items-center !justify-center"
+        style={{ right: -40, top: "50%", transform: "translateY(-50%)" }}
+      >
+        <Type className="w-4 h-4 text-muted-foreground/70 pointer-events-none" />
+      </Handle> */}
     </div>
   );
 }
