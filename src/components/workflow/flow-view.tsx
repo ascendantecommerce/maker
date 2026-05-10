@@ -21,9 +21,15 @@ import ProductNode from "./nodes/product-node";
 import SegmentOutputNode from "./nodes/segment-output-node";
 import GlobalOutputNode from "./nodes/global-output-node";
 import SegmentGroupNode from "./nodes/segment-group-node";
-import UnifiedShotNode from "./nodes/unified-shot-node";
 import UnifiedSegmentNode from "./nodes/unified-segment-node";
 import VisualsGroupNode from "./nodes/visuals-group-node";
+import PromptNode from "./nodes/prompt-node";
+import OutputNode from "./nodes/output-node";
+import ShotGroupNode from "./nodes/shot-group-node";
+import AvatarNode from "./nodes/avatar-node";
+import ScriptNode from "./nodes/script-node";
+import VoiceNode from "./nodes/voice-node";
+import SegmentContentGroupNode from "./nodes/segment-content-group-node";
 
 import { mapSchemaToFlow } from "./utils/flow-mapper";
 import { getLayoutedElements } from "./utils/layout";
@@ -38,9 +44,15 @@ const nodeTypes = {
   segmentOutput: SegmentOutputNode,
   globalOutput: GlobalOutputNode,
   segmentGroup: SegmentGroupNode,
-  unifiedShot: UnifiedShotNode,
+  prompt: PromptNode,
+  shotOutput: OutputNode,
+  shotGroup: ShotGroupNode,
   unifiedSegment: UnifiedSegmentNode,
   visualsGroup: VisualsGroupNode,
+  avatar: AvatarNode,
+  script: ScriptNode,
+  voice: VoiceNode,
+  segmentContentGroup: SegmentContentGroupNode,
 };
 
 interface FlowViewProps {
@@ -87,7 +99,8 @@ export default function FlowView({ onReady }: FlowViewProps) {
 
         if (part === "prompt") {
           const field = type === "vid" ? "videoPrompt" : "firstFramePrompt";
-          updateShot(segId, shotIdx, { [field]: updates.text, ...updates });
+          const text = updates.text || updates.promptText;
+          updateShot(segId, shotIdx, { [field]: text, ...updates });
         }
       }
     },
@@ -156,7 +169,7 @@ export default function FlowView({ onReady }: FlowViewProps) {
         nodeTypes={nodeTypes}
         fitView
         colorMode="dark"
-        className="bg-background"
+        className="bg-background [&_.react-flow__node]:p-0"
         defaultEdgeOptions={{
           type: "default",
           style: { strokeWidth: 1.5, stroke: "#4f4f7a", opacity: 0.85 },

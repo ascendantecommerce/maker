@@ -1,77 +1,75 @@
 "use client";
 
-import React from "react";
-import { Handle, Position } from "@xyflow/react";
+import React, { memo } from "react";
+import { Position, type NodeProps, type Node, Handle } from "@xyflow/react";
+import { FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { FileText, AlignLeft, Settings } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
-export default function GlobalScriptNode({
-  id,
-  data,
-  selected,
-}: {
-  id: string;
-  data: {
-    label?: string;
-    text?: string;
-    onUpdate?: (id: string, updates: any) => void;
-  };
-  selected?: boolean;
-}) {
+export type GlobalScriptNodeData = {
+  label?: string;
+  text?: string;
+  onUpdate?: (id: string, updates: any) => void;
+};
+
+export type GlobalScriptNode = Node<GlobalScriptNodeData, "globalScript">;
+
+function GlobalScriptNode({ id, data, selected }: NodeProps<GlobalScriptNode>) {
   return (
-    <div
+    <Card 
       className={cn(
-        "group relative flex flex-col bg-card border-2 rounded-lg shadow-2xl transition-all overflow-hidden",
-        selected ? "border-blue-800" : "border-border hover:border-input/80",
+        "w-[400px] p-0 overflow-hidden border-2 shadow-2xl transition-all rounded-[24px]",
+        selected ? "border-primary ring-4 ring-primary/10" : "border-border/40 bg-card"
       )}
     >
-      {/* Label above the card */}
-      <div className="absolute -top-7 left-0 flex items-center gap-2">
+      <CardHeader className="m-0 bg-muted/30 px-4 py-3 border-b border-border/50 flex flex-row items-center gap-2">
         <FileText className="w-4 h-4 text-primary" />
-        <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+        <CardTitle className="text-[11px] font-black uppercase tracking-widest text-muted-foreground flex-1">
           Master Script
+        </CardTitle>
+        <span className="text-[9px] font-bold text-muted-foreground/50 uppercase tracking-widest px-2">
+          {data.label || "Project"}
         </span>
-      </div>
+      </CardHeader>
 
-      {/* Header Actions */}
-      <div className="flex items-center justify-between px-5 py-4">
-        <div className="flex gap-2">
-          <div className="p-2 rounded-xl bg-muted border border-border">
-            <AlignLeft className="w-3.5 h-3.5 text-muted-foreground" />
+      <CardContent className="p-4 space-y-4">
+        <Textarea
+          value={data.text || ""}
+          onChange={(e) => data.onUpdate?.(id, { text: e.target.value })}
+          placeholder="Enter the master script for your video..."
+          className="nodrag nopan nowheel min-h-[150px] p-4 text-sm leading-relaxed text-foreground font-medium bg-muted/10 border border-border/50 rounded-xl focus-visible:ring-primary/20 transition-all resize-none"
+        />
+
+        <div className="flex flex-col gap-3 pt-2">
+          <Label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-60">
+            Connections
+          </Label>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="relative flex items-center gap-2 p-2 rounded-lg bg-muted/20 border border-border/50">
+              <Handle
+                id="bottom"
+                type="source"
+                position={Position.Bottom}
+                className="!w-3 !h-3 !bg-muted-foreground/40 !border-2 !border-background shadow-lg"
+              />
+              <span className="text-[10px] font-bold text-muted-foreground/80">Global Settings</span>
+            </div>
+            <div className="relative flex items-center justify-end gap-2 p-2 rounded-lg bg-primary/5 border border-primary/10">
+              <span className="text-[10px] font-bold text-primary/80">Scene Flow</span>
+              <Handle
+                id="right"
+                type="source"
+                position={Position.Right}
+                className="!w-3 !h-3 !bg-primary !border-2 !border-background shadow-lg hover:scale-110 transition-transform"
+              />
+            </div>
           </div>
         </div>
-        <span className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest">
-          {data.label || "Project Script"}
-        </span>
-      </div>
-
-      {/* Content */}
-      <div className="px-6 pb-8">
-        <textarea
-          value={data.text || ""}
-          onChange={(e) => data.onUpdate?.(id, { script: e.target.value })}
-          placeholder="Enter the master script for your video..."
-          className="w-full text-[14px] leading-[1.6] text-foreground font-medium bg-transparent border-none resize-none focus:outline-none focus:ring-0 min-h-[120px] max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent"
-        />
-      </div>
-
-      {/* Connection Handles */}
-      <Handle
-        type="source"
-        id="right"
-        position={Position.Right}
-        className="!w-9 !h-9 !bg-muted/80 !border-2 !border-border !rounded-full flex items-center justify-center !-right-4 !top-1/2 !-translate-y-1/2 z-10 shadow-lg"
-      >
-        <FileText className="w-3.5 h-3.5 text-white pointer-events-none" />
-      </Handle>
-      <Handle
-        type="source"
-        id="bottom"
-        position={Position.Bottom}
-        className="!w-9 !h-9 !bg-muted/80 !border-2 !border-border !rounded-full flex items-center justify-center !-bottom-4 !left-1/2 !-translate-x-1/2 z-10 shadow-lg"
-      >
-        <Settings className="w-3.5 h-3.5 text-white pointer-events-none" />
-      </Handle>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
+
+export default memo(GlobalScriptNode);

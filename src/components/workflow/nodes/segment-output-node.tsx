@@ -1,94 +1,79 @@
 "use client";
 
-import React from "react";
-import { Handle, Position } from "@xyflow/react";
-import { Layers, CheckCircle2, Clapperboard, Mic } from "lucide-react";
+import React, { memo } from "react";
+import { Position, type NodeProps, type Node, Handle } from "@xyflow/react";
+import { Layers, CheckCircle2, Clapperboard } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 
-export default function SegmentOutputNode({
-  data,
-  selected,
-}: {
-  data: { label: string; shotCount?: number; hasAudio?: boolean };
-  selected?: boolean;
-}) {
-  const shotCount = data.shotCount || 0;
-  const hasAudio = !!data.hasAudio;
-  const totalInputs = shotCount + (hasAudio ? 1 : 0);
+export type SegmentOutputNodeData = {
+  label: string;
+  shotCount?: number;
+  hasAudio?: boolean;
+};
 
+export type SegmentOutputNode = Node<SegmentOutputNodeData, "segmentOutput">;
+
+function SegmentOutputNode({ id, data, selected }: NodeProps<SegmentOutputNode>) {
   return (
-    <div
+    <Card 
       className={cn(
-        "group relative flex flex-col w-[400px] bg-card border-2 rounded-lg shadow-2xl transition-all overflow-hidden",
-        selected ? "border-blue-800" : "border-border hover:border-input/80",
+        "w-[260px] p-0 overflow-hidden border-2 shadow-2xl transition-all rounded-[24px]",
+        selected ? "border-primary ring-4 ring-primary/10" : "border-border/40 bg-card"
       )}
-      style={{ width: 200 }}
     >
-      {/* Label above the card */}
-      <div className="absolute -top-7 left-0 flex items-center gap-2 px-1">
-        <Clapperboard className="w-3.5 h-3.5 text-blue-400 drop-shadow-md" />
-        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground drop-shadow-md">
-          Segment Output
-        </span>
-      </div>
+      <CardHeader className="m-0 bg-muted/30 px-4 py-3 border-b border-border/50 flex flex-row items-center gap-2">
+        <Clapperboard className="w-4 h-4 text-blue-400" />
+        <CardTitle className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+          Scene Collector
+        </CardTitle>
+      </CardHeader>
 
-      <div className="p-5 flex flex-col items-center justify-center gap-3">
-        <div className="w-12 h-12 rounded-full bg-muted border-2 border-border flex items-center justify-center relative shadow-inner">
-          <Layers className="w-5 h-5 text-muted-foreground" />
-          <div className="absolute -bottom-1 -right-1 bg-background rounded-full">
-            <CheckCircle2 className="w-4 h-4 text-primary" />
+      <CardContent className="p-6 flex flex-col gap-6">
+        <div className="flex flex-col items-center justify-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-muted border-2 border-border flex items-center justify-center relative shadow-inner">
+            <Layers className="w-7 h-7 text-muted-foreground/50" />
+            <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-0.5 border border-border shadow-sm">
+              <CheckCircle2 className="w-5 h-5 text-primary" />
+            </div>
+          </div>
+          <div className="text-center">
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60 mb-1">
+              {data.label}
+            </p>
+            <p className="text-xs font-bold text-foreground">Aggregated Stream</p>
           </div>
         </div>
-        <div className="text-center">
-          <p className="text-sm font-bold text-foreground">Rendered Segment</p>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">
-            {data.label}
-          </p>
+
+        <div className="flex flex-col gap-3 pt-2">
+           <Label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-60 px-1">
+            Stream Capture
+          </Label>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="relative flex items-center gap-2 p-2 rounded-lg bg-muted/20 border border-border/50">
+              <Handle
+                id="input"
+                type="target"
+                position={Position.Left}
+                className="!w-3 !h-3 !bg-muted-foreground/40 !border-2 !border-background shadow-lg hover:scale-110 transition-transform"
+              />
+              <span className="text-[10px] font-bold text-muted-foreground/80">From Scene</span>
+            </div>
+            <div className="relative flex items-center justify-end gap-2 p-2 rounded-lg bg-primary/5 border border-primary/10">
+              <span className="text-[10px] font-bold text-primary/80">Full Video</span>
+              <Handle
+                id="right"
+                type="source"
+                position={Position.Right}
+                className="!w-3 !h-3 !bg-primary !border-2 !border-background shadow-lg hover:scale-110 transition-transform"
+              />
+            </div>
+          </div>
         </div>
-      </div>
-
-      {/* Dynamic Target Handles */}
-      {hasAudio && (
-        <Handle
-          type="target"
-          id="voice"
-          position={Position.Left}
-          style={{ top: totalInputs > 1 ? "15%" : "50%" }}
-          className="!w-9 !h-9 !bg-muted/80 !border-2 !border-border !rounded-full flex items-center justify-center !-left-4 !-translate-y-1/2 z-10 shadow-lg"
-        >
-          <Mic className="w-3.5 h-3.5 text-white pointer-events-none" />
-        </Handle>
-      )}
-
-      {Array.from({ length: shotCount }).map((_, i) => {
-        // Calculate offset to spread them. If total is 1, center it.
-        // Otherwise, spread between 30% and 85%
-        const start = hasAudio ? 35 : 15;
-        const end = 85;
-        const step = totalInputs > 1 ? (end - start) / Math.max(1, shotCount - 1) : 0;
-        const top = totalInputs > 1 ? start + i * step : 50;
-
-        return (
-          <Handle
-            key={i}
-            type="target"
-            id={`shot-${i}`}
-            position={Position.Left}
-            style={{ top: `${top}%` }}
-            className="!w-9 !h-9 !bg-muted/80 !border-2 !border-border !rounded-full flex items-center justify-center !-left-4 !-translate-y-1/2 z-10 shadow-lg"
-          >
-            <Layers className="w-3.5 h-3.5 text-white pointer-events-none" />
-          </Handle>
-        );
-      })}
-
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="!w-9 !h-9 !bg-muted/80 !border-2 !border-border !rounded-full flex items-center justify-center !-right-4 !top-1/2 !-translate-y-1/2 z-10 shadow-lg"
-      >
-        <Clapperboard className="w-3.5 h-3.5 text-white pointer-events-none" />
-      </Handle>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
+
+export default memo(SegmentOutputNode);

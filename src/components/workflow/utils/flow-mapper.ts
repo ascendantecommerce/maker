@@ -76,7 +76,7 @@ export const mapSchemaToFlow = (
       text: schema?.script,
       onUpdate: callbacks?.onUpdate,
     },
-    style: { width: 400, height: 250 },
+    style: { width: 400, height: 350 },
     position: { x: 0, y: 0 },
   });
 
@@ -92,25 +92,31 @@ export const mapSchemaToFlow = (
       data: {
         products: productImages,
       },
-      style: { width: 260, height: 300 },
+      style: { width: 300, height: 400 },
       position: { x: 0, y: 0 },
     });
+  }
 
-    edges.push({
-      id: `e-${globalScriptId}-${productNodeId}`,
-      source: globalScriptId,
-      sourceHandle: "bottom",
-      target: productNodeId,
-      ...productEdge(),
+  // 2.1 Avatar Node
+  const avatarNodeId = "global-avatar";
+  if (schema?.avatar?.url) {
+    nodes.push({
+      id: avatarNodeId,
+      type: "avatar",
+      data: {
+        avatar: schema.avatar,
+      },
+      style: { width: 300, height: 600 },
+      position: { x: 0, y: 0 },
     });
   }
 
   // 3. Map Segments
   segments.forEach((segment, segmentIndex) => {
     const segmentGroupId = `segment-group-${segment.id}`;
-    const segmentNodeId = `unified-seg-${segment.id}`;
-    const visualsGroupId = `visuals-group-${segment.id}`;
-    const shots = segment.shots || [];
+    const contentGroupId = `segment-content-group-${segment.id}`;
+    const scriptNodeId = `script-${segment.id}`;
+    const voiceNodeId = `voice-${segment.id}`;
 
     // Segment Group Node (Outer Container)
     nodes.push({
@@ -125,32 +131,46 @@ export const mapSchemaToFlow = (
       position: { x: 0, y: 0 },
     });
 
-    // Unified Segment Node (Child of segmentGroup)
+    // Segment Content Group (Inner Container)
     nodes.push({
-      id: segmentNodeId,
-      type: "unifiedSegment",
+      id: contentGroupId,
+      type: "segmentContentGroup",
       parentId: segmentGroupId,
-      data: {
-        label: `Scene Content ${segmentIndex + 1}`,
-        text: segment.text,
-        voiceUrl: segment.textToSpeech?.src || segment.audioUrl,
-        voiceDuration: segment.textToSpeech?.duration || segment.audioDuration,
-        onUpdate: callbacks?.onUpdate,
-      },
-      style: { width: NODE_WIDTH, height: 380 },
+      data: { id: contentGroupId, index: segmentIndex },
+      style: {},
       position: { x: 0, y: 0 },
     });
 
-    // Edge: Global Script -> Unified Segment
-    edges.push({
-      id: `e-${globalScriptId}-${segmentNodeId}`,
-      source: globalScriptId,
-      sourceHandle: "right",
-      target: segmentNodeId,
-      ...primaryEdge(),
+    // Script Node (Child of contentGroup)
+    nodes.push({
+      id: scriptNodeId,
+      type: "script",
+      parentId: contentGroupId,
+      data: {
+        text: segment.text,
+        onUpdate: callbacks?.onUpdate,
+      },
+      style: { width: NODE_WIDTH, height: 350 },
+      position: { x: 0, y: 0 },
+    });
+
+    // Voice Node (Child of contentGroup)
+    nodes.push({
+      id: voiceNodeId,
+      type: "voice",
+      parentId: contentGroupId,
+      data: {
+        voiceUrl: segment.textToSpeech?.src || segment.audioUrl,
+        voiceDuration: segment.textToSpeech?.duration || segment.audioDuration,
+      },
+      style: { width: 340, height: 420 },
+      position: { x: 0, y: 0 },
     });
 
     // Visuals Group Node (Inner Container - Child of segmentGroup)
+    const visualsGroupId = `visuals-group-${segment.id}`;
+    const shots = segment.shots || [];
+    
     nodes.push({
       id: visualsGroupId,
       type: "visualsGroup",
@@ -160,69 +180,169 @@ export const mapSchemaToFlow = (
       position: { x: 0, y: 0 },
     });
 
-    // UNIFIED CONNECTION: Voiceover Node -> Visuals Group
+    // Edge: Global Script -> Script Node
     edges.push({
-      id: `e-${segmentNodeId}-${visualsGroupId}`,
-      source: segmentNodeId,
+      id: `e-${globalScriptId}-${scriptNodeId}`,
+      source: globalScriptId,
+      sourceHandle: "right",
+      target: scriptNodeId,
+      targetHandle: "input",
+      ...primaryEdge(),
+    });
+
+    // Edge: Script Node -> Voice Node
+    edges.push({
+      id: `e-${scriptNodeId}-${voiceNodeId}`,
+      source: scriptNodeId,
+      sourceHandle: "output",
+      target: voiceNodeId,
+      targetHandle: "input",
+      ...voiceEdge(),
+    });
+
+    // UNIFIED CONNECTION: Voice Node -> Visuals Group
+    edges.push({
+      id: `e-${voiceNodeId}-${visualsGroupId}`,
+      source: voiceNodeId,
+      sourceHandle: "output",
       target: visualsGroupId,
-      ...promptEdge(),
+      ...primaryEdge(),
     });
 
     // Map Shots directly as children of visualsGroup
     shots.forEach((shot, shotIndex) => {
       const shotBaseId = `shot-${segment.id}-${shotIndex}`;
 
-      // Unified Image Shot Node (Child of visualsGroup)
-      const imgShotId = `${shotBaseId}-img-unified`;
+      // Try to find the active assets for this segment as fallback
+      const activeImgAsset = segment.assets?.find(a => a.type === 'image' && a.active);
+      const activeVidAsset = segment.assets?.find(a => a.type === 'video' && a.active);
+
+      // --- 1. Image Shot Flow ---
+      const imgShotGroupId = `${shotBaseId}-img-group`;
       nodes.push({
-        id: imgShotId,
-        type: "unifiedShot",
+        id: imgShotGroupId,
+        type: "shotGroup",
         parentId: visualsGroupId,
+        data: { id: imgShotGroupId, type: "IMAGE", index: shotIndex },
+        style: {},
+        position: { x: 0, y: 0 },
+      });
+
+      const imgUrl = shot.imageUrl || activeImgAsset?.url;
+      const imgStatus = imgUrl ? "success" : (activeImgAsset?.status === 'generating' ? 'processing' : "idle");
+
+      const imgPromptId = `${shotBaseId}-img-prompt`;
+      nodes.push({
+        id: imgPromptId,
+        type: "prompt",
+        parentId: imgShotGroupId,
         data: {
           type: "IMAGE",
           shotIndex: shotIndex,
           promptText: shot.firstFramePrompt || segment.description,
-          outputUrl: shot.imageUrl,
-          status: shot.imageUrl ? "completed" : "idle",
+          status: imgStatus,
           model: "flux-pro",
-          isProduct: shot.type === "product",
           onUpdate: callbacks?.onUpdate,
           onGenerate: callbacks?.onGenerate,
         },
-        style: { width: NODE_WIDTH, height: 460 },
+        style: { width: NODE_WIDTH, height: 420 },
         position: { x: 0, y: 0 },
       });
 
+      const imgOutputId = `${shotBaseId}-img-output`;
+      nodes.push({
+        id: imgOutputId,
+        type: "shotOutput",
+        parentId: imgShotGroupId,
+        data: {
+          type: "IMAGE",
+          shotIndex: shotIndex,
+          outputUrl: imgUrl,
+          status: imgStatus,
+          promptText: shot.firstFramePrompt || segment.description,
+        },
+        style: { width: 340, height: 600 },
+        position: { x: 0, y: 0 },
+      });
+
+      // Internal Edge: Prompt -> Output
+      edges.push({
+        id: `e-${imgPromptId}-${imgOutputId}`,
+        source: imgPromptId,
+        sourceHandle: "result",
+        target: imgOutputId,
+        targetHandle: "input",
+        ...promptEdge(),
+      });
+
+      // External Edge: Product -> Prompt (REMOVED: Assumed connection)
+
       if (isVideoMode) {
-        // Unified Video Shot Node (Child of visualsGroup)
-        const vidShotId = `${shotBaseId}-vid-unified`;
+        // --- 2. Video Shot Flow ---
+        const vidShotGroupId = `${shotBaseId}-vid-group`;
         nodes.push({
-          id: vidShotId,
-          type: "unifiedShot",
+          id: vidShotGroupId,
+          type: "shotGroup",
           parentId: visualsGroupId,
+          data: { id: vidShotGroupId, type: "VIDEO", index: shotIndex },
+          style: {},
+          position: { x: 0, y: 0 },
+        });
+
+        const vidUrl = shot.videoUrl || activeVidAsset?.url;
+        const vidStatus = vidUrl ? "success" : (activeVidAsset?.status === 'generating' ? 'processing' : "idle");
+
+        const vidPromptId = `${shotBaseId}-vid-prompt`;
+        nodes.push({
+          id: vidPromptId,
+          type: "prompt",
+          parentId: vidShotGroupId,
           data: {
             type: "VIDEO",
             shotIndex: shotIndex,
             promptText: shot.videoPrompt || "",
-            outputUrl: shot.videoUrl,
-            status: shot.videoUrl ? "completed" : "idle",
+            status: vidStatus,
             model: "luma-ray",
-            isProduct: shot.type === "product",
-            isVideo: true,
             onUpdate: callbacks?.onUpdate,
             onGenerate: callbacks?.onGenerate,
           },
-          style: { width: NODE_WIDTH, height: 460 },
+          style: { width: NODE_WIDTH, height: 420 },
           position: { x: 0, y: 0 },
         });
 
-        // Internal Edge: Image Shot -> Video Shot (Vertical)
+        const vidOutputId = `${shotBaseId}-vid-output`;
+        nodes.push({
+          id: vidOutputId,
+          type: "shotOutput",
+          parentId: vidShotGroupId,
+          data: {
+            type: "VIDEO",
+            shotIndex: shotIndex,
+            outputUrl: vidUrl,
+            status: vidStatus,
+            promptText: shot.videoPrompt || "",
+          },
+          style: { width: 340, height: 600 },
+          position: { x: 0, y: 0 },
+        });
+
+        // Internal Edge: Prompt -> Output
         edges.push({
-          id: `e-${imgShotId}-${vidShotId}`,
-          source: imgShotId,
-          sourceHandle: "bottom",
-          target: vidShotId,
-          targetHandle: "top",
+          id: `e-${vidPromptId}-${vidOutputId}`,
+          source: vidPromptId,
+          sourceHandle: "result",
+          target: vidOutputId,
+          targetHandle: "input",
+          ...promptEdge(),
+        });
+
+        // Vertical Edge: Image Output -> Video Prompt
+        edges.push({
+          id: `e-${imgOutputId}-${vidPromptId}`,
+          source: imgOutputId,
+          sourceHandle: "result",
+          target: vidPromptId,
+          targetHandle: "asset",
           ...videoEdge(),
         });
       }
@@ -240,7 +360,7 @@ export const mapSchemaToFlow = (
         shotCount: shots.length,
         hasAudio: !!(segment.textToSpeech?.src || segment.audioUrl),
       },
-      style: { width: 200, height: 150 },
+      style: { width: 260, height: 320 },
       position: { x: 0, y: 0 },
     });
 
@@ -248,7 +368,9 @@ export const mapSchemaToFlow = (
     edges.push({
       id: `e-${segmentGroupId}-${segmentOutputId}`,
       source: segmentGroupId,
+      sourceHandle: "right",
       target: segmentOutputId,
+      targetHandle: "input",
       ...collectEdge(),
     });
   });
@@ -261,7 +383,7 @@ export const mapSchemaToFlow = (
     data: {
       segmentCount: segmentOutputIds.length,
     },
-    style: { width: 300, height: 400 },
+    style: { width: 320, height: 500 },
     position: { x: 0, y: 0 },
   });
 
@@ -270,7 +392,9 @@ export const mapSchemaToFlow = (
     edges.push({
       id: `e-${segOutId}-${globalOutputId}`,
       source: segOutId,
+      sourceHandle: "right",
       target: globalOutputId,
+      targetHandle: "input",
       ...collectEdge(),
     });
   });

@@ -1,0 +1,137 @@
+"use client";
+
+import React, { memo } from "react";
+import { Position, type NodeProps, type Node, Handle } from "@xyflow/react";
+import { Eye, RefreshCw, Settings2, Plus, Minus, ChevronDown, Wand2, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { VideoPlayer } from "@/components/ui/video-player";
+
+export type OutputNodeData = {
+  type: "IMAGE" | "VIDEO";
+  outputUrl?: string;
+  status: "idle" | "processing" | "success" | "error";
+  promptText?: string;
+  resolution?: string;
+  onUpdate?: (id: string, updates: any) => void;
+};
+
+export type OutputNode = Node<OutputNodeData, "output">;
+
+function OutputNode({ id, data, selected }: NodeProps<OutputNode>) {
+  const isVideo = data.type === "VIDEO";
+
+  return (
+    <div className="relative group/node w-full h-full bg-transparent">
+      {/* Label above the card - Moved to absolute -top to sit outside the clipping boundary */}
+      <div className="absolute -top-7 left-0 flex items-center gap-2 px-1 pointer-events-none whitespace-nowrap z-30">
+        <Eye className="w-3.5 h-3.5 text-muted-foreground/60 drop-shadow-md" />
+        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60 drop-shadow-md">
+          {isVideo ? "Motion Output" : "Visual Output"}
+        </span>
+      </div>
+
+      <div
+        className={cn(
+          "w-full h-full transition-all duration-500 rounded-[32px] overflow-hidden bg-background shadow-2xl border-2",
+          selected ? "border-primary/50 shadow-[0_0_50px_-12px_rgba(var(--primary),0.3)]" : "border-border/40 group-hover/node:border-border/60"
+        )}
+      >
+        <div className="relative w-full h-full flex flex-col">
+          {/* Media Container - Perfectly flush with the rounded card edges */}
+          <div className="absolute inset-0 z-0">
+            {data.outputUrl ? (
+              isVideo ? (
+                <VideoPlayer
+                  src={data.outputUrl}
+                  size="full"
+                  objectFit="cover"
+                  showBottomControls={false}
+                  className="w-full h-full rounded-none"
+                />
+              ) : (
+                <img src={data.outputUrl} alt="Output" className="w-full h-full object-cover" />
+              )
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-muted-foreground/20 bg-muted/5">
+                {data.status === "processing" ? (
+                  <>
+                    <Loader2 className="w-12 h-12 animate-spin text-primary/40" />
+                    <span className="text-[10px] font-black tracking-[0.2em] uppercase animate-pulse">Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="w-12 h-12 opacity-10" />
+                    <span className="text-[10px] font-black tracking-[0.2em] uppercase">No Result</span>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Floating Overlays */}
+          <div className="relative w-full h-full pointer-events-none">
+            {/* Resolution Badge */}
+            <div className="absolute top-6 right-6 z-10 pointer-events-auto">
+              <div className="px-3 py-1 bg-background/40 backdrop-blur-md border border-border/40 rounded-full text-[10px] font-black text-foreground/80 shadow-2xl">
+                {data.resolution || (isVideo ? "1080 x 1920" : "768 x 1376")}
+              </div>
+            </div>
+
+            {/* Bottom Overlay Info */}
+            <div className="absolute bottom-0 left-0 right-0 z-10 p-6 pt-24 bg-gradient-to-t from-background via-background/80 to-transparent pointer-events-auto">
+              <div className="flex flex-col gap-5">
+                {/* Prompt Text */}
+                <p className="text-[12px] leading-relaxed text-foreground/70 font-medium line-clamp-3 pl-1">
+                  {data.promptText || "Connected prompt. Use @ to add references or extra context"}
+                </p>
+
+                {/* Toolbar */}
+                <div className="flex items-center justify-between gap-2 mt-1">
+                  <div className="flex items-center gap-1 p-1 bg-muted/30 backdrop-blur-xl border border-border/40 rounded-full shadow-2xl">
+                    <Button size="icon" variant="ghost" className="w-8 h-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent/50">
+                      <Minus className="w-3 h-3" />
+                    </Button>
+                    <span className="text-[10px] font-black text-foreground/60 px-1">x1</span>
+                    <Button size="icon" variant="ghost" className="w-8 h-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent/50">
+                      <Plus className="w-3 h-3" />
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full bg-muted/30 backdrop-blur-xl border border-border/40 text-muted-foreground hover:text-foreground hover:bg-accent/50 shadow-2xl">
+                      <Settings2 className="w-4 h-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-2xl transition-transform active:scale-90">
+                      <RefreshCw className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Handles - Positioned relative to the root container for precise edge alignment */}
+      <div className="absolute top-1/2 -left-3 -translate-y-1/2 z-20">
+        <Handle
+          id="input"
+          type="target"
+          position={Position.Left}
+          className="!w-6 !h-6 !bg-primary !border-[4px] !border-background shadow-2xl hover:scale-110 transition-transform"
+        />
+      </div>
+      <div className="absolute top-1/2 -right-3 -translate-y-1/2 z-20">
+        <Handle
+          id="result"
+          type="source"
+          position={Position.Right}
+          className="!w-6 !h-6 !bg-muted-foreground/30 !border-[4px] !border-background shadow-2xl hover:scale-110 transition-transform"
+        />
+      </div>
+    </div>
+  );
+}
+
+export default memo(OutputNode);

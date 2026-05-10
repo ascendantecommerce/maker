@@ -1,55 +1,50 @@
 "use client";
 
-import React from "react";
-import { Handle, Position } from "@xyflow/react";
-import { Package, Image as ImageIcon, Plus } from "lucide-react";
+import React, { memo } from "react";
+import { Position, type NodeProps, type Node, Handle } from "@xyflow/react";
+import { Package, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 
-export default function ProductNode({
-  id,
-  data,
-  selected,
-}: {
-  id: string;
-  data: {
-    products?: { id: string; name: string; url: string }[];
-  };
-  selected?: boolean;
-}) {
+export type ProductNodeData = {
+  products?: { id: string; name: string; url: string }[];
+};
+
+export type ProductNode = Node<ProductNodeData, "product">;
+
+function ProductNode({ id, data, selected }: NodeProps<ProductNode>) {
   const hasProducts = data.products && data.products.length > 0;
 
   return (
-    <div
+    <Card 
       className={cn(
-        "group relative flex flex-col w-[400px] bg-card border-2 rounded-lg shadow-2xl transition-all overflow-hidden",
-        selected ? "border-blue-800" : "border-border hover:border-input/80",
+        "w-[300px] p-0 overflow-hidden border-2 shadow-2xl transition-all rounded-[24px]",
+        selected ? "border-primary ring-4 ring-primary/10" : "border-border/40 bg-card"
       )}
-      style={{ width: 260 }}
     >
-      {/* Label above the card */}
-      <div className="absolute -top-7 left-0 flex items-center gap-2 px-1">
-        <Package className="w-4 h-4 text-orange-400 drop-shadow-md" />
-        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground drop-shadow-md">
-          Product References
-        </span>
-      </div>
+      <CardHeader className="m-0 bg-muted/30 px-4 py-3 border-b border-border/50 flex flex-row items-center gap-2">
+        <Package className="w-4 h-4 text-orange-400" />
+        <CardTitle className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+          Brand Assets
+        </CardTitle>
+      </CardHeader>
 
-      {/* Content Area */}
-      <div className="p-4 flex flex-col gap-3">
+      <CardContent className="p-4 flex flex-col gap-4">
         {hasProducts ? (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-3">
             {data.products!.map((product, idx) => (
               <div
                 key={idx}
-                className="relative aspect-square rounded-lg overflow-hidden border border-border bg-muted/50 group/img"
+                className="relative aspect-square rounded-xl overflow-hidden border border-border bg-muted/50 group/img shadow-sm"
               >
                 <img
                   src={product.url}
                   alt={product.name}
-                  className="w-full h-full object-cover transition-transform group-hover/img:scale-105"
+                  className="w-full h-full object-cover transition-transform group-hover/img:scale-110"
                 />
-                <div className="absolute inset-x-0 bottom-0 p-1.5 bg-background/80 backdrop-blur-sm border-t border-border">
-                  <p className="text-[9px] font-bold text-foreground truncate text-center">
+                <div className="absolute inset-x-0 bottom-0 p-2 bg-background/90 backdrop-blur-md border-t border-border/50">
+                  <p className="text-[9px] font-black text-foreground truncate text-center uppercase tracking-tighter">
                     {product.name}
                   </p>
                 </div>
@@ -57,41 +52,44 @@ export default function ProductNode({
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-6 border-2 border-dashed border-border rounded-lg bg-muted/20 gap-3">
-            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-              <ImageIcon className="w-5 h-5 text-muted-foreground/50" />
+          <div className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-border/50 rounded-2xl bg-muted/10 gap-4">
+            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center border border-border/50 shadow-inner">
+              <ImageIcon className="w-6 h-6 text-muted-foreground/30" />
             </div>
-            <p className="text-[11px] font-medium text-muted-foreground">
-              No product images attached
+            <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.2em]">
+              Empty Library
             </p>
           </div>
         )}
-      </div>
 
-      {/* Handles */}
-      <Handle
-        type="target"
-        position={Position.Left}
-        className="!w-9 !h-9 !bg-muted/80 !border-2 !border-border !rounded-full flex items-center justify-center !-left-4 !top-1/2 !-translate-y-1/2 z-10 shadow-lg"
-      >
-        <Package className="w-3.5 h-3.5 text-white pointer-events-none" />
-      </Handle>
-      <Handle
-        type="source"
-        id="right"
-        position={Position.Right}
-        className="!w-9 !h-9 !bg-muted/80 !border-2 !border-border !rounded-full flex items-center justify-center !-right-4 !top-1/2 !-translate-y-1/2 z-10 shadow-lg"
-      >
-        <ImageIcon className="w-3.5 h-3.5 text-white pointer-events-none" />
-      </Handle>
-      <Handle
-        type="source"
-        id="bottom"
-        position={Position.Bottom}
-        className="!w-9 !h-9 !bg-muted/80 !border-2 !border-border !rounded-full flex items-center justify-center !-bottom-4 !left-1/2 !-translate-x-1/2 z-10 shadow-lg"
-      >
-        <Plus className="w-3.5 h-3.5 text-white pointer-events-none" />
-      </Handle>
-    </div>
+        <div className="flex flex-col gap-3 pt-2">
+           <Label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-60 px-1">
+            Library Sync
+          </Label>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="relative flex items-center gap-2 p-2 rounded-lg bg-muted/20 border border-border/50">
+              <Handle
+                id="target"
+                type="target"
+                position={Position.Left}
+                className="!w-3 !h-3 !bg-muted-foreground/40 !border-2 !border-background shadow-lg"
+              />
+              <span className="text-[10px] font-bold text-muted-foreground/80">Reference</span>
+            </div>
+            <div className="relative flex items-center justify-end gap-2 p-2 rounded-lg bg-primary/5 border border-primary/10">
+              <span className="text-[10px] font-bold text-primary/80">To Scenes</span>
+              <Handle
+                id="right"
+                type="source"
+                position={Position.Right}
+                className="!w-3 !h-3 !bg-primary !border-2 !border-background shadow-lg hover:scale-110 transition-transform"
+              />
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
+
+export default memo(ProductNode);
