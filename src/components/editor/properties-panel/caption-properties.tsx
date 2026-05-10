@@ -12,7 +12,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { IClip, AnimationOptions, KeyframeData } from '@openvideo/engine-pixi';
+import { IClip } from '@openvideo/engine-pixi';
 import {
   Select,
   SelectContent,
@@ -20,8 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { jsonToClip } from '@openvideo/engine-pixi';
-import { generateCaptionClips } from '@/lib/caption-generator';
 import { regenerateCaptionClips, WordsPerLineMode } from '@/lib/caption-utils';
 import {
   IconTextSize,
@@ -43,7 +41,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Slider } from '@/components/ui/slider';
 import color from 'color';
 
-import { fontManager } from '@openvideo/engine-pixi';
 import { getGroupedFonts, getFontByPostScriptName } from '@/utils/font-utils';
 
 import useLayoutStore from '../store/use-layout-store';
@@ -53,6 +50,7 @@ import { NumberInput } from '@/components/ui/number-input';
 import { useStore } from 'zustand';
 import { useEphemeralClip } from '@/hooks/use-ephemeral-clip';
 import { projectStore, core } from '@/lib/project';
+import { useCaptionUpdate } from '@/hooks/use-caption-update';
 import { nanoid } from 'nanoid';
 
 const GROUPED_FONTS = getGroupedFonts();
@@ -60,202 +58,71 @@ const GROUPED_FONTS = getGroupedFonts();
 interface CaptionPropertiesProps {
   clip: IClip;
 }
-type VerticalAlignMode = 'top' | 'center' | 'bottom';
 
 export function CaptionProperties({ clip }: CaptionPropertiesProps) {
   const coreClipBase = useStore(projectStore, (s) => s.clips[clip.id]) as any;
   const coreClip = useEphemeralClip(clip.id, coreClipBase);
-  const clips = useStore(projectStore, (s) => s.clips);
-  const captionClip = clip as any;
-  const allCaptionIds = React.useMemo(
-    () => Object.keys(clips).filter((id) => clips[id].type === 'Caption'),
-    [clips]
-  );
 
-
-  const allCaptionClips = Object.values(clips).filter(
-  (c: any) => c.type === "Caption"
-  );
-
-  if (!coreClip) return null;
-
-
-  const opts = {
-    ...((allCaptionClips[0] as any)?.caption?.colors || {}),
-    ...(coreClip.style || {}),
-  };
-  const captionColors = opts || {
-    appeared: "#ffffff",
-    active: "#ffffff",
-    activeFill: "#FF5700",
-    background: "",
-    keyword: "#ffffff",
-  };
-
+  const { updateOne, setStyle, setColors, setVerticalPosition, setFont } =
+    useCaptionUpdate(clip.id);
 
   const { setFloatingControl } = useLayoutStore();
 
-  const handleUpdate = (
-    updates: any,
-    option: 'single' | 'multiple' = 'single'
-  ) => {
-    if (option === 'multiple') {
-      const commands = allCaptionIds.map((id) => {
-        const c = projectStore.getState().clips[id];
-        const finalUpdates = { ...updates };
+  if (!coreClip) return null;
 
-        if (updates.style && c?.style) {
-          finalUpdates.style = { ...c.style, ...updates.style };
-        }
-        if (updates.caption && c?.caption) {
-          finalUpdates.caption = { ...c.caption, ...updates.caption };
-        }
-
-        return {
-          id: nanoid(),
-          type: 'clip.update',
-          payload: { id, updates: finalUpdates },
-        };
-      });
-      core.batch(commands);
-    } else {
-      const finalUpdates = { ...updates };
-      if (updates.style && coreClip?.style) {
-        finalUpdates.style = { ...coreClip.style, ...updates.style };
-      }
-      if (updates.caption && coreClip?.caption) {
-        finalUpdates.caption = { ...coreClip.caption, ...updates.caption };
-      }
-      core.clip.update(clip.id, finalUpdates);
-    }
+  const opts = coreClip.style || {};
+  const captionColors = (coreClip as any)?.caption?.colors ?? {
+    appeared: '#ffffff',
+    active: '#ffffff',
+    activeFill: '#FF5700',
+    background: '',
+    keyword: '#ffffff',
   };
 
-  const handleCaptionColorUpdate = (colorUpdates: any) => {
-    handleUpdate({ style: colorUpdates }, 'multiple');
-  };
-
-  const handleAnimationRemove = (id: string) => {
-    const anim = (coreClip.animations || []).find((a: any) => a.id === id);
-    const typeToRemove = anim?.type;
-
-    if (typeToRemove) {
-      const commands = allCaptionIds
-        .map((cId) => {
-          const c = projectStore.getState().clips[cId];
-          if (c && c.animations) {
-            const newAnims = c.animations.filter(
-              (a: any) => a.type !== typeToRemove
-            );
-            return {
-              id: nanoid(),
-              type: 'clip.update',
-              payload: { id: cId, updates: { animations: newAnims } },
-            };
-          }
-          return null;
-        })
-        .filter(Boolean) as any[];
-
-      core.batch(commands);
-    } else {
-      const newAnims = (coreClip.animations || []).filter(
-        (a: any) => a.id !== id
-      );
-      core.clip.update(clip.id, { animations: newAnims });
-    }
-  };
+  // ─── Animation helpers ──────────────────────────────────────────────────────
 
   const animations = coreClip.animations || [];
 
-  const handleFontChange = async (postScriptName: string) => {
-    const font = getFontByPostScriptName(postScriptName);
-    if (!font) return;
+  const handleAnimationRemove = (id: string) => {
+    const anim = animations.find((a: any) => a.id === id);
+    const typeToRemove = anim?.type;
 
-    await fontManager.addFont({
-      name: font.postScriptName,
-      url: font.url,
-    });
-
-    handleUpdate(
-      {
-        style: {
-          fontFamily: font.postScriptName,
-          fontUrl: font.url,
-        }
-      },
-      'multiple'
-    );
+    if (typeToRemove) {
+      // Remove by type across all caption clips
+      const clips = projectStore.getState().clips;
+      const allCaptionIds = Object.keys(clips).filter(
+        (cId) => clips[cId].type === 'Caption'
+      );
+      const commands = allCaptionIds
+        .map((cId) => {
+          const c = clips[cId];
+          if (!c?.animations) return null;
+          return {
+            id: nanoid(),
+            type: 'clip.update' as const,
+            payload: {
+              id: cId,
+              updates: {
+                animations: c.animations.filter((a: any) => a.type !== typeToRemove),
+              },
+            },
+          };
+        })
+        .filter(Boolean) as any[];
+      core.batch(commands);
+    } else {
+      updateOne({
+        animations: animations.filter((a: any) => a.id !== id),
+      });
+    }
   };
 
-  async function changeWordsPerLine(v: string, captionClip: any, opts: any) {
-    const val = v as WordsPerLineMode;
-
-    await regenerateCaptionClips({
-      captionClip,
-      mode: val,
-      fontSize: opts.fontSize,
-      fontFamily: opts.fontFamily,
-      fontUrl: opts.fontUrl,
-    });
-  }
-
-  function updateVerticalAlign(
-    v: string,
-    captionClip: any,
-    handleUpdate: (updates: { top: number }) => void
-  ) {
-    const project = projectStore.getState();
-    const videoHeight = project.settings.height || 1080;
-    const mediaId = coreClip.mediaId;
-
-    // Find siblings if part of a group
-    let clipsToUpdate: any[] = [captionClip];
-
-    if (mediaId) {
-      const tracks = project.tracks;
-      const siblingClips: any[] = [];
-      tracks.forEach((track: any) => {
-        track.clipIds.forEach((id: string) => {
-          const c = project.clips[id];
-          if (c && c.type === 'Caption' && (c as any).mediaId === mediaId) {
-            siblingClips.push(c);
-          }
-        });
-      });
-      if (siblingClips.length > 0) {
-        clipsToUpdate = siblingClips;
-      }
-    }
-
-    // Apply updates
-    clipsToUpdate.forEach((clip) => {
-      const clipHeight = clip.height || 0;
-      let newTop = clip.top;
-
-      if (v === 'top') {
-        newTop = 80;
-      } else if (v === 'center') {
-        newTop = (videoHeight - clipHeight) / 2;
-      } else if (v === 'bottom') {
-        newTop = videoHeight - clipHeight - 80;
-      }
-
-      if (clip.id === coreClip.id) {
-        handleUpdate({ top: newTop });
-      } else {
-        core.clip.update(clip.id, { top: newTop });
-      }
-
-      // Metadata updates if needed
-      // These will be handled by the engine.updateClip calls above
-    });
-  }
+  // ─── Font helpers ───────────────────────────────────────────────────────────
 
   const currentFont =
     getFontByPostScriptName(opts.fontFamily) || GROUPED_FONTS[0].mainFont;
   const currentFamily =
-    GROUPED_FONTS.find((f) => f.family === currentFont.family) ||
-    GROUPED_FONTS[0];
+    GROUPED_FONTS.find((f) => f.family === currentFont.family) || GROUPED_FONTS[0];
 
   return (
     <div className="flex flex-col gap-5">
@@ -266,7 +133,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
         </label>
         <Textarea
           value={coreClip.text || ''}
-          onChange={(e) => handleUpdate({ text: e.target.value })}
+          onChange={(e) => updateOne({ text: e.target.value })}
           className="resize-none text-sm"
           placeholder="Enter caption text..."
         />
@@ -280,31 +147,23 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
         <div className="grid grid-cols-2 gap-2">
           <InputGroup>
             <InputGroupAddon align="inline-start">
-              <span className="text-[10px] font-medium text-muted-foreground">
-                X
-              </span>
+              <span className="text-[10px] font-medium text-muted-foreground">X</span>
             </InputGroupAddon>
             <InputGroupInput
               type="number"
               value={Math.round(coreClip.left || 0)}
-              onChange={(e) =>
-                handleUpdate({ left: parseInt(e.target.value) || 0 })
-              }
+              onChange={(e) => updateOne({ left: parseInt(e.target.value) || 0 })}
               className="text-sm p-0"
             />
           </InputGroup>
           <InputGroup>
             <InputGroupAddon align="inline-start">
-              <span className="text-[10px] font-medium text-muted-foreground">
-                Y
-              </span>
+              <span className="text-[10px] font-medium text-muted-foreground">Y</span>
             </InputGroupAddon>
             <InputGroupInput
               type="number"
               value={Math.round(coreClip.top || 0)}
-              onChange={(e) =>
-                handleUpdate({ top: parseInt(e.target.value) || 0 })
-              }
+              onChange={(e) => updateOne({ top: parseInt(e.target.value) || 0 })}
               className="text-sm p-0"
             />
           </InputGroup>
@@ -312,31 +171,23 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
         <div className="grid grid-cols-2 gap-2">
           <InputGroup>
             <InputGroupAddon align="inline-start">
-              <span className="text-[10px] font-medium text-muted-foreground">
-                W
-              </span>
+              <span className="text-[10px] font-medium text-muted-foreground">W</span>
             </InputGroupAddon>
             <InputGroupInput
               type="number"
               value={Math.round(coreClip.width || 0)}
-              onChange={(e) =>
-                handleUpdate({ width: parseInt(e.target.value) || 0 })
-              }
+              onChange={(e) => updateOne({ width: parseInt(e.target.value) || 0 })}
               className="text-sm p-0"
             />
           </InputGroup>
           <InputGroup>
             <InputGroupAddon align="inline-start">
-              <span className="text-[10px] font-medium text-muted-foreground">
-                H
-              </span>
+              <span className="text-[10px] font-medium text-muted-foreground">H</span>
             </InputGroupAddon>
             <InputGroupInput
               type="number"
               value={Math.round(coreClip.height || 0)}
-              onChange={(e) =>
-                handleUpdate({ height: parseInt(e.target.value) || 0 })
-              }
+              onChange={(e) => updateOne({ height: parseInt(e.target.value) || 0 })}
               className="text-sm p-0"
             />
           </InputGroup>
@@ -350,7 +201,9 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
         </label>
         <Select
           value={opts.verticalAlign || 'bottom'}
-          onValueChange={(v) => updateVerticalAlign(v, coreClip, handleUpdate)}
+          onValueChange={(v) =>
+            setVerticalPosition(v as 'top' | 'center' | 'bottom')
+          }
         >
           <SelectTrigger className="w-full h-9">
             <SelectValue placeholder="Vertical Position" />
@@ -370,7 +223,15 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
         </label>
         <Select
           value={coreClip.wordsPerLine || 'multiple'}
-          onValueChange={(v) => changeWordsPerLine(v, coreClip, opts)}
+          onValueChange={(v) =>
+            regenerateCaptionClips({
+              captionClip: coreClip,
+              mode: v as WordsPerLineMode,
+              fontSize: opts.fontSize,
+              fontFamily: opts.fontFamily,
+              fontUrl: opts.fontUrl,
+            })
+          }
         >
           <SelectTrigger className="w-full h-9">
             <SelectValue placeholder="Words per line" />
@@ -391,7 +252,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
           <IconRotate className="size-4 text-muted-foreground" />
           <Slider
             value={[Math.round(coreClip.angle ?? 0)]}
-            onValueChange={(v) => handleUpdate({ angle: v[0] })}
+            onValueChange={(v) => updateOne({ angle: v[0] })}
             max={360}
             step={1}
             className="flex-1"
@@ -400,9 +261,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
             <InputGroupInput
               type="number"
               value={Math.round(coreClip.angle ?? 0)}
-              onChange={(e) =>
-                handleUpdate({ angle: parseInt(e.target.value) || 0 })
-              }
+              onChange={(e) => updateOne({ angle: parseInt(e.target.value) || 0 })}
               className="text-sm p-0 text-center"
             />
             <InputGroupAddon align="inline-end" className="p-0 pr-2">
@@ -422,16 +281,12 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
           value={currentFamily.family}
           onValueChange={(v) => {
             const family = GROUPED_FONTS.find((f) => f.family === v);
-            if (family) {
-              handleFontChange(family.mainFont.postScriptName);
-            }
+            if (family) setFont(family.mainFont.postScriptName);
           }}
         >
           <SelectTrigger className="w-full h-12">
             <SelectValue placeholder="Select font">
-              <div className="flex items-center h-full">
-                {currentFamily.family}
-              </div>
+              <div className="flex items-center h-full">{currentFamily.family}</div>
             </SelectValue>
           </SelectTrigger>
           <SelectContent className="max-h-[300px]">
@@ -452,7 +307,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
         <div className="grid grid-cols-2 gap-2">
           <Select
             value={currentFont.postScriptName}
-            onValueChange={(v) => handleFontChange(v)}
+            onValueChange={(v) => setFont(v)}
           >
             <SelectTrigger className="bg-input border h-9 w-full overflow-hidden">
               <SelectValue placeholder="Style" />
@@ -460,8 +315,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
             <SelectContent>
               {currentFamily.styles.map((style) => (
                 <SelectItem key={style.id} value={style.postScriptName}>
-                  {style.fullName.replace(currentFamily.family, '').trim() ||
-                    'Regular'}
+                  {style.fullName.replace(currentFamily.family, '').trim() || 'Regular'}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -470,10 +324,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
           <InputGroup>
             <NumberInput
               value={opts.fontSize || 40}
-              onChange={(e) => {
-                const newSize = e || 0;
-                handleUpdate({ style: { fontSize: newSize } }, 'multiple');
-              }}
+              onChange={(v) => setStyle({ fontSize: v || 0 })}
               className="text-sm"
             />
             <InputGroupAddon align="inline-end">
@@ -497,9 +348,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
             ].map((item) => (
               <button
                 key={item.value}
-                onClick={() =>
-                  handleUpdate({ style: { textCase: item.value } }, 'multiple')
-                }
+                onClick={() => setStyle({ textCase: item.value as any })}
                 className={cn(
                   'flex-1 text-[10px] font-medium flex items-center justify-center rounded-sm py-1 transition-colors',
                   (coreClip.style?.textCase || 'none') === item.value
@@ -516,47 +365,23 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
             <InputGroupAddon align="inline-start" className="relative p-0">
               <Popover modal={true}>
                 <PopoverTrigger asChild>
-                  <InputGroupButton
-                    variant="ghost"
-                    size="icon-xs"
-                    className="h-full w-8"
-                  >
+                  <InputGroupButton variant="ghost" size="icon-xs" className="h-full w-8">
                     <div
                       className="h-4 w-4 border border-white/10 shadow-sm"
-                      style={{
-                        backgroundColor: (opts.fill as string) || '#ffffff',
-                      }}
+                      style={{ backgroundColor: (opts.fill as string) || '#ffffff' }}
                     />
                   </InputGroupButton>
                 </PopoverTrigger>
                 <PopoverContent className="w-64 p-3" align="start">
-                  <ColorPicker
-                    onChange={(colorValue) => {
-                      const hexColor = color.rgb(colorValue).hex();
-                      handleUpdate({ style: { fill: hexColor } }, 'multiple');
-                    }}
-                    className="w-72 h-72 rounded-md border bg-background p-4 shadow-sm"
-                  >
-                    <ColorPickerSelection />
-                    <div className="flex items-center gap-4">
-                      <ColorPickerEyeDropper />
-                      <div className="grid w-full gap-1">
-                        <ColorPickerHue />
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <ColorPickerOutput />
-                      <ColorPickerFormat />
-                    </div>
-                  </ColorPicker>
+                  <ColorPickerPanel
+                    onChange={(hex) => setStyle({ fill: hex })}
+                  />
                 </PopoverContent>
               </Popover>
             </InputGroupAddon>
             <InputGroupInput
-              value={opts.fill?.toUpperCase() || '#FFFFFF'}
-              onChange={(e) =>
-                handleUpdate({ style: { fill: e.target.value } }, 'multiple')
-              }
+              value={(opts.fill as string)?.toUpperCase() || '#FFFFFF'}
+              onChange={(e) => setStyle({ fill: e.target.value })}
               className="text-sm p-0 text-[10px] font-mono"
             />
           </InputGroup>
@@ -572,7 +397,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
           <IconCircle className="size-4 text-muted-foreground" />
           <Slider
             value={[Math.round((coreClip.opacity ?? 1) * 100)]}
-            onValueChange={(v) => handleUpdate({ opacity: v[0] / 100 })}
+            onValueChange={(v) => updateOne({ opacity: v[0] / 100 })}
             max={100}
             step={1}
             className="flex-1"
@@ -582,7 +407,7 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
               type="number"
               value={Math.round((coreClip.opacity ?? 1) * 100)}
               onChange={(e) =>
-                handleUpdate({ opacity: (parseInt(e.target.value) || 0) / 100 })
+                updateOne({ opacity: (parseInt(e.target.value) || 0) / 100 })
               }
               className="text-sm p-0 text-center"
             />
@@ -600,12 +425,12 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
             Animations
           </label>
           <button
-            onClick={() => {
+            onClick={() =>
               setFloatingControl('animation-properties-picker', {
                 clipId: coreClip.id,
                 mode: 'add',
-              });
-            }}
+              })
+            }
             className="text-muted-foreground hover:text-white transition-colors"
           >
             <IconPlus className="size-3.5" />
@@ -625,22 +450,20 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
                 className="flex items-center justify-between p-2 bg-secondary/30 rounded-md group"
               >
                 <div className="flex flex-col flex-1">
-                  <span className="text-xs font-medium capitalize">
-                    {anim.type}
-                  </span>
+                  <span className="text-xs font-medium capitalize">{anim.type}</span>
                   <span className="text-[10px] text-muted-foreground">
                     {Math.round((anim.options?.duration ?? 0) / 1e6)}s duration
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
                   <button
-                    onClick={() => {
+                    onClick={() =>
                       setFloatingControl('animation-properties-picker', {
                         clipId: coreClip.id,
                         animationId: anim.id,
                         mode: 'edit',
-                      });
-                    }}
+                      })
+                    }
                     className="p-1 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-white transition-all"
                   >
                     <IconEdit className="size-3.5" />
@@ -683,272 +506,74 @@ export function CaptionProperties({ clip }: CaptionPropertiesProps) {
           Caption Colors
         </label>
 
-        {/* Appeared Color */}
-        <div className="flex flex-col gap-1">
-          <span className="text-[9px] text-muted-foreground">Appeared</span>
-          <InputGroup>
-            <InputGroupAddon align="inline-start" className="relative p-0">
-              <Popover modal={true}>
-                <PopoverTrigger asChild>
-                  <InputGroupButton
-                    variant="ghost"
-                    size="icon-xs"
-                    className="h-full w-8"
-                  >
-                    <div
-                      className="h-4 w-4 border border-white/10 shadow-sm"
-                      style={{
-                        backgroundColor: captionColors.appeared || '#ffffff',
-                      }}
+        {(
+          [
+            { key: 'appeared', label: 'Appeared', fallback: '#ffffff' },
+            { key: 'active', label: 'Active', fallback: '#ffffff' },
+            { key: 'activeFill', label: 'Active Fill', fallback: '#FF5700' },
+            { key: 'background', label: 'Background', fallback: '' },
+            { key: 'keyword', label: 'Keyword', fallback: '#ffffff' },
+          ] as const
+        ).map(({ key, label, fallback }) => (
+          <div key={key} className="flex flex-col gap-1">
+            <span className="text-[9px] text-muted-foreground">{label}</span>
+            <InputGroup>
+              <InputGroupAddon align="inline-start" className="relative p-0">
+                <Popover modal={true}>
+                  <PopoverTrigger asChild>
+                    <InputGroupButton
+                      variant="ghost"
+                      size="icon-xs"
+                      className="h-full w-8"
+                    >
+                      <div
+                        className="h-4 w-4 border border-white/10 shadow-sm"
+                        style={{
+                          backgroundColor: captionColors[key] || fallback || 'transparent',
+                        }}
+                      />
+                    </InputGroupButton>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-3" align="start">
+                    <ColorPickerPanel
+                      onChange={(hex) => setColors({ [key]: hex })}
                     />
-                  </InputGroupButton>
-                </PopoverTrigger>
-                <PopoverContent className="w-64 p-3" align="start">
-                  <ColorPicker
-                    onChange={(colorValue) => {
-                      const hexColor = color.rgb(colorValue).hex();
-                      handleCaptionColorUpdate({ appeared: hexColor });
-                    }}
-                    className="w-72 h-72 rounded-md border bg-background p-4 shadow-sm"
-                  >
-                    <ColorPickerSelection />
-                    <div className="flex items-center gap-4">
-                      <ColorPickerEyeDropper />
-                      <div className="grid w-full gap-1">
-                        <ColorPickerHue />
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <ColorPickerOutput />
-                      <ColorPickerFormat />
-                    </div>
-                  </ColorPicker>
-                </PopoverContent>
-              </Popover>
-            </InputGroupAddon>
-            <InputGroupInput
-              value={captionColors.appeared?.toUpperCase() || '#FFFFFF'}
-              onChange={(e) =>
-                handleCaptionColorUpdate({ appeared: e.target.value })
-              }
-              className="text-sm p-0 text-[10px] font-mono"
-            />
-          </InputGroup>
-        </div>
-
-        {/* Active Color */}
-        <div className="flex flex-col gap-1">
-          <span className="text-[9px] text-muted-foreground">Active</span>
-          <InputGroup>
-            <InputGroupAddon align="inline-start" className="relative p-0">
-              <Popover modal={true}>
-                <PopoverTrigger asChild>
-                  <InputGroupButton
-                    variant="ghost"
-                    size="icon-xs"
-                    className="h-full w-8"
-                  >
-                    <div
-                      className="h-4 w-4 border border-white/10 shadow-sm"
-                      style={{
-                        backgroundColor: captionColors.active || '#ffffff',
-                      }}
-                    />
-                  </InputGroupButton>
-                </PopoverTrigger>
-                <PopoverContent className="w-64 p-3" align="start">
-                  <ColorPicker
-                    onChange={(colorValue) => {
-                      const hexColor = color.rgb(colorValue).hex();
-                      handleCaptionColorUpdate({ active: hexColor });
-                    }}
-                    className="w-72 h-72 rounded-md border bg-background p-4 shadow-sm"
-                  >
-                    <ColorPickerSelection />
-                    <div className="flex items-center gap-4">
-                      <ColorPickerEyeDropper />
-                      <div className="grid w-full gap-1">
-                        <ColorPickerHue />
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <ColorPickerOutput />
-                      <ColorPickerFormat />
-                    </div>
-                  </ColorPicker>
-                </PopoverContent>
-              </Popover>
-            </InputGroupAddon>
-            <InputGroupInput
-              value={captionColors.active?.toUpperCase() || '#FFFFFF'}
-              onChange={(e) =>
-                handleCaptionColorUpdate({ active: e.target.value })
-              }
-              className="text-sm p-0 text-[10px] font-mono"
-            />
-          </InputGroup>
-        </div>
-
-        {/* Active Fill Color */}
-        <div className="flex flex-col gap-1">
-          <span className="text-[9px] text-muted-foreground">Active Fill</span>
-          <InputGroup>
-            <InputGroupAddon align="inline-start" className="relative p-0">
-              <Popover modal={true}>
-                <PopoverTrigger asChild>
-                  <InputGroupButton
-                    variant="ghost"
-                    size="icon-xs"
-                    className="h-full w-8"
-                  >
-                    <div
-                      className="h-4 w-4 border border-white/10 shadow-sm"
-                      style={{
-                        backgroundColor: captionColors.activeFill || '#FF5700',
-                      }}
-                    />
-                  </InputGroupButton>
-                </PopoverTrigger>
-                <PopoverContent className="w-64 p-3" align="start">
-                  <ColorPicker
-                    onChange={(colorValue) => {
-                      const hexColor = color.rgb(colorValue).hex();
-                      handleCaptionColorUpdate({ activeFill: hexColor });
-                    }}
-                    className="w-72 h-72 rounded-md border bg-background p-4 shadow-sm"
-                  >
-                    <ColorPickerSelection />
-                    <div className="flex items-center gap-4">
-                      <ColorPickerEyeDropper />
-                      <div className="grid w-full gap-1">
-                        <ColorPickerHue />
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <ColorPickerOutput />
-                      <ColorPickerFormat />
-                    </div>
-                  </ColorPicker>
-                </PopoverContent>
-              </Popover>
-            </InputGroupAddon>
-            <InputGroupInput
-              value={captionColors.activeFill?.toUpperCase() || '#FF5700'}
-              onChange={(e) =>
-                handleCaptionColorUpdate({ activeFill: e.target.value })
-              }
-              className="text-sm p-0 text-[10px] font-mono"
-            />
-          </InputGroup>
-        </div>
-
-        {/* Background Color */}
-        <div className="flex flex-col gap-1">
-          <span className="text-[9px] text-muted-foreground">Background</span>
-          <InputGroup>
-            <InputGroupAddon align="inline-start" className="relative p-0">
-              <Popover modal={true}>
-                <PopoverTrigger asChild>
-                  <InputGroupButton
-                    variant="ghost"
-                    size="icon-xs"
-                    className="h-full w-8"
-                  >
-                    <div
-                      className="h-4 w-4 border border-white/10 shadow-sm"
-                      style={{
-                        backgroundColor: captionColors.background || '#000000',
-                      }}
-                    />
-                  </InputGroupButton>
-                </PopoverTrigger>
-                <PopoverContent className="w-64 p-3" align="start">
-                  <ColorPicker
-                    onChange={(colorValue) => {
-                      const hexColor = color.rgb(colorValue).hex();
-                      handleCaptionColorUpdate({ background: hexColor });
-                    }}
-                    className="w-72 h-72 rounded-md border bg-background p-4 shadow-sm"
-                  >
-                    <ColorPickerSelection />
-                    <div className="flex items-center gap-4">
-                      <ColorPickerEyeDropper />
-                      <div className="grid w-full gap-1">
-                        <ColorPickerHue />
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <ColorPickerOutput />
-                      <ColorPickerFormat />
-                    </div>
-                  </ColorPicker>
-                </PopoverContent>
-              </Popover>
-            </InputGroupAddon>
-            <InputGroupInput
-              value={captionColors.background?.toUpperCase() || ''}
-              onChange={(e) =>
-                handleCaptionColorUpdate({ background: e.target.value })
-              }
-              className="text-sm p-0 text-[10px] font-mono"
-              placeholder="Transparent"
-            />
-          </InputGroup>
-        </div>
-
-        {/* Keyword Color */}
-        <div className="flex flex-col gap-1">
-          <span className="text-[9px] text-muted-foreground">Keyword</span>
-          <InputGroup>
-            <InputGroupAddon align="inline-start" className="relative p-0">
-              <Popover modal={true}>
-                <PopoverTrigger asChild>
-                  <InputGroupButton
-                    variant="ghost"
-                    size="icon-xs"
-                    className="h-full w-8"
-                  >
-                    <div
-                      className="h-4 w-4 border border-white/10 shadow-sm"
-                      style={{
-                        backgroundColor: captionColors.keyword || '#ffffff',
-                      }}
-                    />
-                  </InputGroupButton>
-                </PopoverTrigger>
-                <PopoverContent className="w-64 p-3" align="start">
-                  <ColorPicker
-                    onChange={(colorValue) => {
-                      const hexColor = color.rgb(colorValue).hex();
-                      handleCaptionColorUpdate({ keyword: hexColor });
-                    }}
-                    className="w-72 h-72 rounded-md border bg-background p-4 shadow-sm"
-                  >
-                    <ColorPickerSelection />
-                    <div className="flex items-center gap-4">
-                      <ColorPickerEyeDropper />
-                      <div className="grid w-full gap-1">
-                        <ColorPickerHue />
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <ColorPickerOutput />
-                      <ColorPickerFormat />
-                    </div>
-                  </ColorPicker>
-                </PopoverContent>
-              </Popover>
-            </InputGroupAddon>
-            <InputGroupInput
-              value={captionColors.keyword?.toUpperCase() || '#FFFFFF'}
-              onChange={(e) =>
-                handleCaptionColorUpdate({ keyword: e.target.value })
-              }
-              className="text-sm p-0 text-[10px] font-mono"
-            />
-          </InputGroup>
-        </div>
+                  </PopoverContent>
+                </Popover>
+              </InputGroupAddon>
+              <InputGroupInput
+                value={captionColors[key]?.toUpperCase() || fallback.toUpperCase()}
+                onChange={(e) => setColors({ [key]: e.target.value })}
+                className="text-sm p-0 text-[10px] font-mono"
+                placeholder={fallback ? undefined : 'Transparent'}
+              />
+            </InputGroup>
+          </div>
+        ))}
       </div>
     </div>
+  );
+}
+
+// ─── Shared Color Picker UI ───────────────────────────────────────────────────
+
+function ColorPickerPanel({ onChange }: { onChange: (hex: string) => void }) {
+  return (
+    <ColorPicker
+      onChange={(colorValue) => onChange(color.rgb(colorValue).hex())}
+      className="w-72 h-72 rounded-md border bg-background p-4 shadow-sm"
+    >
+      <ColorPickerSelection />
+      <div className="flex items-center gap-4">
+        <ColorPickerEyeDropper />
+        <div className="grid w-full gap-1">
+          <ColorPickerHue />
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <ColorPickerOutput />
+        <ColorPickerFormat />
+      </div>
+    </ColorPicker>
   );
 }

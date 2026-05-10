@@ -1,4 +1,3 @@
-import { IClip } from "@openvideo/engine-pixi";
 import { generateCaptionClips } from "./caption-generator";
 import { core, projectStore } from "./project";
 import { nanoid } from "@openvideo/core";
@@ -24,6 +23,92 @@ const CUSTOM_ANIMATIONS_CAPTIONS = [
   "slideFadeByWord",
 ];
 
+/**
+ * Helper to generate animation objects for caption clips
+ */
+function getAnimationObjects(animation: string | string[], clipDuration: number) {
+  const animations = Array.isArray(animation) ? animation : [animation];
+  return animations
+    .filter((a) => a !== "undefined")
+    .map((a) => ({
+      type: a,
+      options: {
+        duration: CUSTOM_ANIMATIONS_CAPTIONS.includes(a) ? clipDuration : clipDuration * 0.2,
+        delay: 0,
+      },
+    }));
+}
+
+/**
+ * Maps a flat styleUpdate object into the standard nested clip structure
+ */
+function applyStyleUpdate(json: any, styleUpdate: any, clipDuration: number) {
+  if (!styleUpdate) return json;
+
+  // Initialize style if missing
+  if (!json.style) json.style = {};
+
+  // 1. Basic Style Properties
+  if (styleUpdate.fill) json.style.fill = styleUpdate.fill;
+  if (styleUpdate.align) json.style.align = styleUpdate.align;
+  if (styleUpdate.fontFamily) json.style.fontFamily = styleUpdate.fontFamily;
+  if (styleUpdate.fontUrl) json.style.fontUrl = styleUpdate.fontUrl;
+  if (styleUpdate.fontSize) json.style.fontSize = styleUpdate.fontSize;
+  if (styleUpdate.textCase) json.style.textCase = styleUpdate.textCase;
+
+  // 2. Stroke Properties
+  if (styleUpdate.strokeWidth !== undefined || styleUpdate.stroke) {
+    if (typeof json.style.stroke !== "object" || json.style.stroke === null) {
+      json.style.stroke = { color: "#000000", width: 0 };
+    }
+    if (styleUpdate.strokeWidth !== undefined) json.style.stroke.width = styleUpdate.strokeWidth;
+    if (styleUpdate.stroke) json.style.stroke.color = styleUpdate.stroke;
+  }
+
+  // 3. Shadow Properties
+  if (styleUpdate.dropShadow) {
+    json.style.shadow = {
+      color: styleUpdate.dropShadow.color,
+      alpha: styleUpdate.dropShadow.alpha,
+      blur: styleUpdate.dropShadow.blur,
+      distance: styleUpdate.dropShadow.distance,
+      angle: styleUpdate.dropShadow.angle,
+    };
+  }
+
+  // 4. Caption Metadata (Root 'caption' object only)
+  if (!json.caption) json.caption = { words: [] };
+
+  if (styleUpdate.wordAnimation) {
+    json.caption.wordAnimation = styleUpdate.wordAnimation;
+  }
+
+  if (styleUpdate.textBoxStyle) {
+    json.caption.textBoxStyle = styleUpdate.textBoxStyle;
+  }
+
+  if (styleUpdate.caption) {
+    json.caption = {
+      ...json.caption,
+      ...styleUpdate.caption,
+      colors: {
+        ...(json.caption.colors || {}),
+        ...(styleUpdate.caption.colors || {}),
+      },
+    };
+  }
+
+  // 5. Root Animations
+  if (styleUpdate.animation) {
+    json.animations = getAnimationObjects(styleUpdate.animation, clipDuration);
+  }
+
+  return json;
+}
+
+/**
+ * Regenerates all caption clips associated with a mediaId based on new settings
+ */
 export async function regenerateCaptionClips({
   captionClip,
   mode,
@@ -32,70 +117,37 @@ export async function regenerateCaptionClips({
   fontUrl,
   styleUpdate,
 }: RegenerateCaptionClipsOptions) {
-
   if (!captionClip?.mediaId) return;
 
-  const getAnimationObjects = (animation: string | string[], clipDuration: number) => {
-    const animations = Array.isArray(animation) ? animation : [animation];
-    return animations
-      .filter((a) => a !== "undefined")
-      .map((a) => ({
-        type: a,
-        options: {
-          duration: CUSTOM_ANIMATIONS_CAPTIONS.includes(a) ? clipDuration : clipDuration * 0.2,
-          delay: 0,
-        },
-      }));
-  };
-
-  const mediaId = captionClip.mediaId;
   const project = projectStore.getState();
-  const clips = project.clips;
-  const tracks = project.tracks;
+  const { clips, tracks } = project;
+  const mediaId = captionClip.mediaId;
 
-  const siblingClips: any[] = [];
-
-  tracks.forEach((track: any) => {
-    track.clipIds.forEach((id: string) => {
-      const c = clips[id];
-      if (c && c.type === "Caption" ) {
-        siblingClips.push(c);
-      }
-    });
-  });
-
-  siblingClips.sort((a, b) => a.display.from - b.display.from);
-
+  // 1. Find and sort all sibling caption clips
+  const siblingClips = Object.values(clips)
+    .filter((c: any) => c.type === "Caption")
+    .sort((a: any, b: any) => a.display.from - b.display.from);
 
   if (siblingClips.length === 0) return;
 
-  const mediaClip = clips[mediaId];
-  if (!mediaClip) return;
-
-  const allWords: any[] = [];
-
-  siblingClips.forEach((c) => {
+  // 2. Extract and normalized words from all sibling clips
+  const allWords = siblingClips.flatMap((c: any) => {
     const clipStartUs = c.display.from;
     const words = c.words || c.caption?.words || c.originalOpts?.caption?.words || [];
-    words.forEach((w: any) => {
-      allWords.push({
-        ...w,
-        start: (clipStartUs + w.from * 1000) / 1000000,
-        end: (clipStartUs + w.to * 1000) / 1000000,
-        mediaClipId: c.mediaId,
-      });
-    });
+    return words.map((w: any) => ({
+      ...w,
+      start: (clipStartUs + w.from * 1000) / 1000000,
+      end: (clipStartUs + w.to * 1000) / 1000000,
+      mediaClipId: c.mediaId,
+    }));
   });
 
   if (allWords.length === 0) return;
 
-  // Merge style updates if provided
-  const combinedStyle = {
-    ...captionClip.style,
-    ...(styleUpdate || {}),
-  };
-
+  // 3. Generate new raw JSONs based on the new word-per-line mode
   const currentOpts = captionClip.originalOpts || {};
+  const combinedStyle = { ...captionClip.style, ...(styleUpdate || {}) };
+
   const newClipsJSON = await generateCaptionClips({
     videoWidth: project.settings.width,
     videoHeight: project.settings.height,
@@ -107,135 +159,62 @@ export async function regenerateCaptionClips({
     style: combinedStyle,
   });
 
-
-  // Find track ID using project state
+  // 4. Determine target track
   const targetTrack = tracks.find((t) => t.clipIds.includes(captionClip.id));
-  const trackId = targetTrack?.id;
-  if (!trackId) return;
+  if (!targetTrack) return;
 
-  const clipsToAdd: any[] = [];
+  // 5. Enrich and Clean each generated JSON
   const paddingY = styleUpdate?.textBoxStyle?.verticalPadding ?? 0;
-
-  for (const json of newClipsJSON) {
-    const uniformTop = json.top != null ? json.top - paddingY * 3 : 0;
-    const enrichedJson: any = {
-      ...json,
-      wordsPerLine: mode,
-      top: uniformTop,
-      angle: captionClip.angle !== undefined ? captionClip.angle : json.angle,
-      opacity: captionClip.opacity !== undefined ? captionClip.opacity : json.opacity,
-      zIndex: captionClip.zIndex !== undefined ? captionClip.zIndex : json.zIndex,
-      flip: captionClip.flip !== undefined ? captionClip.flip : json.flip,
-      textBoxStyle: styleUpdate?.textBoxStyle,
+  
+  const clipsToAdd = newClipsJSON.map((json) => {
+    const clipDuration = json.display.to - json.display.from;
+    
+    // Construct base object without root pollution
+    let enriched: any = {
+      type: "Caption",
+      id: json.id || nanoid(),
+      text: json.text,
+      mediaId: captionClip.mediaId,
+      left: json.left,
+      top: json.top != null ? json.top - paddingY * 3 : 0,
+      width: json.width,
+      height: json.height,
+      angle: captionClip.angle ?? 0,
+      opacity: captionClip.opacity ?? 1,
+      zIndex: captionClip.zIndex ?? 0,
+      flip: captionClip.flip ?? null,
+      display: { from: json.display.from, to: json.display.to },
+      duration: clipDuration,
+      style: { ...(json.style || {}) },
       caption: {
-        ...json.caption,
+        ...(json.caption || {}),
         ...(captionClip.caption || {}),
-        words: json.caption.words,
-        colors: {
-          ...(json.caption?.colors || {}),
-          ...(captionClip.caption?.colors || {}),
-        },
-        textBoxStyle: styleUpdate?.textBoxStyle,
-      },
-      originalOpts: {
-        ...(json.originalOpts || {}),
-        wordsPerLine: mode,
-        ...(styleUpdate?.caption ? { caption: styleUpdate.caption } : {}),
-        ...(styleUpdate?.animation && {
-          animations: getAnimationObjects(
-            styleUpdate.animation,
-            json.display.to - json.display.from,
-          ),
-        }),
-        ...(styleUpdate?.wordAnimation ? { wordAnimation: styleUpdate.wordAnimation } : {}),
-        ...(styleUpdate?.textBoxStyle ? { textBoxStyle: styleUpdate.textBoxStyle } : {}),
-      },
-      animations: styleUpdate?.animation
-        ? getAnimationObjects(styleUpdate.animation, json.display.to - json.display.from)
-        : [],
-      display: {
-        from: json.display.from,
-        to: json.display.to,
+        words: json.caption?.words || [], // Prefer newly generated words
       },
     };
 
-    // If styleUpdate contains other caption fields, ensure they are applied
-    if (styleUpdate) {
-      if (styleUpdate.fill) {
-        if (!enrichedJson.style) enrichedJson.style = {};
-        enrichedJson.style.color = styleUpdate.fill;
-        enrichedJson.style.fill = styleUpdate.fill;
-      }
-      if (styleUpdate.align) enrichedJson.align = styleUpdate.align;
-      if (styleUpdate.fontFamily) enrichedJson.fontFamily = styleUpdate.fontFamily;
-      if (styleUpdate.fontUrl) enrichedJson.fontUrl = styleUpdate.fontUrl;
-      if (styleUpdate.fontSize) enrichedJson.fontSize = styleUpdate.fontSize;
+    // Apply the style updates cleanly
+    enriched = applyStyleUpdate(enriched, styleUpdate, clipDuration);
 
-      if (styleUpdate.strokeWidth !== undefined || styleUpdate.stroke) {
-        if (typeof enrichedJson.stroke !== "object" || enrichedJson.stroke === null) {
-          enrichedJson.stroke = {
-            color: typeof enrichedJson.stroke === "string" ? enrichedJson.stroke : "#000000",
-            width: 0,
-          };
-        }
-        if (styleUpdate.strokeWidth !== undefined)
-          enrichedJson.stroke.width = styleUpdate.strokeWidth;
-        if (styleUpdate.stroke) enrichedJson.stroke.color = styleUpdate.stroke;
-      }
+    return enriched;
+  });
 
-      if (styleUpdate.dropShadow) {
-        enrichedJson.dropShadow = {
-          color: styleUpdate.dropShadow.color,
-          alpha: styleUpdate.dropShadow.alpha,
-          blur: styleUpdate.dropShadow.blur,
-          distance: styleUpdate.dropShadow.distance,
-          angle: styleUpdate.dropShadow.angle,
-        };
-      }
-
-      if (styleUpdate.textCase) enrichedJson.textCase = styleUpdate.textCase;
-
-      if (styleUpdate.wordAnimation) enrichedJson.wordAnimation = styleUpdate.wordAnimation;
-
-      if (styleUpdate.textBoxStyle) {
-        enrichedJson.textBoxStyle = styleUpdate.textBoxStyle;
-        if (!enrichedJson.caption) enrichedJson.caption = {};
-        enrichedJson.caption.textBoxStyle = styleUpdate.textBoxStyle;
-      }
-
-      if (styleUpdate.caption) {
-        if (!enrichedJson.caption) enrichedJson.caption = {};
-        enrichedJson.caption = {
-          ...enrichedJson.caption,
-          ...styleUpdate.caption,
-          colors: {
-            ...(enrichedJson.caption.colors || {}),
-            ...(styleUpdate.caption.colors || {}),
-          },
-        };
-      }
-    }
-
-    clipsToAdd.push(enrichedJson);
-  }
-
-  // 3. Atomically remove and add clips via Core batch
+  // 6. Execute atomic swap via Core batch
   const fullClips = await Promise.all(clipsToAdd.map((c) => core.clip.prepare(c as any)));
 
   const removeCommand = {
     id: nanoid(),
-    type: "clip.remove",
-    payload: { ids: siblingClips.map((c) => c.id) },
+    type: "clip.remove" as const,
+    payload: { ids: siblingClips.map((c: any) => c.id) },
   };
 
   const addCommands = fullClips.map((clip) => ({
     id: nanoid(),
-    type: "clip.add",
-    payload: { clip, trackId },
+    type: "clip.add" as const,
+    payload: { clip, trackId: targetTrack.id },
   }));
 
-  core.batch([removeCommand, ...addCommands] as any[]);
-  console.log("clipsToAdd", clipsToAdd);
-
+  core.batch([removeCommand, ...addCommands]);
+  
   return clipsToAdd;
 }
