@@ -97,6 +97,9 @@ export const mapSchemaToFlow = (
     });
   }
 
+  // Shared product assets for injection into product-shot prompts
+  const schemaProductAssets = productImages as { id: string; url: string; name: string; type: string }[];
+
   // 2.1 Avatar Node
   const avatarNodeId = "global-avatar";
   if (schema?.avatar?.url) {
@@ -231,6 +234,8 @@ export const mapSchemaToFlow = (
       const imgUrl = shot.imageUrl || activeImgAsset?.url;
       const imgStatus = imgUrl ? "success" : (activeImgAsset?.status === 'generating' ? 'processing' : "idle");
 
+      const isProductShot = (shot as any).type === "product";
+
       const imgPromptId = `${shotBaseId}-img-prompt`;
       nodes.push({
         id: imgPromptId,
@@ -238,14 +243,16 @@ export const mapSchemaToFlow = (
         parentId: imgShotGroupId,
         data: {
           type: "IMAGE",
+          shotType: isProductShot ? "product" : ((shot as any).type ?? "generic"),
           shotIndex: shotIndex,
           promptText: shot.firstFramePrompt || segment.description,
           status: imgStatus,
           model: "flux-pro",
+          assets: isProductShot && schemaProductAssets.length > 0 ? schemaProductAssets : undefined,
           onUpdate: callbacks?.onUpdate,
           onGenerate: callbacks?.onGenerate,
         },
-        style: { width: NODE_WIDTH, height: 420 },
+        style: { width: NODE_WIDTH, height: 480 },
         position: { x: 0, y: 0 },
       });
 
@@ -306,7 +313,7 @@ export const mapSchemaToFlow = (
             onUpdate: callbacks?.onUpdate,
             onGenerate: callbacks?.onGenerate,
           },
-          style: { width: NODE_WIDTH, height: 420 },
+          style: { width: NODE_WIDTH, height: 480 },
           position: { x: 0, y: 0 },
         });
 

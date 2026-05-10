@@ -24,7 +24,7 @@ function ProductNode({ id, data, selected }: NodeProps<ProductNode>) {
       )}
     >
       <CardHeader className="m-0 bg-muted/30 px-4 py-3 border-b border-border/50 flex flex-row items-center gap-2">
-        <Package className="w-4 h-4 text-orange-400" />
+        <Package className="w-4 h-4 text-primary" />
         <CardTitle className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
           Brand Assets
         </CardTitle>

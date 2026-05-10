@@ -21,7 +21,6 @@ import ProductNode from "./nodes/product-node";
 import SegmentOutputNode from "./nodes/segment-output-node";
 import GlobalOutputNode from "./nodes/global-output-node";
 import SegmentGroupNode from "./nodes/segment-group-node";
-import UnifiedSegmentNode from "./nodes/unified-segment-node";
 import VisualsGroupNode from "./nodes/visuals-group-node";
 import PromptNode from "./nodes/prompt-node";
 import OutputNode from "./nodes/output-node";
@@ -47,7 +46,6 @@ const nodeTypes = {
   prompt: PromptNode,
   shotOutput: OutputNode,
   shotGroup: ShotGroupNode,
-  unifiedSegment: UnifiedSegmentNode,
   visualsGroup: VisualsGroupNode,
   avatar: AvatarNode,
   script: ScriptNode,

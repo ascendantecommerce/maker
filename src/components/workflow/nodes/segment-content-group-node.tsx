@@ -15,18 +15,15 @@ function SegmentContentGroupNode({ data, selected }: NodeProps<SegmentContentGro
   return (
     <div
       className={cn(
-        "relative w-full h-full rounded-[40px] border-2 transition-all duration-500",
-        selected
-          ? "bg-primary/[0.02] border-primary/30 shadow-[0_0_60px_-10px_rgba(var(--primary),0.1)] ring-1 ring-primary/5"
-          : "bg-muted/5 border-dashed border-border/40 hover:bg-muted/10 hover:border-border",
+        "relative w-full h-full rounded-xl  border-border border-2 transition-all duration-500 bg-card",
+        selected && "border-primary/40"
       )}
     >
-      <div className="absolute -top-3 left-8">
+      <div className="absolute -top-12 left-0 flex items-center gap-3">
         <div className={cn(
-          "px-4 py-1.5 bg-background border rounded-full text-[9px] font-black uppercase tracking-widest shadow-xl",
-          selected ? "text-primary border-primary/20" : "text-muted-foreground/40 border-border"
-        )}>
-          Scene Content {data.index + 1}
+          "text-base px-4 font-bold"
+
+        )}>  Scene voice
         </div>
       </div>
     </div>
