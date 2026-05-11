@@ -323,6 +323,7 @@ export const mapSchemaToFlow = (
             promptText: shot.videoPrompt ?? "",
             status: vidStatus,
             model: "luma-ray",
+            assets: imgUrl ? [{ id: `${segment.id}-${shotIndex}-img`, url: imgUrl, type: "image", name: "Source Image", active: true, prompt: "", workflowStatus: "completed" }] : undefined,
             onUpdate: callbacks?.onUpdate,
             onGenerate: callbacks?.onGenerate,
           },

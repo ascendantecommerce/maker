@@ -113,10 +113,10 @@ function PromptNode({ id, data, selected }: NodeProps<PromptNode>) {
               />
             </div>
 
-            {data.shotType === "product" && data.assets && data.assets.length > 0 && (
+            {data.assets && data.assets.length > 0 && (
               <div className="space-y-2">
                 <Label className="text-[10px] uppercase text-muted-foreground flex items-center gap-1.5">
-                  Assets
+                  {data.type === "VIDEO" ? "Source Image" : "Assets"}
                 </Label>
                 <div className="flex flex-row gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-muted-foreground/10 scrollbar-track-transparent">
                   {data.assets.map((asset) => (
