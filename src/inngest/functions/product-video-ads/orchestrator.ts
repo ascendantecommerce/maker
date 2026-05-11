@@ -118,6 +118,15 @@ export const productVideoOrchestrator = inngest.createFunction(
                   shotType: shot.type,
                 });
               }
+              let structuredVideoPrompt = "";
+              if (shot.videoPrompt) {
+                structuredVideoPrompt += `[ACTION]\n${shot.videoPrompt.trim()}\n\n`;
+              }
+              if (shot.scenePrompt) {
+                structuredVideoPrompt += `[VISUALS]\n${shot.scenePrompt.trim()}`;
+              }
+              shot.videoPrompt = structuredVideoPrompt.trim() || shot.words || "";
+              delete shot.scenePrompt;
             });
           });
 

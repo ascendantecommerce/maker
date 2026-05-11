@@ -277,8 +277,7 @@ export async function generateShotVideos(
             try {
               return await withRetry(async (attempt) => {
                 const isProductShot = shot.type === "product";
-                const combinedVideoPrompt =
-                  `${shot.videoPrompt || ""}. ${shot.scenePrompt || ""}`.trim() || shot.words || "";
+                const videoPrompt = shot.videoPrompt || shot.words || "";
                 const clipDurationSec = convertMsToSeconds(shot.duration || 5000);
                 const fallbackModel = attempt > 0 ? "veo-3.1-fast-generate-preview" : undefined;
 
@@ -287,7 +286,7 @@ export async function generateShotVideos(
                   imageUrl: shot.imageUrl,
                   duration: Math.max(5, clipDurationSec),
                   tmpDir,
-                  promptOverride: combinedVideoPrompt,
+                  promptOverride: videoPrompt,
                   isProduct: isProductShot,
                   fallbackModel,
                 });
@@ -301,7 +300,7 @@ export async function generateShotVideos(
                   type: "video",
                   status: "completed",
                   url: uploadedUrl,
-                  prompt: combinedVideoPrompt,
+                  prompt: videoPrompt,
                 };
 
                 await persistAsset(userId, projectId, schemeId, r2Path, uploadedUrl, {
