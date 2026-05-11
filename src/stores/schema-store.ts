@@ -29,6 +29,7 @@ interface SchemaState {
   // Generated assets
   frames: Record<string, GeneratedFrame>;
   videos: Record<string, GeneratedVideo>;
+  generatingShots: Record<string, string | boolean>;
 
   // Generation history
   frameHistory: Record<string, GeneratedFrame[]>;
@@ -65,6 +66,7 @@ interface SchemaState {
   updateSegment: (segmentId: string, updates: Partial<Segment>) => void;
   updateShot: (segmentId: string, shotIndex: number, updates: Partial<VisualShot>) => void;
   deleteSegment: (segmentId: string) => Promise<void>;
+  setGeneratingShots: (updater: Record<string, string | boolean> | ((prev: Record<string, string | boolean>) => Record<string, string | boolean>)) => void;
   reset: () => void;
 }
 
@@ -75,6 +77,7 @@ const initialState = {
   productUrls: [],
   frames: {},
   videos: {},
+  generatingShots: {},
   frameHistory: {},
   videoHistory: {},
   isGenerating: false,
@@ -457,6 +460,7 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
         }
         return s;
       });
+      console.log("updated shots: in segmet", segments);
       const newSchema = { ...state.schema, segments };
       return {
         schema: newSchema,
@@ -511,6 +515,12 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
       set({ error: "Failed to persist segment deletion" });
     }
   },
+
+  setGeneratingShots: (updater) =>
+    set((state) => ({
+      generatingShots:
+        typeof updater === "function" ? updater(state.generatingShots) : updater,
+    })),
 
   reset: () => set(initialState),
 }));

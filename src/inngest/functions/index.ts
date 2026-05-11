@@ -1,4 +1,3 @@
-import { linkToVideo } from "./link-to-video";
 import { narrativeVideoOrchestrator } from "./narrative";
 import { productVideoOrchestrator } from "./product-video-ads";
 import { productImageOrchestrator } from "./product-image-ads";
@@ -14,12 +13,13 @@ import { generateUGCScript } from "./ugc/script-generator";
 import { generateFakeUGCScript } from "./fake-ugc/script-generator";
 import { kalodataVideosOrchestrator } from "./kalodata-videos/orchestrator";
 import { repurposeVideoOrchestrator } from "./repurpose/repurpose-orchestrator";
+import { generateStandardImage, generateStandardVideo } from "./common/shot-generator";
+import { generateUGCImage, generateUGCVideo } from "./ugc/shot-generator";
 
 export const functions = [
   narrativeVideoOrchestrator,
   productVideoOrchestrator,
   productImageOrchestrator,
-  linkToVideo,
   schemaLipsync,
   ugcVideoOrchestrator,
   fakeUgcVideoOrchestrator,
@@ -32,4 +32,8 @@ export const functions = [
   generateFakeUGCScript,
   kalodataVideosOrchestrator,
   repurposeVideoOrchestrator,
+  generateStandardImage,
+  generateStandardVideo,
+  generateUGCImage,
+  generateUGCVideo,
 ];

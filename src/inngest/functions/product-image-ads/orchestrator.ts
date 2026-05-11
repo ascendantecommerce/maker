@@ -16,6 +16,7 @@ import { advanceGenerationTask } from "../../utils/generation-progress";
 import { ensureObject, fetchWorkflowState } from "../common/services/utils";
 import { PRODUCT_TASK_KEYS, PRODUCT_TASKS } from "./constants";
 import { applyLipsyncToScheme } from "../lipsync-resolver";
+import { generateCreativePrompt } from "@/lib/prompts";
 
 const inngest = getInngestApp();
 
@@ -104,6 +105,19 @@ export const productImageOrchestrator = inngest.createFunction(
 
         if (generatedPrompts && generatedPrompts.length > 0) {
           scheme.segments = productSteps.applyPromptsToSegments(scheme, generatedPrompts);
+
+          // BAKE CREATIVE PROMPT: Pre-assemble the rich prompt for the UI to display and edit
+          scheme.segments.forEach((seg: any) => {
+            seg.shots?.forEach((shot: any) => {
+              if (shot.firstFramePrompt) {
+                shot.firstFramePrompt = generateCreativePrompt(shot.firstFramePrompt, {
+                  styleDescription: scheme.visuals.style,
+                  isProduct: shot.type === "product",
+                  shotType: shot.type,
+                });
+              }
+            });
+          });
 
           await step.run("save-schema-with-prompts", async () => {
             return pipelineSteps.saveSchema(schemeId, scheme, ResolverStatus.PROGRESS);

@@ -127,8 +127,56 @@ export interface StyledPromptOptions {
  * Creates a highly descriptive and structured prompt for image generation.
  * This is a pure function that can be easily understood and tweaked by non-developers.
  */
-export function createStyledPrompt(originalPrompt: string, options: StyledPromptOptions): string {
-  const { styleDescription, isProduct = false, shotType, aspectRatio } = options;
+export function generateCreativePrompt(originalPrompt: string, options: StyledPromptOptions): string {
+  const { styleDescription, isProduct = false, shotType } = options;
+
+  // 1. Shot Context Booster
+  let shotContext = "";
+  const effectiveShotType = shotType || (isProduct ? "product" : "generic");
+
+  switch (effectiveShotType) {
+    case "medical_cgi":
+      shotContext =
+        "CONTEXT: Scientific or Medical Visualization. Focus on internal details, anatomy, or micro-structures.";
+      break;
+    case "lifestyle":
+      shotContext = "CONTEXT: Lifestyle Shot. Focus on authentic human subjects and environments.";
+      break;
+    case "metaphor":
+      shotContext =
+        "CONTEXT: Conceptual/Metaphorical. Focus on abstract representations and symbolism.";
+      break;
+    case "product":
+      shotContext = "CONTEXT: Product Presentation. Focus on highlighting the item clearly.";
+      break;
+    case "character-speaking":
+      shotContext =
+        "CONTEXT: Character Portrait. Focus on clear facial features, expression, and professional cinematic character animation/rendering.";
+      break;
+    default:
+      shotContext = "CONTEXT: Cinematic Scene.";
+  }
+
+  // 2. Style Logic
+  const cleanStyle = styleDescription?.trim().replace(/\.$/, "") || "";
+  const styleSection = cleanStyle
+    ? `STYLE: ${cleanStyle}. Follow this style strictly for lighting, tone, and texture.`
+    : `STYLE: High-quality, professional composition.`;
+
+  return `
+[SHOT CONTEXT]
+${shotContext}
+
+[SUBJECT]
+${originalPrompt}
+
+[VISUAL STYLE]
+${styleSection}
+`.trim();
+}
+
+export function injectStructuralConstraints(creativePrompt: string, options: StyledPromptOptions): string {
+  const { isProduct = false, shotType, aspectRatio } = options;
 
   // 1. Frame and Orientation Instructions
   let compositionGuide = "";
@@ -157,45 +205,14 @@ export function createStyledPrompt(originalPrompt: string, options: StyledPrompt
     }
   }
 
-  // 2. Shot Context Booster
-  let shotContext = "";
+  // 2. Add product constraint dynamically if needed without forcing a specific aesthetic
   const effectiveShotType = shotType || (isProduct ? "product" : "generic");
-
-  switch (effectiveShotType) {
-    case "medical_cgi":
-      shotContext =
-        "CONTEXT: Scientific or Medical Visualization. Focus on internal details, anatomy, or micro-structures.";
-      break;
-    case "lifestyle":
-      shotContext = "CONTEXT: Lifestyle Shot. Focus on authentic human subjects and environments.";
-      break;
-    case "metaphor":
-      shotContext =
-        "CONTEXT: Conceptual/Metaphorical. Focus on abstract representations and symbolism.";
-      break;
-    case "product":
-      shotContext = "CONTEXT: Product Presentation. Focus on highlighting the item clearly.";
-      break;
-    case "character-speaking":
-      shotContext =
-        "CONTEXT: Character Portrait. Focus on clear facial features, expression, and professional cinematic character animation/rendering.";
-      break;
-    default:
-      shotContext = "CONTEXT: Cinematic Scene.";
-  }
-
-  // 3. Style Logic
-  const styleSection = styleDescription
-    ? `STYLE: ${styleDescription}. Follow this style strictly for lighting, tone, and texture.`
-    : `STYLE: High-quality, professional composition.`;
-
-  // Add product constraint dynamically if needed without forcing a specific aesthetic
   const productConstraint =
     effectiveShotType === "product" || effectiveShotType === "medical_cgi"
       ? "\\nCRITICAL: Maintain the exact visual identity (form, colors, branding) of the original product/subject within the scene."
       : "";
 
-  // 4. Final Prompt Assembly (Human Readable)
+  // 3. Final Prompt Assembly (System formatting)
   return `
 [PRIMARY INSTRUCTION]
 Generate ONE complete image that fills the entire${aspectLabel} frame. 
@@ -205,18 +222,17 @@ NO black bars, NO borders, and NO empty padding.
 - The subject must occupy the frame effectively, ensuring a balanced composition.${compositionGuide}
 - Accurately reflect the requested visual style.
 
-[SHOT CONTEXT]
-${shotContext}
-
-[SUBJECT]
-${originalPrompt}
-
-[VISUAL STYLE]
-${styleSection}${productConstraint}
+${creativePrompt}
+${productConstraint}
 
 [QUALITY RULES]
 - NO text, logos, letters, or watermarks.
 - Single scene: Output exactly one image, not a collage or grid.
 - Continuity: Background must extend naturally to all edges.
 `.trim();
+}
+
+export function createStyledPrompt(originalPrompt: string, options: StyledPromptOptions): string {
+  const creativePrompt = generateCreativePrompt(originalPrompt, options);
+  return injectStructuralConstraints(creativePrompt, options);
 }

@@ -3,7 +3,7 @@ import { Segment, PriceItem } from "@/inngest/utils/types";
 import { ServicePricing } from "@/inngest/utils/pricing";
 import { downloadVideo } from "@/inngest/functions/common/utils/common";
 import { fixAndValidateMp4 } from "@/inngest/services/ffmpeg";
-import { createStyledPrompt } from "@/lib/prompts";
+import { createStyledPrompt, injectStructuralConstraints } from "@/lib/prompts";
 import { resolutionType, aspectRatioType } from "@/utils/enum";
 import fs from "fs";
 
@@ -29,7 +29,7 @@ export const generateImage = async (
   const { scheme, services } = context;
   const imageUrls = isProduct && scheme.assets?.length ? scheme.assets.map((a: any) => a.url) : [];
 
-  const styledPrompt = createStyledPrompt(promptOverride, {
+  const styledPrompt = injectStructuralConstraints(promptOverride, {
     styleDescription: scheme.visuals.style,
     aspectRatio: scheme.aspectRatio as aspectRatioType,
     isProduct,

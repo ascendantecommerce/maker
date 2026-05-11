@@ -13,7 +13,10 @@ export type OutputNodeData = {
   status: "idle" | "processing" | "success" | "error";
   promptText?: string;
   resolution?: string;
+  segmentId?: string;
+  shotIndex?: number;
   onUpdate?: (id: string, updates: any) => void;
+  onGenerate?: (segmentId: string, shotIndexStr: string, type: "IMAGE" | "VIDEO") => void;
 };
 
 export type OutputNode = Node<OutputNodeData, "output">;
@@ -81,9 +84,24 @@ function OutputNode({ id, data, selected }: NodeProps<OutputNode>) {
                 <div className="flex items-center justify-end gap-2 mt-1">
 
                   <div className="flex items-center gap-2">
-
-                    <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-2xl transition-transform active:scale-90">
-                      <RefreshCw className="w-4 h-4" />
+                    <Button
+                      size="icon"
+                      className={cn(
+                        "h-9 w-9 p-0 rounded-full shadow-2xl transition-all "
+                      )}
+                      variant={data.status === "processing" ? "outline" : 'default'}
+                      onClick={() => {
+                        if (data.segmentId && data.shotIndex !== undefined) {
+                          data.onGenerate?.(data.segmentId, data.shotIndex.toString(), data.type);
+                        }
+                      }}
+                      disabled={data.status === "processing"}
+                    >
+                      {data.status === "processing" ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4" />
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -105,7 +123,7 @@ function OutputNode({ id, data, selected }: NodeProps<OutputNode>) {
       </Handle>
 
       {/* Output handle — fully outside right border */}
-      {/* <Handle
+      <Handle
         id="result"
         type="source"
         position={Position.Right}
@@ -113,7 +131,7 @@ function OutputNode({ id, data, selected }: NodeProps<OutputNode>) {
         style={{ right: -40, top: "50%", transform: "translateY(-50%)" }}
       >
         <Type className="w-4 h-4 text-muted-foreground/70 pointer-events-none" />
-      </Handle> */}
+      </Handle>
     </div>
   );
 }

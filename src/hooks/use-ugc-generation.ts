@@ -41,49 +41,31 @@ export function useUGCGeneration() {
     [schema?.id],
   );
 
-  const pollFrameStatus = useCallback(
-    async (segmentId: string, taskId: string, assetId: string, attempt = 0) => {
+  const pollGenerationStatus = useCallback(
+    async (segmentId: string, generationId: string, assetId: string, attempt = 0) => {
       const MAX_ATTEMPTS = 120;
       const INTERVAL = 3000;
 
-      if (attempt >= MAX_ATTEMPTS) {
+      if (attempt > MAX_ATTEMPTS) {
         console.error(`Polling timed out for segment ${segmentId}`);
         updateSegmentAsset(segmentId, assetId, {
           status: "failed",
           error: "Polling timed out",
         });
-
-        const updatedSegment = useSchemaStore
-          .getState()
-          .schema?.segments?.find((s) => s.id === segmentId);
-        if (updatedSegment) {
-          await persistSegment(segmentId, {
-            assets: updatedSegment.assets || [],
-          });
-        }
-
         setGeneratingFrames((prev) => ({ ...prev, [segmentId]: false }));
+        setGeneratingVideos((prev) => ({ ...prev, [segmentId]: false }));
         return;
       }
 
       try {
-        const response = await fetch(`/api/ugc/frame-status?taskId=${taskId}`);
+        const response = await fetch(`/api/workflow/generation/status?id=${generationId}`);
         if (!response.ok) throw new Error("Failed to fetch status");
 
         const result = await response.json();
-        const state = result?.state?.toLowerCase();
+        const status = result?.status;
 
-        if (state === "success" || state === "completed" || state === "finished") {
-          let url = "";
-          if (result?.resultJson) {
-            try {
-              const resultParsed = JSON.parse(result.resultJson);
-              url = resultParsed.resultUrls?.[0] || resultParsed.imageUrl || resultParsed.url;
-            } catch (e) {
-              console.error("Failed to parse resultJson:", e);
-            }
-          }
-          if (!url) url = result?.url || result?.imageUrl;
+        if (status === "COMPLETED") {
+          const url = result.output?.url;
 
           if (url) {
             const frameAsset = {
@@ -101,10 +83,14 @@ export function useUGCGeneration() {
               frameAsset.prompt = currentAsset.prompt ?? "";
             }
 
-            updateFrame(segmentId, frameAsset);
+            if (currentAsset?.type === "image") {
+              updateFrame(segmentId, frameAsset);
+            }
+
             updateSegmentAsset(segmentId, assetId, {
               status: "completed",
               url,
+              progress: 100,
             });
 
             const updatedSegment = useSchemaStore
@@ -117,39 +103,36 @@ export function useUGCGeneration() {
             }
 
             setGeneratingFrames((prev) => ({ ...prev, [segmentId]: false }));
+            setGeneratingVideos((prev) => ({ ...prev, [segmentId]: false }));
             return;
           }
         }
 
-        if (state === "failed" || state === "error") {
-          const error = result.failMsg || "Generation failed";
+        if (status === "FAILED") {
+          const error = result.output?.error || "Generation failed";
           console.error(`Generation failed for segment ${segmentId}:`, error);
           updateSegmentAsset(segmentId, assetId, { status: "failed", error });
 
-          const updatedSegment = useSchemaStore
-            .getState()
-            .schema?.segments?.find((s) => s.id === segmentId);
-          if (updatedSegment) {
-            await persistSegment(segmentId, {
-              assets: updatedSegment.assets || [],
-            });
-          }
-
           setGeneratingFrames((prev) => ({ ...prev, [segmentId]: false }));
+          setGeneratingVideos((prev) => ({ ...prev, [segmentId]: false }));
           return;
         }
 
+        if (status === "PROGRESS") {
+          updateSegmentAsset(segmentId, assetId, { progress: result.progress });
+        }
+
         // Continue polling
-        setTimeout(() => pollFrameStatus(segmentId, taskId, assetId, attempt + 1), INTERVAL);
+        setTimeout(() => pollGenerationStatus(segmentId, generationId, assetId, attempt + 1), INTERVAL);
       } catch (error) {
         console.error(`Error polling status for ${segmentId}:`, error);
-        setTimeout(() => pollFrameStatus(segmentId, taskId, assetId, attempt + 1), INTERVAL);
+        setTimeout(() => pollGenerationStatus(segmentId, generationId, assetId, attempt + 1), INTERVAL);
       }
     },
     [updateFrame, updateSegmentAsset, persistSegment],
   );
 
-  const handleGenerateFrame = useCallback(
+  const handleGenerateUGCImage = useCallback(
     async (segmentId: string) => {
       const selectedSegment = (schema?.segments || []).find((s) => s.id === segmentId);
       if (!segmentId || !selectedSegment || !schema) return;
@@ -221,38 +204,24 @@ export function useUGCGeneration() {
 
         if (!response.ok) throw new Error("Failed to generate frames");
 
-        const { urls } = await response.json();
+        const { generationIds } = await response.json();
 
-        if (urls && urls[selectedSegment.id]) {
-          const url = urls[selectedSegment.id];
-
-          updateFrame(selectedSegment.id, {
-            segmentId: selectedSegment.id,
-            url,
-            prompt,
-          });
-
-          updateSegmentAsset(selectedSegment.id, assetId, {
-            status: "completed",
-            url,
-          });
-
-          const currentAssets =
-            useSchemaStore.getState().schema?.segments?.find((s) => s.id === segmentId)?.assets ||
-            [];
-          await persistSegment(segmentId, { assets: currentAssets });
-
-          setGeneratingFrames((prev) => ({ ...prev, [segmentId]: false }));
+        if (generationIds && generationIds[selectedSegment.id]) {
+          const generationId = generationIds[selectedSegment.id];
+          updateSegmentAsset(selectedSegment.id, assetId, { taskId: generationId });
+          pollGenerationStatus(selectedSegment.id, generationId, assetId);
         }
       } catch (error) {
         console.error("Error initiating frame:", error);
         setGeneratingFrames((prev) => ({ ...prev, [segmentId]: false }));
       }
     },
-    [schema, avatarUrl, productUrls, frames, addSegmentAsset, persistSegment, pollFrameStatus],
+    [schema, avatarUrl, productUrls, frames, addSegmentAsset, persistSegment, pollGenerationStatus],
   );
 
-  const handleGenerateVideo = useCallback(
+
+
+  const handleGenerateUGCVideo = useCallback(
     async (segmentId: string) => {
       const selectedSegment = (schema?.segments || []).find((s) => s.id === segmentId);
       if (!segmentId || !selectedSegment || !schema) return;
@@ -314,12 +283,11 @@ export function useUGCGeneration() {
 
         if (!response.ok) throw new Error("Failed to initiate video generation");
 
-        const { taskId } = await response.json();
+        const { generationId } = await response.json();
 
-        if (taskId) {
-          // We don't need to poll the task ID directly anymore as it's handled by Inngest.
-          // The schema polling will pick up the completed asset.
-          updateSegmentAsset(selectedSegment.id, assetId, { taskId });
+        if (generationId) {
+          updateSegmentAsset(selectedSegment.id, assetId, { taskId: generationId });
+          pollGenerationStatus(selectedSegment.id, generationId, assetId);
 
           const currentAssets =
             useSchemaStore.getState().schema?.segments?.find((s) => s.id === segmentId)?.assets ||
@@ -331,7 +299,7 @@ export function useUGCGeneration() {
         setGeneratingVideos((prev) => ({ ...prev, [segmentId]: false }));
       }
     },
-    [schema, avatarUrl, productUrls, frames, addSegmentAsset, persistSegment],
+    [schema, avatarUrl, productUrls, frames, addSegmentAsset, persistSegment, pollGenerationStatus],
   );
 
   // Resume polling on load for frames
@@ -345,7 +313,7 @@ export function useUGCGeneration() {
           if (asset.status === "generating" && asset.taskId) {
             if (asset.type === "image") {
               newGeneratingFrames[seg.id] = true;
-              pollFrameStatus(seg.id, asset.taskId, asset.id);
+              pollGenerationStatus(seg.id, asset.taskId, asset.id);
             }
             // Videos are now handled by schema polling below
           }
@@ -356,7 +324,7 @@ export function useUGCGeneration() {
         setGeneratingFrames((prev) => ({ ...prev, ...newGeneratingFrames }));
       }
     }
-  }, [schema, pollFrameStatus]);
+  }, [schema, pollGenerationStatus]);
 
   // Schema polling for ongoing video generations
   useEffect(() => {
@@ -454,8 +422,8 @@ export function useUGCGeneration() {
   );
 
   return {
-    handleGenerateFrame,
-    handleGenerateVideo,
+    handleGenerateUGCImage,
+    handleGenerateUGCVideo,
     handleTranscribeVideo,
     generatingFrames,
     generatingVideos,

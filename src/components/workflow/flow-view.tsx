@@ -34,6 +34,8 @@ import { mapSchemaToFlow } from "./utils/flow-mapper";
 import { getLayoutedElements } from "./utils/layout";
 import { useStoryboardEditor } from "@/hooks/use-storyboard-editor";
 import { useUGCGeneration } from "@/hooks/use-ugc-generation";
+import { useShotGeneration } from "@/hooks/use-shot-generation";
+import { useSchemaStore } from "@/stores/schema-store";
 
 // Defined OUTSIDE the component so the reference is always stable.
 // React Flow warns and re-registers all nodes if nodeTypes changes identity.
@@ -64,15 +66,25 @@ export default function FlowView({ onReady }: FlowViewProps) {
     updateSchema,
     updateSegment,
   } = useStoryboardEditor();
+  const { generatingShots } = useSchemaStore();
 
   const {
-    handleGenerateFrame,
-    handleGenerateVideo,
+    handleGenerateUGCImage,
+    handleGenerateUGCVideo,
   } = useUGCGeneration();
+
+  const {
+    handleGenerateStandardImage,
+    handleGenerateStandardVideo,
+  } = useShotGeneration();
 
   useEffect(() => {
     onReady?.();
   }, [onReady]);
+
+  useEffect(() => {
+    console.log("generatingShots", generatingShots);
+  }, [generatingShots]);
 
   const stableOnUpdate = useCallback(
     (id: string, updates: any) => {
@@ -89,13 +101,13 @@ export default function FlowView({ onReady }: FlowViewProps) {
         return;
       }
 
-      if (parts[0] === "shot") {
-        const segId = parts[1];
-        const shotIdx = parseInt(parts[2]);
-        const type = parts[3];
-        const part = parts[4];
+      if (parts[0] === "shot" || updates.segmentId) {
+        const segId = updates.segmentId || parts[1];
+        const shotIdx = updates.shotIndex !== undefined ? updates.shotIndex : parseInt(parts[2]);
+        const type = updates.type || parts[3];
+        const isPromptUpdate = id.endsWith("prompt") || parts[4] === "prompt";
 
-        if (part === "prompt") {
+        if (isPromptUpdate) {
           const field = type === "vid" ? "videoPrompt" : "firstFramePrompt";
           const text = updates.text || updates.promptText;
           updateShot(segId, shotIdx, { [field]: text, ...updates });
@@ -106,34 +118,43 @@ export default function FlowView({ onReady }: FlowViewProps) {
   );
 
   const stableOnGenerate = useCallback(
-    (id: string) => {
-      const parts = id.split("-");
-      if (parts[0] === "shot") {
-        const segId = parts[1];
-        const type = parts[3];
+    (segmentId: string, shotIndexStr: string, type: "IMAGE" | "VIDEO", model?: string) => {
+      const schemaType = schema?.type || "";
+      const isUGCProject = schemaType === "ugc-video-ad" || schemaType === "fake-ugc-video-ad";
 
-        if (type === "vid") {
-          handleGenerateVideo(segId);
+      if (isUGCProject) {
+        if (type === "VIDEO") {
+          handleGenerateUGCVideo(segmentId);
         } else {
-          handleGenerateFrame(segId);
+          handleGenerateUGCImage(segmentId);
+        }
+      } else {
+        if (type === "VIDEO") {
+          handleGenerateStandardVideo(segmentId, shotIndexStr, type, model);
+        } else {
+          handleGenerateStandardImage(segmentId, shotIndexStr, type, model);
         }
       }
     },
-    [handleGenerateFrame, handleGenerateVideo],
+    [schema?.type, handleGenerateStandardImage, handleGenerateStandardVideo, handleGenerateUGCImage, handleGenerateUGCVideo],
   );
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
 
-  // Track last schema JSON to avoid re-mapping when only unrelated state changes
+  // Track last schema JSON and generatingShots to avoid re-mapping when only unrelated state changes
   const lastSchemaJsonRef = useRef<string>("");
+  const lastGeneratingShotsRef = useRef<string>("");
 
   useEffect(() => {
     const nextJson = schema ? JSON.stringify(schema) : "";
-    if (nextJson === lastSchemaJsonRef.current) return;
-    lastSchemaJsonRef.current = nextJson;
+    const nextGenJson = JSON.stringify(generatingShots);
+    if (nextJson === lastSchemaJsonRef.current && nextGenJson === lastGeneratingShotsRef.current) return;
 
-    const { nodes: newNodes, edges: newEdges } = mapSchemaToFlow(schema, {
+    lastSchemaJsonRef.current = nextJson;
+    lastGeneratingShotsRef.current = nextGenJson;
+
+    const { nodes: newNodes, edges: newEdges } = mapSchemaToFlow(schema, generatingShots, {
       onUpdate: stableOnUpdate,
       onGenerate: stableOnGenerate,
     });
@@ -141,7 +162,7 @@ export default function FlowView({ onReady }: FlowViewProps) {
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(newNodes, newEdges);
     setNodes(layoutedNodes);
     setEdges(layoutedEdges);
-  }, [schema, setNodes, setEdges, stableOnUpdate, stableOnGenerate]);
+  }, [schema, generatingShots, setNodes, setEdges, stableOnUpdate, stableOnGenerate]);
 
   const onConnect: OnConnect = useCallback(
     (params) => setEdges((eds) => addEdge(params, eds)),

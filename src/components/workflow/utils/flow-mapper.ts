@@ -50,9 +50,10 @@ const productEdge = (): Partial<Edge> => ({
 
 export const mapSchemaToFlow = (
   schema: Schema | null,
+  generatingShots: Record<string, string | boolean> = {},
   callbacks?: {
     onUpdate?: (id: string, updates: any) => void;
-    onGenerate?: (id: string) => void;
+    onGenerate?: (segmentId: string, shotIndexStr: string, type: "IMAGE" | "VIDEO") => void;
   },
 ) => {
   const segments = schema?.segments || [];
@@ -232,7 +233,11 @@ export const mapSchemaToFlow = (
       });
 
       const imgUrl = shot.imageUrl || activeImgAsset?.url;
-      const imgStatus = imgUrl ? "success" : (activeImgAsset?.status === 'generating' ? 'processing' : "idle");
+      const isImgGenerating = generatingShots[`${segment.id}-${shotIndex}-img`];
+      let imgStatus = "idle";
+      if (isImgGenerating || activeImgAsset?.status === 'generating') imgStatus = "processing";
+      else if (imgUrl) imgStatus = "success";
+      else if (shot.status === "failed") imgStatus = "error";
 
       const isProductShot = (shot as any).type === "product";
 
@@ -243,11 +248,12 @@ export const mapSchemaToFlow = (
         parentId: imgShotGroupId,
         data: {
           type: "IMAGE",
+          segmentId: segment.id,
           shotType: isProductShot ? "product" : ((shot as any).type ?? "generic"),
           shotIndex: shotIndex,
-          promptText: shot.firstFramePrompt || segment.description,
+          promptText: shot.firstFramePrompt ?? segment.description,
           status: imgStatus,
-          model: "flux-pro",
+          model: (shot as any).model ?? "gemini-2.5-flash-image",
           assets: isProductShot && schemaProductAssets.length > 0 ? schemaProductAssets : undefined,
           onUpdate: callbacks?.onUpdate,
           onGenerate: callbacks?.onGenerate,
@@ -263,10 +269,12 @@ export const mapSchemaToFlow = (
         parentId: imgShotGroupId,
         data: {
           type: "IMAGE",
+          segmentId: segment.id,
           shotIndex: shotIndex,
           outputUrl: imgUrl,
           status: imgStatus,
-          promptText: shot.firstFramePrompt || segment.description,
+          promptText: shot.firstFramePrompt ?? segment.description,
+          onGenerate: callbacks?.onGenerate,
         },
         style: { width: 340, height: 600 },
         position: { x: 0, y: 0 },
@@ -297,7 +305,11 @@ export const mapSchemaToFlow = (
         });
 
         const vidUrl = shot.videoUrl || activeVidAsset?.url;
-        const vidStatus = vidUrl ? "success" : (activeVidAsset?.status === 'generating' ? 'processing' : "idle");
+        const isVidGenerating = generatingShots[`${segment.id}-${shotIndex}-vid`];
+        let vidStatus = "idle";
+        if (isVidGenerating || activeVidAsset?.status === 'generating') vidStatus = "processing";
+        else if (vidUrl) vidStatus = "success";
+        else if (shot.status === "failed") vidStatus = "error";
 
         const vidPromptId = `${shotBaseId}-vid-prompt`;
         nodes.push({
@@ -306,8 +318,9 @@ export const mapSchemaToFlow = (
           parentId: vidShotGroupId,
           data: {
             type: "VIDEO",
+            segmentId: segment.id,
             shotIndex: shotIndex,
-            promptText: shot.videoPrompt || "",
+            promptText: shot.videoPrompt ?? "",
             status: vidStatus,
             model: "luma-ray",
             onUpdate: callbacks?.onUpdate,
@@ -324,10 +337,12 @@ export const mapSchemaToFlow = (
           parentId: vidShotGroupId,
           data: {
             type: "VIDEO",
+            segmentId: segment.id,
             shotIndex: shotIndex,
             outputUrl: vidUrl,
             status: vidStatus,
-            promptText: shot.videoPrompt || "",
+            promptText: shot.videoPrompt ?? "",
+            onGenerate: callbacks?.onGenerate,
           },
           style: { width: 340, height: 600 },
           position: { x: 0, y: 0 },

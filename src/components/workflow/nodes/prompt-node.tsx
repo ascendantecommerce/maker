@@ -2,7 +2,7 @@
 
 import React, { memo, useRef, useState } from "react";
 import { Position, type NodeProps, type Node, Handle } from "@xyflow/react";
-import { PencilRuler, Play, Sparkles, Type, ChevronDown, Check } from "lucide-react";
+import { PencilRuler, Play, Sparkles, Type, ChevronDown, Check, Loader2Icon, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CardContent, CardFooter } from "@/components/ui/card";
@@ -52,12 +52,14 @@ function BananaIcon({ className }: { className?: string }) {
 export type PromptNodeData = {
   type: "IMAGE" | "VIDEO";
   shotType?: "product" | "generic" | "b-roll";
+  shotIndex?: number;
   promptText: string;
   status: "idle" | "processing" | "success" | "error";
   model?: string;
   assets?: { id: string; url: string; name: string; type: string }[];
+  segmentId?: string;
   onUpdate?: (id: string, updates: any) => void;
-  onGenerate?: (id: string) => void;
+  onGenerate?: (segmentId: string, shotIndexStr: string, type: "IMAGE" | "VIDEO", model?: string) => void;
 };
 
 export type PromptNode = Node<PromptNodeData, "prompt">;
@@ -100,9 +102,14 @@ function PromptNode({ id, data, selected }: NodeProps<PromptNode>) {
               <Textarea
                 ref={textareaRef}
                 value={data.promptText || ""}
-                onChange={(e) => data.onUpdate?.(id, { promptText: e.target.value })}
+                onChange={(e) => data.onUpdate?.(id, {
+                  promptText: e.target.value,
+                  segmentId: data.segmentId,
+                  shotIndex: data.shotIndex,
+                  type: data.type === "VIDEO" ? "vid" : "img"
+                })}
                 placeholder="Describe the visual scene..."
-                className="h-[200px] text-[13px] leading-relaxed bg-transparent border-none focus-visible:ring-0 p-1 resize-none overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/10 scrollbar-track-transparent placeholder:text-muted-foreground/20"
+                className="nodrag nopan nowheel h-[200px] text-[13px] leading-relaxed bg-transparent border-none focus-visible:ring-0 p-1 resize-none overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/10 scrollbar-track-transparent placeholder:text-muted-foreground/20"
               />
             </div>
 
@@ -165,16 +172,18 @@ function PromptNode({ id, data, selected }: NodeProps<PromptNode>) {
 
             <Button
               className={cn(
-                "h-9 w-9 p-0 rounded-full shadow-2xl transition-all ",
-                data.status === "processing"
-                  ? "bg-muted cursor-not-allowed"
-                  : "bg-primary text-primary-foreground hover:bg-primary/90"
+                "h-9 w-9 p-0 rounded-full shadow-2xl transition-all "
               )}
-              onClick={() => data.onGenerate?.(id)}
+              variant={data.status === "processing" ? "outline" : 'default'}
+              onClick={() => {
+                if (data.segmentId && data.shotIndex !== undefined) {
+                  data.onGenerate?.(data.segmentId, data.shotIndex.toString(), data.type, selectedModel);
+                }
+              }}
               disabled={data.status === "processing"}
             >
               {data.status === "processing" ? (
-                <Sparkles className="w-4 h-4 animate-spin" />
+                <Loader2Icon className="w-4 h-4 animate-spin" />
               ) : (
                 <Play className="w-4 h-4 fill-current ml-0.5" />
               )}
@@ -184,15 +193,15 @@ function PromptNode({ id, data, selected }: NodeProps<PromptNode>) {
       </div>
 
       {/* Input handle — fully outside left border */}
-      {/* <Handle
+      <Handle
         id="asset"
         type="target"
         position={Position.Left}
         className="!w-10 !h-10 !rounded-full !bg-card !border !border-border/60 !shadow-lg !flex !items-center !justify-center"
         style={{ left: -40, top: "50%", transform: "translateY(-50%)" }}
       >
-        <Type className="w-4 h-4 text-muted-foreground/70 pointer-events-none" />
-      </Handle> */}
+        <ImageIcon className="w-4 h-4 text-muted-foreground/70 pointer-events-none" />
+      </Handle>
 
       {/* Output handle — fully outside right border */}
       <Handle

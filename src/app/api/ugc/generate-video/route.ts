@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { inngest } from "@/inngest/client";
+import { getInngestApp } from "@/inngest";
 import { db } from "@/lib/database";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -34,12 +34,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const inngest = getInngestApp();
+    const generationId = `gen-${nanoid()}`;
     const assetId = nanoid();
 
     // Trigger Inngest function
     const { ids } = await inngest.send({
-      name: "ugc/video.generate",
+      name: "ugc/shot.generate.video",
       data: {
+        generationId,
         schemaId,
         segmentId,
         shotId,
@@ -61,9 +64,10 @@ export async function POST(req: Request) {
     await db
       .insertInto("generations")
       .values({
-        id: taskId,
+        id: generationId, // Using generationId as the primary key for tracking
         status: "PENDING",
         user_id: userId,
+        progress: 0,
         input: JSON.stringify(body),
         metadata: JSON.stringify({
           type: "ugc-video",
@@ -71,11 +75,12 @@ export async function POST(req: Request) {
           segmentId,
           shotId,
           assetId,
+          inngestId: taskId,
         }),
       } as any)
       .execute();
 
-    return NextResponse.json({ taskId, assetId, success: true }, { status: 200 });
+    return NextResponse.json({ generationId, taskId, assetId, success: true }, { status: 200 });
   } catch (error: any) {
     console.error("Error in /api/ugc/generate-video:", error);
     return NextResponse.json(

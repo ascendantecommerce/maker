@@ -97,6 +97,9 @@ export interface VisualBroll {
     y: number; // 0-100 percentage
   };
   scale?: number; // 0-1 relative scale
+
+  status?: "completed" | "failed" | "generating";
+  error?: string;
 }
 
 export interface Segment {
@@ -144,6 +147,8 @@ export interface Segment {
 
 export interface VideoSchema {
   id: string;
+  project_id?: string;
+  generation_id?: string;
   script?: string;
   music?: { id: string; url: string };
   executionMode?: "test" | "live";

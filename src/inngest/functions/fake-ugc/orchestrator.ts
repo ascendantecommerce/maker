@@ -17,6 +17,7 @@ import { advanceGenerationTask } from "../../utils/generation-progress";
 import { ensureObject, fetchWorkflowState } from "../common/services/utils";
 import { FAKE_UGC_TASK_KEYS, FAKE_UGC_TASKS } from "./constants";
 import { applyLipsyncToScheme } from "../lipsync-resolver";
+import { generateCreativePrompt } from "@/lib/prompts";
 
 const inngest = getInngestApp();
 
@@ -114,6 +115,19 @@ export const fakeUgcVideoOrchestrator = inngest.createFunction(
         if (unifiedPrompts && unifiedPrompts.length > 0) {
           scheme.segments = fakeUgcSteps.applyPromptsToSegments(scheme, unifiedPrompts);
 
+          // BAKE CREATIVE PROMPT: Pre-assemble the rich prompt for the UI to display and edit
+          scheme.segments.forEach((seg: any) => {
+            seg.shots?.forEach((shot: any) => {
+              if (shot.firstFramePrompt) {
+                shot.firstFramePrompt = generateCreativePrompt(shot.firstFramePrompt, {
+                  styleDescription: scheme.visuals.style,
+                  isProduct: shot.type === "product",
+                  shotType: shot.type,
+                });
+              }
+            });
+          });
+
           await step.run("save-schema-with-prompts", async () => {
             return pipelineSteps.saveSchema(schemeId, scheme, ResolverStatus.PROGRESS);
           });
@@ -178,8 +192,11 @@ export const fakeUgcVideoOrchestrator = inngest.createFunction(
           scheme.segments = dbSegments.map((s: any) => ensureObject(s.segment_data));
           context = { services, scheme, schemeId, attempt };
 
-          const step3Results = await step.run("Generating shot first frames", () =>
-            fakeUgcVisuals.generateShotFirstFrames(context, userId, projectId),
+          const step3Results = await fakeUgcVisuals.generateShotFirstFrames(
+            step,
+            context,
+            userId,
+            projectId,
           );
           if (step3Results.previewUrl) resultPreviewUrl = step3Results.previewUrl;
           if (step3Results.prices) allVisualPrices.push(...step3Results.prices);
@@ -219,8 +236,11 @@ export const fakeUgcVideoOrchestrator = inngest.createFunction(
             return advanceGenerationTask(schemeId, FAKE_UGC_TASK_KEYS.MEDIA, FAKE_UGC_TASKS);
           });
 
-          const { prices } = await step.run("Generating shot videos", () =>
-            fakeUgcVisuals.generateShotVideos(context, userId, projectId),
+          const { prices } = await fakeUgcVisuals.generateShotVideos(
+            step,
+            context,
+            userId,
+            projectId,
           );
           if (prices) allVisualPrices.push(...prices);
         }
@@ -239,8 +259,11 @@ export const fakeUgcVideoOrchestrator = inngest.createFunction(
             return advanceGenerationTask(schemeId, FAKE_UGC_TASK_KEYS.VFX, FAKE_UGC_TASKS);
           });
 
-          const { prices } = await step.run("Generating segment B-rolls", () =>
-            fakeUgcVisuals.generateShotBRolls(context, userId, projectId),
+          const { prices } = await fakeUgcVisuals.generateShotBRolls(
+            step,
+            context,
+            userId,
+            projectId,
           );
           if (prices) allVisualPrices.push(...prices);
         }

@@ -108,6 +108,7 @@ export interface Clip {
   status?: "generating" | "completed" | "failed";
   taskId?: string;
   error?: string;
+  progress?: number;
   createdAt?: number;
   isVisualOnly?: boolean;
   isCloned?: boolean;
@@ -155,6 +156,12 @@ export interface VisualShot {
   dialogue?: string;
   emotion?: string;
   cameraMotion?: string;
+  
+  status?: "completed" | "failed" | "generating";
+  progress?: number;
+  error?: string;
+  model?: string;
+  generationId?: string;
 }
 
 export interface VisualBroll {
@@ -169,6 +176,13 @@ export interface VisualBroll {
   scenePrompt?: string;
   words?: string;
   productSizing?: string;
+  
+  imageUrl?: string;
+  videoUrl?: string;
+  status?: "completed" | "failed" | "generating";
+  progress?: number;
+  error?: string;
+  generationId?: string;
 }
 
 export interface SpeechToText {
