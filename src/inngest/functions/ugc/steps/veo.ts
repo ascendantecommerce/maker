@@ -275,9 +275,7 @@ export async function resolveVeoGenerationStrategy(
   const initialDurationSeconds = durationSeconds;
 
   let finalPrompt = buildUgcPrompt(
-    request.text ?? "",
-    request.shot?.videoPrompt ?? "",
-    request.shot?.scenePrompt ?? ""
+    request.shot?.videoPrompt ?? ""
   );
 
   let useFirstFrame = request.mode === "FIRST_FRAME_TO_VIDEO";
@@ -326,7 +324,7 @@ export async function resolveVeoGenerationStrategy(
     // Simplified Prompt Fallback instead of Gemini rewrite
     if (firstFrameUrlToUse === request.avatarUrl && getIsProductShot(request.shot)) {
       console.log(`[Veo] Using simple avatar fallback prompt for segment: ${request.segmentId}`);
-      finalPrompt = `A professional avatar speaker speaks the following dialogue: ${request.text}`;
+      finalPrompt = `AUDIO DIALOGUE (SPOKEN ONLY): "${request.text}"\nACTION: A professional avatar speaker speaks directly to the camera.`;
     }
   }
 
@@ -364,11 +362,9 @@ export const updateVeoSegmentInDb = async ({
   const prompt =
     (segData.shots?.length ?? 0) > 0
       ? buildUgcPrompt(
-          segData.text ?? "",
           segData.shots![0].videoPrompt,
-          segData.shots![0].scenePrompt,
         )
-      : buildUgcPrompt(segData.text ?? "", "", "");
+      : buildUgcPrompt("");
   const assetId = nanoid();
 
   const existingAssets = (segData.assets ?? []).map((a: any) => ({
@@ -474,13 +470,21 @@ export async function generateUgcVideo({
         break;
     }
 
-    console.log(
-      `[Veo] Padding short video script [${estimatedDurationInit}s]. Adding ~${fillerSecondsNeeded}s filler to hit ~${targetDuration}s.`,
-    );
+    const prompt = localRequest.shot?.videoPrompt || "";
+    const dialogueRegex = /AUDIO DIALOGUE \(SPOKEN ONLY\):\s*(.*)/i;
+    const match = prompt.match(dialogueRegex);
 
-    const trimmedBase = localRequest.text?.trim() ?? "";
-    const textWithDot = trimmedBase.endsWith(".") ? trimmedBase : `${trimmedBase}.`;
-    localRequest.text = `${textWithDot} ${selectedFiller}`;
+    if (match) {
+      const currentText = match[1].trim();
+      const textWithDot = currentText.endsWith(".") ? currentText : `${currentText}.`;
+      const updatedDialogue = `AUDIO DIALOGUE (SPOKEN ONLY): ${textWithDot} ${selectedFiller}`;
+
+      if (localRequest.shot) {
+        localRequest.shot.videoPrompt = prompt.replace(dialogueRegex, updatedDialogue);
+      }
+      localRequest.text = `${textWithDot} ${selectedFiller}`;
+    }
+
     localRequest.estimatedDuration = estimatedDurationInit + fillerSecondsNeeded; // Override so orchestration recognizes the bump
   }
 

@@ -18,18 +18,12 @@ export function buildUgcNegativePrompt() {
 }
 
 export function buildUgcPrompt(
-  text?: string,
   videoPrompt?: string,
-  scenePrompt?: string,
 ) {
-  const cleanText = text ? text.trim() + (text.endsWith(".") ? "" : ".") : "";
-
   return `
-AUDIO DIALOGUE (SPOKEN ONLY): "${cleanText}"
-${AUDIO_CONTROL}
+${videoPrompt || ""}
 DELIVERY: ${DELIVERY_CONTROL}
-ACTION: Subject speaks directly to camera with highly accurate articulation. ${videoPrompt || "natural speaking"}. ${MOUTH_CONTROL}
-SCENE: ${scenePrompt || "professional environment"}
+${MOUTH_CONTROL}
 STRICTLY NO ON-SCREEN TEXT, NO CAPTIONS, NO OVERLAYS. THE FRAME MUST BE CLEAN OF ALL TYPOGRAPHY.
 `.trim();
 }
@@ -195,14 +189,15 @@ export const UGC_SHOT_STRUCTURE = `## SHOT STRUCTURE
 > product_reveal: "[product_reveal] The [AVATAR] stands in a modern living room, looking at the camera. The closed [PRODUCT] dark navy stand-up pouch sits on the wooden coffee table in front of them, label facing forward."
 > generic: "The [AVATAR] stands in a warmly lit living room, looking directly at camera with a knowing expression, one hand raised slightly."
 
-**videoPrompt** — What happens in the clip. Sent verbatim to Veo 3.1 — must be 100% self-contained. Always include full avatar and product appearance descriptions when product is present. VERY IMPORTANT: explicitly describe the physical ACTION the avatar is taking while speaking.
+**videoPrompt** — Detailed motion description, avatar appearance, product interaction.
+**scenePrompt** — (Optional) Concise scene description.
+**words** — Exact narration text for this segment.
 
-**💡 WORD-GESTURE SYNC:** To match a gesture to a specific spoken word, use the pattern \`"As she says '[exact word or phrase]', she [gesture]"\`. This anchors the gesture to the narration timing.
-> Example: \`"...As she says 'number two', she nods twice firmly. As she says 'anything natural', she gestures with an open palm. As she says 'you don't', she shakes her head slowly."\`
-> product_reveal: "[product_reveal] The [FULL AVATAR DESCRIPTION] reaches forward to the coffee table, picks up the closed [FULL PRODUCT DESCRIPTION], raises it to chest height [product_in_hand] with the label facing the camera, and continues speaking while holding it up."
-> product_in_hand: "[product_in_hand] The [FULL AVATAR DESCRIPTION] holds the closed [FULL PRODUCT DESCRIPTION] naturally in one hand, extends it slightly toward the lens, then pulls it back and speaks with their free hand gesturing."
-> continuation: "[product_in_hand] The [FULL AVATAR DESCRIPTION] continues standing in the bright kitchen holding the closed [FULL PRODUCT DESCRIPTION]. They gently tap the label with one finger while speaking directly to the camera."
-> generic: "The [FULL AVATAR DESCRIPTION] speaks to the camera, raises one finger to mark a point, gently shakes their head to signal disagreement, confident and composed."
+**ACTION EXAMPLES (FOR THE "ACTION:" SECTION):**
+- **product_reveal:** "[product_reveal] The [FULL AVATAR DESCRIPTION] reaches forward to the coffee table, picks up the closed [FULL PRODUCT DESCRIPTION], raises it to chest height [product_in_hand] with the label facing the camera, and continues speaking while holding it up."
+- **product_in_hand:** "[product_in_hand] The [FULL AVATAR DESCRIPTION] holds the closed [FULL PRODUCT DESCRIPTION] naturally in one hand, extends it slightly toward the lens, then pulls it back and speaks with their free hand gesturing."
+- **continuation:** "[product_in_hand] The [FULL AVATAR DESCRIPTION] continues standing in the bright kitchen holding the closed [FULL PRODUCT DESCRIPTION]. They gently tap the label with one finger while speaking directly to the camera."
+- **generic:** "The [FULL AVATAR DESCRIPTION] speaks to the camera, raises one finger to mark a point, gently shakes their head to signal disagreement, confident and composed."
 
 **⚠️ GESTURE SAFETY RULE (CRITICAL):**
 - **NEVER describe finger counting** (e.g. "holds up two fingers", "counts on fingers", "shows two fingers"). AI video models cannot reliably render specific finger positions and will produce incorrect or offensive results (e.g. middle finger instead of two fingers).
@@ -214,9 +209,7 @@ export const UGC_SHOT_STRUCTURE = `## SHOT STRUCTURE
   - ✅ "raises one index finger to make a point"
   - ❌ "holds up two fingers" / "counts to two on fingers" / "shows the number with fingers"
 
-**scenePrompt** — One sentence: location, lighting, mood, camera style.
-> "Bright modern kitchen, warm natural window light, handheld UGC smartphone video aesthetic."
-
+**scenePrompt** — (Optional) Concise scene description.
 **words** — Exact narration text for this segment.`;
 
 // ─── Output Format ────────────────────────────────────────────────────────────
@@ -233,10 +226,10 @@ Return a JSON array of objects, one per segment:
       {
         "type": "product" | "generic",
         "firstFramePrompt": "...",
-        "videoPrompt": "...",
-        "scenePrompt": "...",
-        "words": "...",
-        "hasProductInteraction": true | false
+        "videoPrompt": "Detailed motion description.",
+        "scenePrompt": "(Optional) Concise scene description.",
+        "words": "Exact narration text.",
+        "hasProductInteraction": true
       }
     ]
   }
@@ -321,10 +314,10 @@ Return a JSON array of objects, one per segment:
       {
         "type": "product" | "generic",
         "firstFramePrompt": "...",
-        "videoPrompt": "...",
-        "scenePrompt": "...",
-        "words": "...",
-        "hasProductInteraction": true | false
+        "videoPrompt": "Detailed motion description.",
+        "scenePrompt": "(Optional) Concise scene description.",
+        "words": "Exact narration text.",
+        "hasProductInteraction": true
       }
     ]
   }
@@ -436,10 +429,10 @@ Return a JSON array of objects, one per segment:
       {
         "type": "product" | "generic",
         "firstFramePrompt": "...",
-        "videoPrompt": "...",
-        "scenePrompt": "...",
-        "words": "...",
-        "hasProductInteraction": true | false
+        "videoPrompt": "Detailed motion description.",
+        "scenePrompt": "(Optional) Concise scene description.",
+        "words": "Exact narration text.",
+        "hasProductInteraction": true
       }
     ],
     "bRolls": [

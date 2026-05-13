@@ -16,6 +16,7 @@ import { DistributedSemaphore } from "../../services/semaphore";
 
 import { fetchWorkflowState } from "../common/services/utils";
 import { UGC_TASK_KEYS, UGC_TASKS } from "./constants";
+import { generateCreativePrompt } from "@/lib/prompts";
 
 const phonosSemaphore = new DistributedSemaphore("phonos:audio_enhancement_slots", 5, 300000);
 
@@ -118,6 +119,40 @@ export const ugcVideoOrchestrator = inngest.createFunction(
         }));
 
         scheme.segments = pipelineSteps.mapPromptsToSegments(scheme, shots, bRolls);
+        
+        // BAKE CREATIVE PROMPT: Pre-assemble the rich prompt for the UI to display and edit
+        scheme.segments = scheme.segments.map((seg: any) => {
+          const updatedShots = (seg.shots || []).map((shot: any) => {
+            const dialogue = `AUDIO DIALOGUE (SPOKEN ONLY): ${seg.text || ""}`;
+            const visuals = `VISUALS: ${shot.scenePrompt || "Professional environment"}`;
+            const actions = `ACTIONS: ${shot.videoPrompt || "Natural speaking performance"}`;
+            
+            const newShot = {
+              ...shot,
+              videoPrompt: `${dialogue}\n${visuals}\n${actions}`.trim(),
+            };
+            delete newShot.scenePrompt;
+            return newShot;
+          });
+
+          const updatedBRolls = (seg.bRolls || []).map((br: any) => {
+            const visuals = `VISUALS: ${br.scenePrompt || "Cinematic cutaway"}`;
+            const actions = `ACTIONS: ${br.videoPrompt || "Subtle motion"}`;
+            
+            const newBRoll = {
+              ...br,
+              videoPrompt: `${visuals}\n${actions}`.trim(),
+            };
+            delete newBRoll.scenePrompt;
+            return newBRoll;
+          });
+
+          return {
+            ...seg,
+            shots: updatedShots,
+            bRolls: updatedBRolls,
+          };
+        });
 
         await step.run("mark-generation-progress-schema", async () => {
           return await advanceGenerationTask(schemeId, UGC_TASK_KEYS.SCHEMA, UGC_TASKS);
