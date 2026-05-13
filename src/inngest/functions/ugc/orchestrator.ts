@@ -182,7 +182,6 @@ export const ugcVideoOrchestrator = inngest.createFunction(
             needsPreviousFrame,
             mode,
             firstFrameSource,
-            isProductShot,
           } = waveItem;
 
           const segmentId = segData.id as string;
@@ -206,17 +205,18 @@ export const ugcVideoOrchestrator = inngest.createFunction(
                     text: segData.text || "",
                     estimatedDuration: segData.estimatedDuration ?? 5,
                     shot: segData.shots?.[0],
-                    isProductShot,
                     mode,
                     firstFrameSource,
                     avatarUrl,
-                    productUrls,
+                    product: {
+                      urls: productUrls,
+                      name: (dbSchemaSurrogate as any)?.product?.name,
+                      description: (dbSchemaSurrogate as any)?.product?.description,
+                    },
                     aspectRatio: dbSchemaSurrogate.aspect_ratio || "9:16",
                     schemaId: schemeId,
                     segmentId,
-                    previousSegmentDbId,
-                    videoUrlByDbId: resolvedUrls,
-                    productDescription: (dbSchemaSurrogate as any)?.product?.description,
+                    firstFrameUrl: needsPreviousFrame && previousSegmentDbId ? (await taskPromiseByDbId[previousSegmentDbId])?.lastFrameUrl : undefined,
                   },
                   services,
                 });

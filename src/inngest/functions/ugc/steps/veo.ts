@@ -16,6 +16,13 @@ export const getClosestVeoDuration = (estimatedDuration: number) => {
   return 8;
 };
 
+export const getIsProductShot = (shot?: any) => {
+  if (!shot) return false;
+  return shot.type === "product" || shot.hasProductInteraction !== false;
+};
+
+export type UgcVideoMode = "FIRST_FRAME_TO_VIDEO" | "REFERENCE_TO_VIDEO";
+
 export interface VeoInput {
   prompt: string;
   negativePrompt?: string;
@@ -32,28 +39,30 @@ export interface UgcVideoRequest {
   shot?: {
     videoPrompt?: string;
     scenePrompt?: string;
+    type?: string;
+    hasProductInteraction?: boolean;
   };
-  isProductShot: boolean;
-  mode: "first frame to video" | "reference to video";
+  mode: UgcVideoMode;
   firstFrameSource: "avatar" | "last_frame" | "none";
   avatarUrl?: string;
-  productUrls: string[];
+  product: {
+    urls: string[];
+    name?: string;
+    description?: string;
+  };
   aspectRatio: string;
   schemaId: string;
   segmentId: string;
-  previousSegmentDbId: string | null;
-  videoUrlByDbId: Record<string, string | null>;
-  productDescription?: string;
+  firstFrameUrl?: string;
 }
 
 export type WaveItem = {
   segmentId: string; // The database ID (segment.id)
   segData: any; // The segment_data object
-  previousSegmentDbId: string | null;
-  mode: "first frame to video" | "reference to video";
+  previousSegmentDbId?: string | null;
+  mode: UgcVideoMode;
   needsPreviousFrame: boolean;
   firstFrameSource: "avatar" | "last_frame" | "none";
-  isProductShot: boolean;
 };
 
 export function buildGenerationPlan(sortedSegments: any[]) {
@@ -64,9 +73,7 @@ export function buildGenerationPlan(sortedSegments: any[]) {
   for (const seg of sortedSegments) {
     const segData = seg.segment_data as any;
     const currentShot = segData.shots?.[0];
-    const estimatedDuration = segData.estimatedDuration ?? 5;
-    const isProductShot =
-      currentShot?.type === "product" || currentShot?.hasProductInteraction !== false;
+    const isProductShot = getIsProductShot(currentShot);
 
     // Detect dependency needs:
     // Priority 1: schema explicitly flags this as a continuation of a sentence/paragraph.
@@ -79,14 +86,8 @@ export function buildGenerationPlan(sortedSegments: any[]) {
       if (!productMentionedInWaves) {
         // First product mention uses Reference mode -> no dependency
         willNeedPreviousFrame = false;
-      } else if (estimatedDuration > 6) {
-        // Long product shot uses Reference mode -> no dependency
-        willNeedPreviousFrame = false;
-      } else if (estimatedDuration < 4.5) {
-        // Short product shot uses Avatar mode -> no dependency
-        willNeedPreviousFrame = false;
       } else {
-        // Non-first product shot between 4.5-6s uses Continuity -> HAS DEPENDENCY
+        // Subsequent product shots use Continuity -> HAS DEPENDENCY
         willNeedPreviousFrame = true;
       }
     } else {
@@ -127,11 +128,9 @@ export function buildGenerationPlan(sortedSegments: any[]) {
   const waves: WaveItem[][] = waveGroups.map((group) =>
     group.map((seg, index) => {
       const segData = seg.segment_data as any;
-      const estimatedDuration = segData.estimatedDuration ?? 5;
       const isContinuation = index > 0;
       const currentShot = segData.shots?.[0];
-      const isProductShot =
-        currentShot?.type === "product" || currentShot?.hasProductInteraction !== false;
+      const isProductShot = getIsProductShot(currentShot);
 
       let isFirstProductMention = false;
       if (isProductShot && !productMentionedForMapping) {
@@ -139,44 +138,24 @@ export function buildGenerationPlan(sortedSegments: any[]) {
         productMentionedForMapping = true;
       }
 
-      let mode: "first frame to video" | "reference to video" = "first frame to video";
+      let mode: UgcVideoMode = "FIRST_FRAME_TO_VIDEO";
       let firstFrameSource: "avatar" | "last_frame" | "none" = "avatar";
       let needsPreviousFrame = false;
 
       // RULE PRIORITIES (highest to lowest)
-      if (segData.isContinuation === true && index > 0) {
-        // Rule 0 (Highest): Explicit schema continuation -> always use last frame of previous clip
-        mode = "first frame to video";
+      if (isContinuation) {
+        // Rule 0 (Highest): Any continuation within a wave -> always use last frame of previous clip
+        mode = "FIRST_FRAME_TO_VIDEO";
         firstFrameSource = "last_frame";
         needsPreviousFrame = true;
       } else if (isFirstProductMention) {
-        // Rule 1: First product mention -> References
-        mode = "reference to video";
+        // Rule 1: First product mention at start of wave -> References
+        mode = "REFERENCE_TO_VIDEO";
         firstFrameSource = "none";
         needsPreviousFrame = false;
-      } else if (!isProductShot) {
-        // Rule 2: No product -> Avatar talking head
-        mode = "first frame to video";
-        firstFrameSource = "avatar";
-        needsPreviousFrame = false;
-      } else if (estimatedDuration < 4.5) {
-        // Rule 3: Short product shot < 4.5s -> Avatar (isContinuation already handled above)
-        mode = "first frame to video";
-        firstFrameSource = "avatar";
-        needsPreviousFrame = false;
-      } else if (isProductShot && estimatedDuration > 6) {
-        // Rule 4: Product shot > 6s -> References
-        mode = "reference to video";
-        firstFrameSource = "none";
-        needsPreviousFrame = false;
-      } else if (isContinuation) {
-        // Fallthrough (Implicit Continuity): 4.5-6s, product mentioned, not first time
-        mode = "first frame to video";
-        firstFrameSource = "last_frame";
-        needsPreviousFrame = true;
       } else {
-        // Default: Start of scene, not first mention, 4.5-6s
-        mode = "first frame to video";
+        // Rule 2: Start of wave, not first mention (or non-product shot) -> Avatar
+        mode = "FIRST_FRAME_TO_VIDEO";
         firstFrameSource = "avatar";
         needsPreviousFrame = false;
       }
@@ -188,7 +167,6 @@ export function buildGenerationPlan(sortedSegments: any[]) {
         mode,
         needsPreviousFrame,
         firstFrameSource,
-        isProductShot,
       };
     }),
   );
@@ -302,8 +280,8 @@ export async function resolveVeoGenerationStrategy(
     request.shot?.scenePrompt ?? ""
   );
 
-  let useFirstFrame = request.mode === "first frame to video";
-  let useReferences = request.mode === "reference to video";
+  let useFirstFrame = request.mode === "FIRST_FRAME_TO_VIDEO";
+  let useReferences = request.mode === "REFERENCE_TO_VIDEO";
 
   let firstFrameUrlToUse: string | undefined = undefined;
   let referenceImageUrlsToUse: string[] | undefined = undefined;
@@ -313,33 +291,28 @@ export async function resolveVeoGenerationStrategy(
     if (request.firstFrameSource === "avatar") {
       firstFrameUrlToUse = request.avatarUrl;
     } else if (request.firstFrameSource === "last_frame") {
-      const preExtractedLastFrameUrl = request.previousSegmentDbId
-        ? request.videoUrlByDbId[request.previousSegmentDbId]
-        : null;
+      const preExtractedLastFrameUrl = request.firstFrameUrl;
 
       if (preExtractedLastFrameUrl) {
         firstFrameUrlToUse = preExtractedLastFrameUrl;
         lastFrameUrlToUse = request.avatarUrl;
         durationSeconds = 8;
 
-        if (request.isProductShot) {
+        if (getIsProductShot(request.shot)) {
           const visibility = await gemini.checkProductVisibility(
             firstFrameUrlToUse,
-            request.productDescription ?? ""
+            {
+              name: request.product.name,
+              description: request.product.description,
+              referenceImageUrls: request.product.urls,
+            }
           );
 
           if (!visibility.isVisible || visibility.confidence < 0.7) {
-            if (request.estimatedDuration > 4.5) {
-              useFirstFrame = false;
-              useReferences = true;
-              firstFrameUrlToUse = undefined;
-              lastFrameUrlToUse = undefined;
-              durationSeconds = 8;
-            } else {
-              firstFrameUrlToUse = request.avatarUrl;
-              lastFrameUrlToUse = undefined;
-              durationSeconds = initialDurationSeconds;
-            }
+            // Fallback to avatar talking head if product visibility is low
+            firstFrameUrlToUse = request.avatarUrl;
+            lastFrameUrlToUse = undefined;
+            durationSeconds = initialDurationSeconds;
           }
         }
       } else {
@@ -351,7 +324,7 @@ export async function resolveVeoGenerationStrategy(
     }
 
     // Simplified Prompt Fallback instead of Gemini rewrite
-    if (firstFrameUrlToUse === request.avatarUrl && request.isProductShot) {
+    if (firstFrameUrlToUse === request.avatarUrl && getIsProductShot(request.shot)) {
       console.log(`[Veo] Using simple avatar fallback prompt for segment: ${request.segmentId}`);
       finalPrompt = `A professional avatar speaker speaks the following dialogue: ${request.text}`;
     }
@@ -360,7 +333,7 @@ export async function resolveVeoGenerationStrategy(
   if (useReferences) {
     referenceImageUrlsToUse = [
       ...(request.avatarUrl ? [request.avatarUrl] : []),
-      ...request.productUrls,
+      ...request.product.urls,
     ];
     durationSeconds = 8;
   }
