@@ -176,17 +176,15 @@ export const ugcVideoOrchestrator = inngest.createFunction(
 
         const allTasks = allWaveItems.map((waveItem) => {
           const {
-            segment,
+            segmentId: segmentDbId,
+            segData,
             previousSegmentDbId,
             needsPreviousFrame,
             mode,
             firstFrameSource,
             isProductShot,
-            isFirstProductMention,
           } = waveItem;
 
-          const segData = segment.segment_data as any;
-          const segmentDbId = segment.id as string;
           const segmentId = segData.id as string;
 
           const taskPromise = (async () => {
@@ -204,24 +202,23 @@ export const ugcVideoOrchestrator = inngest.createFunction(
               `generate-ugc-video-${segmentId}-${runToken}`,
               async () => {
                 return await pipelineSteps.generateUgcVideo({
-                  segData,
-                  isExpand: !!previousSegmentDbId,
-                  previousSegmentDbId,
-                  globalIndex: segment.order,
-                  videoUrlByDbId: resolvedUrls,
-                  avatarUrl,
-                  productUrls,
-                  schemaId: schemeId,
-                  projectId,
-                  segmentId,
-                  schema: dbSchemaSurrogate,
+                  request: {
+                    text: segData.text || "",
+                    estimatedDuration: segData.estimatedDuration ?? 5,
+                    shot: segData.shots?.[0],
+                    isProductShot,
+                    mode,
+                    firstFrameSource,
+                    avatarUrl,
+                    productUrls,
+                    aspectRatio: dbSchemaSurrogate.aspect_ratio || "9:16",
+                    schemaId: schemeId,
+                    segmentId,
+                    previousSegmentDbId,
+                    videoUrlByDbId: resolvedUrls,
+                    productDescription: (dbSchemaSurrogate as any)?.product?.description,
+                  },
                   services,
-                  mode,
-                  firstFrameSource,
-                  isProductShot,
-                  isFirstProductMention,
-                  runToken,
-                  phonosSemaphore,
                 });
               },
             );

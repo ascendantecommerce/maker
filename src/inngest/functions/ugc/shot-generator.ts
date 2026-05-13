@@ -136,49 +136,40 @@ export const generateUGCVideo = inngest.createFunction(
       await generationQueries.update(generationId, { progress: 30 });
 
       const result = await step.run("generate-video", async () => {
-        // Construct the surrogate schema needed by generateUgcVideo
-        const surrogateSchema = {
-          id: schemaId,
-          type: "ugc-video-ad",
-          aspect_ratio: aspectRatio,
-          product: schema?.product,
-          avatar: schema?.avatar,
-          segments: [],
-        };
-
+        const segData = dbSegment.segment_data;
         return await generateUgcVideo({
-          segData: dbSegment.segment_data,
-          isExpand: false,
-          previousSegmentDbId: null,
-          globalIndex: 0,
-          videoUrlByDbId: firstFrameUrl ? { "manual-first-frame": firstFrameUrl } : {},
-          avatarUrl,
-          productUrls: productUrls || [],
-          schemaId,
-          projectId: schema?.project_id || "",
-          segmentId,
-          schema: surrogateSchema as any,
+          request: {
+            text: text || segData.text || "",
+            estimatedDuration: segData.estimatedDuration ?? 5,
+            shot: segData.shots?.[0] as any,
+            isProductShot: segData.shots?.[0]?.type === "product",
+            mode: firstFrameUrl ? "first frame to video" : "reference to video",
+            firstFrameSource: firstFrameUrl ? "none" : "avatar",
+            avatarUrl,
+            productUrls: productUrls || [],
+            aspectRatio: aspectRatio || "9:16",
+            schemaId,
+            segmentId,
+            previousSegmentDbId: null,
+            videoUrlByDbId: firstFrameUrl ? { "manual-first-frame": firstFrameUrl } : {},
+            productDescription: (schema as any)?.product?.description,
+          },
           services,
-          mode: firstFrameUrl ? "first frame to video" : "reference to video",
-          firstFrameSource: firstFrameUrl ? "none" : "avatar", // if manual url provided, we handle it in videoUrlByDbId
-          isProductShot: dbSegment.segment_data.shots?.[0]?.type === "product",
-          isFirstProductMention: true,
-          runToken: generationId,
-          phonosSemaphore,
         });
       });
 
       await generationQueries.update(generationId, { progress: 70 });
 
       await step.run("update-db", async () => {
-        // Logic adapted from updateVeoSegmentInDb
         const finalUrl = result.finalTrimmedUrl || result.rawR2Url;
-        
+        const actualDuration = result.actualDuration || 0;
+        const durationMs = actualDuration * 1000;
+
         const existingAssets = (dbSegment.segment_data.assets ?? []).map((a: any) => ({
           ...a,
           active: a.type === "video" ? false : a.active,
         }));
-        
+
         const updatedAssets = [
           ...existingAssets,
           {
@@ -187,20 +178,25 @@ export const generateUGCVideo = inngest.createFunction(
             url: finalUrl,
             status: "completed" as const,
             active: true,
-            prompt: videoPrompt || text,
+            prompt: videoPrompt || text || dbSegment.segment_data.text || "",
           },
         ];
 
-        const updatePayload = {
+        const updatePayload: any = {
           ...dbSegment.segment_data,
           assets: updatedAssets,
-          estimatedDuration: result.actualDuration,
+          estimatedDuration: actualDuration,
         };
 
         if (updatePayload.shots?.[0]) {
-          updatePayload.shots[0].videoUrl = finalUrl;
-          updatePayload.shots[0].status = "completed";
-          updatePayload.shots[0].duration = result.actualDuration;
+          const originalShot = updatePayload.shots[0];
+          updatePayload.shots[0] = {
+            ...originalShot,
+            videoUrl: finalUrl,
+            status: "completed",
+            duration: durationMs,
+            display: { from: 0, to: durationMs },
+          };
         }
 
         await db

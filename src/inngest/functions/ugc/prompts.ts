@@ -21,7 +21,6 @@ export function buildUgcPrompt(
   text?: string,
   videoPrompt?: string,
   scenePrompt?: string,
-  productSizing?: string,
 ) {
   const cleanText = text ? text.trim() + (text.endsWith(".") ? "" : ".") : "";
 
@@ -29,7 +28,7 @@ export function buildUgcPrompt(
 AUDIO DIALOGUE (SPOKEN ONLY): "${cleanText}"
 ${AUDIO_CONTROL}
 DELIVERY: ${DELIVERY_CONTROL}
-ACTION: ${productSizing ? `Scale: ${productSizing}. ` : ""} Subject speaks directly to camera with highly accurate articulation. ${videoPrompt || "natural speaking"}. ${MOUTH_CONTROL}
+ACTION: Subject speaks directly to camera with highly accurate articulation. ${videoPrompt || "natural speaking"}. ${MOUTH_CONTROL}
 SCENE: ${scenePrompt || "professional environment"}
 STRICTLY NO ON-SCREEN TEXT, NO CAPTIONS, NO OVERLAYS. THE FRAME MUST BE CLEAN OF ALL TYPOGRAPHY.
 `.trim();
@@ -57,7 +56,7 @@ export const UGC_VISUAL_ANALYSIS_STEP = `## STEP 1 — ANALYZE THE IMAGES
 | **product_on_surface** | Package rests on a counter/table in frame while avatar speaks beside it. Best for a relaxed intro or lifestyle shot. |
 | **product_reveal** | Avatar reaches for and picks up the product, bringing it into frame. Use for the very first time the product appears. |
 
-**Product Scale & Sizing:** Determine the physical size of the product relative to a human hand or a standard surface. **Look at all provided product images (including hero shots and closeups) to accurately estimate this scale.** Define it as a concise phrase (e.g., "palm-sized small bottle", "large cereal-style box", "thin credit-card sized device"). You will use this description in ALL shots where the product appears to maintain perfect scale consistency.`;
+**Product Scale & Sizing:** Determine the physical size of the product relative to a human hand or a standard surface. **Look at all provided product images (including hero shots and closeups) to accurately estimate this scale.** Define it as a concise phrase (e.g., "palm-sized small bottle", "large cereal-style box", "thin credit-card sized device"). Use this understanding to maintain perfect scale consistency in your descriptions.`;
 
 // ─── Step 2: Script Intelligence ─────────────────────────────────────────────
 
@@ -237,8 +236,7 @@ Return a JSON array of objects, one per segment:
         "videoPrompt": "...",
         "scenePrompt": "...",
         "words": "...",
-        "hasProductInteraction": true | false,
-        "productSizing": "concise sizing phrase (e.g. palm-sized small bottle)"
+        "hasProductInteraction": true | false
       }
     ]
   }
@@ -265,8 +263,7 @@ Return a JSON array of objects, one per segment:
         "firstFramePrompt": "A highly detailed, self-contained image generation prompt for the FROZEN STARTING FRAME of this B-roll clip. Describe the exact product, composition, lighting, surface, and environment. Do NOT reference asset filenames like image_1.png. Example: 'A macro close-up of small blue cubic gummy supplements piled on a pristine white marble surface. Natural daylight from the left creates soft shadows, revealing the slightly crystalline texture of the gummies. Shallow depth of field, photorealistic.'",
         "videoPrompt": "...",
         "scenePrompt": "...",
-        "words": "...",
-        "productSizing": "concise sizing phrase (e.g. palm-sized small bottle)"
+        "words": "..."
       }
     ]
   }
@@ -327,8 +324,7 @@ Return a JSON array of objects, one per segment:
         "videoPrompt": "...",
         "scenePrompt": "...",
         "words": "...",
-        "hasProductInteraction": true | false,
-        "productSizing": "concise sizing phrase (e.g. palm-sized small bottle)"
+        "hasProductInteraction": true | false
       }
     ]
   }
@@ -443,8 +439,7 @@ Return a JSON array of objects, one per segment:
         "videoPrompt": "...",
         "scenePrompt": "...",
         "words": "...",
-        "hasProductInteraction": true | false,
-        "productSizing": "concise sizing phrase (e.g. palm-sized small bottle)"
+        "hasProductInteraction": true | false
       }
     ],
     "bRolls": [
@@ -456,8 +451,7 @@ Return a JSON array of objects, one per segment:
         "firstFramePrompt": "A highly detailed, self-contained image generation prompt for the FROZEN STARTING FRAME of this B-roll clip. Describe the exact product, composition, lighting, surface, and environment. Do NOT reference asset filenames like image_1.png.",
         "videoPrompt": "...",
         "scenePrompt": "...",
-        "words": "...",
-        "productSizing": "concise sizing phrase (e.g. palm-sized small bottle)"
+        "words": "..."
       }
     ]
   }
