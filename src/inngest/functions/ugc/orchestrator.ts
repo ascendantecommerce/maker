@@ -32,6 +32,7 @@ export const ugcVideoOrchestrator = inngest.createFunction(
     let scheme: VideoSchema = event.data.scheme;
     const schemeId = scheme.id;
 
+    let metadataPersisted = false;
     try {
       // ========================================================================
       // PIPELINE STAGES - CONTROLS
@@ -41,7 +42,7 @@ export const ugcVideoOrchestrator = inngest.createFunction(
       const STAGE_3_CUTAWAY_B_ROLL = false; // Phase 3: Generating full-screen B-roll clips
       const STAGE_4_OVERLAY_IMAGE = false; // Phase 4: Generating demonstrative Image Overlays (nano-banana-2)
       const STAGE_5_VOICE_ALIGNMENT = true; // Phase 5: Optional Voice Cloning & Alignment (STS)
-      const STAGE_6_AUDIO_ENHANCEMENT = true; // Phase 6: Phonos Refinement
+      const STAGE_6_AUDIO_ENHANCEMENT = false; // Phase 6: Phonos Refinement
       // ========================================================================
 
       // --- PHASE 1: AI ANALYSIS & SCHEMA GENERATION ---
@@ -202,6 +203,19 @@ export const ugcVideoOrchestrator = inngest.createFunction(
         const taskPromiseByDbId: Record<string, Promise<any> | undefined> = {};
         const allWaveItems = waves.flat();
 
+        // 0. Persist All Metadata Before Generation
+        await step.run("persist-generation-plan-metadata", async () => {
+          for (const item of allWaveItems) {
+            await pipelineSteps.updateUgcShotMetadata({
+              segmentDbId: item.segmentId,
+              mode: item.mode,
+              firstFrameSource: item.firstFrameSource,
+            });
+          }
+        });
+
+        metadataPersisted = true;
+
         const dbSchemaSurrogate = {
           ...scheme,
           aspect_ratio: scheme.aspectRatio,
@@ -222,6 +236,7 @@ export const ugcVideoOrchestrator = inngest.createFunction(
           const segmentId = segData.id as string;
 
           const taskPromise = (async () => {
+
             // 1. Dependency Resolution
             let resolvedUrls: Record<string, string> = {};
             if (needsPreviousFrame && previousSegmentDbId) {
@@ -266,6 +281,8 @@ export const ugcVideoOrchestrator = inngest.createFunction(
                 finalR2Url: result.improvedUrl || result.finalTrimmedUrl,
                 actualDuration: result.actualDuration,
                 tsUrl: result.tsUrl,
+                mode,
+                firstFrameSource,
               });
             });
 
@@ -512,14 +529,22 @@ export const ugcVideoOrchestrator = inngest.createFunction(
       await step.run("publish-error-toast", async () => {});
 
       if (schemeId) {
+        // If we haven't even persisted the metadata, the user can't fix things manually.
+        // In that case, we mark as FAILED. Otherwise, we mark as COMPLETED so the UI is usable.
+        const finalStatus = metadataPersisted ? ResolverStatus.COMPLETED : ResolverStatus.FAILED;
+
         await db
           .updateTable("generations")
-          .set({ status: ResolverStatus.FAILED })
+          .set({ status: finalStatus })
           .where("id", "=", schemeId)
           .execute();
+
+        if (!metadataPersisted) {
+          throw new NonRetriableError(`UGC Master V3 workflow failed early: ${message}`, { cause: err });
+        }
       }
 
-      throw new NonRetriableError(`UGC Master V3 workflow failed: ${message}`, { cause: err });
+      return { success: false, error: message };
     }
   },
 );

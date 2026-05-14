@@ -38,7 +38,6 @@ export interface UgcVideoRequest {
   estimatedDuration: number;
   shot?: {
     videoPrompt?: string;
-    scenePrompt?: string;
     type?: string;
     hasProductInteraction?: boolean;
   };
@@ -352,12 +351,16 @@ export const updateVeoSegmentInDb = async ({
   finalR2Url,
   tsUrl,
   actualDuration,
+  mode,
+  firstFrameSource,
 }: {
   segmentDbId: string;
   segData: Segment;
   finalR2Url: string;
   tsUrl?: string;
   actualDuration: number;
+  mode?: string;
+  firstFrameSource?: string;
 }) => {
   const prompt =
     (segData.shots?.length ?? 0) > 0
@@ -408,6 +411,8 @@ export const updateVeoSegmentInDb = async ({
       prompt: originalShot.prompt || originalShot.videoPrompt || originalShot.scenePrompt || "",
       category: originalShot.category || "Avatar",
       words: originalShot.words || segData.text || "",
+      mode: mode || originalShot.mode,
+      firstFrameSource: firstFrameSource || originalShot.firstFrameSource,
     };
   }
 
@@ -423,6 +428,42 @@ export const updateVeoSegmentInDb = async ({
     })
     .where("id", "=", segmentDbId)
     .execute();
+};
+
+export const updateUgcShotMetadata = async ({
+  segmentDbId,
+  mode,
+  firstFrameSource,
+}: {
+  segmentDbId: string;
+  mode?: string;
+  firstFrameSource?: string;
+}) => {
+  const freshSeg = await db
+    .selectFrom("segments")
+    .select("segment_data")
+    .where("id", "=", segmentDbId)
+    .executeTakeFirst();
+
+  if (!freshSeg) return;
+
+  const currentSegData = freshSeg.segment_data as any;
+  if (currentSegData.shots && currentSegData.shots.length > 0) {
+    currentSegData.shots[0] = {
+      ...currentSegData.shots[0],
+      mode: mode || currentSegData.shots[0].mode,
+      firstFrameSource: firstFrameSource || currentSegData.shots[0].firstFrameSource,
+    };
+    console.log(JSON.stringify(currentSegData))
+    await db
+      .updateTable("segments")
+      .set({
+        segment_data: currentSegData,
+        updated_at: new Date(),
+      })
+      .where("id", "=", segmentDbId)
+      .execute();
+  }
 };
 
 /**
@@ -471,7 +512,7 @@ export async function generateUgcVideo({
     }
 
     const prompt = localRequest.shot?.videoPrompt || "";
-    const dialogueRegex = /AUDIO DIALOGUE \(SPOKEN ONLY\):\s*(.*)/i;
+    const dialogueRegex = /AUDIO DIALOGUE \(SPOKEN ONLY\):\s*([\s\S]*?)(?:\r?\n\s*VISUALS:|$)/i;
     const match = prompt.match(dialogueRegex);
 
     if (match) {
@@ -480,7 +521,10 @@ export async function generateUgcVideo({
       const updatedDialogue = `AUDIO DIALOGUE (SPOKEN ONLY): ${textWithDot} ${selectedFiller}`;
 
       if (localRequest.shot) {
-        localRequest.shot.videoPrompt = prompt.replace(dialogueRegex, updatedDialogue);
+        // Use a function in replace to avoid issues with special characters in the text
+        localRequest.shot.videoPrompt = prompt.replace(dialogueRegex, (matchStr, p1) => {
+          return matchStr.replace(p1, `${textWithDot} ${selectedFiller}\n`);
+        });
       }
       localRequest.text = `${textWithDot} ${selectedFiller}`;
     }
@@ -491,6 +535,7 @@ export async function generateUgcVideo({
   // 1. Resolve Strategy
   const veoInput = await resolveVeoGenerationStrategy(localRequest, services);
 
+  console.log("veoInput", veoInput);
   // 2. Generate the video
   const { rawR2Url } = await generateVeoVideoRaw({
     input: veoInput,

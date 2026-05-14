@@ -9,6 +9,7 @@ import { ensureObject } from "../common/services/utils";
 import { DistributedSemaphore } from "../../services/semaphore";
 import { nanoid } from "nanoid";
 import { Segment, VideoSchema } from "@/types/segment";
+import { projectQueries } from "@/lib/database/project-queries";
 
 const inngest = getInngestApp();
 const phonosSemaphore = new DistributedSemaphore("phonos:audio_enhancement_slots", 5, 300000);
@@ -22,7 +23,7 @@ export const generateUGCImage = inngest.createFunction(
     triggers: { event: "ugc/shot.generate.image" },
   },
   async ({ event, step }) => {
-    const { generationId, schemaId, segments, avatarUrl, productUrls, aspectRatio } = event.data;
+    const { generationId, schemeId, segments, avatarUrl, productUrls, aspectRatio } = event.data;
     const segment = segments[0]; // UGC frames API usually takes one segment at a time from UI
     
     try {
@@ -45,7 +46,7 @@ export const generateUGCImage = inngest.createFunction(
       await generationQueries.update(generationId, { progress: 70 });
 
       // Update segment in DB
-      await step.run("update-db", async () => {
+      await step.run(`update-db-${generationId}`, async () => {
         const freshSeg = await db
           .selectFrom("segments")
           .select("segment_data")
@@ -100,18 +101,24 @@ export const generateUGCVideo = inngest.createFunction(
   },
   async ({ event, step }) => {
     const { 
-      generationId, schemaId, segmentId, shotId, 
+      generationId, schemeId, segmentId, shotId, 
       firstFrameUrl, lastFrameUrl, aspectRatio, 
-      text, scenePrompt, videoPrompt, 
-      userId, assetId, avatarUrl, productUrls 
+      videoPrompt,
+      userId, assetId, avatarUrl, productUrls,
+      mode, firstFrameSource
     } = event.data;
 
     try {
+
+      // debug params
+      await step.run(`debug-params-${generationId}`, async () => {
+        return event.data;
+      })
       const services = initializeUgcServices();
       await generationQueries.update(generationId, { progress: 10 });
 
       // Fetch segment data
-      const dbSegment = await step.run("fetch-segment", async () => {
+      const dbSegment = await step.run(`fetch-segment-${generationId}`, async () => {
         const res = await db.selectFrom("segments").selectAll().where("id", "=", segmentId).executeTakeFirst();
         if (!res) throw new Error("Segment not found");
         return { 
@@ -120,30 +127,44 @@ export const generateUGCVideo = inngest.createFunction(
         };
       });
 
-      const schema = await step.run("fetch-schema", async () => {
-        const res = await db.selectFrom("schemas").selectAll().where("id", "=", schemaId).executeTakeFirst();
+      const schema = await step.run(`fetch-schema-${generationId}`, async () => {
+        let res = await segmentQueries.findSchemaById(schemeId);
+        
+        if (!res) {
+          const project = await projectQueries.findByGenerationId(schemeId);
+          if (project) {
+            res = await segmentQueries.findSchemaByProjectId(project.id);
+          }
+        }
+
         if (!res) throw new Error("Schema not found");
         
         // Map DB snake_case to Interface camelCase
         return {
           ...res,
-          aspectRatio: res.aspect_ratio,
-          promptPreview: res.prompt_preview,
+          aspectRatio: (res as any).aspect_ratio,
+          promptPreview: (res as any).prompt_preview,
           segments: [], // Will be filled if needed, but generateUgcVideo handles individual segments
         } as unknown as VideoSchema;
       });
 
       await generationQueries.update(generationId, { progress: 30 });
 
-      const result = await step.run("generate-video", async () => {
-        const segData = dbSegment.segment_data;
+      const dialogueRegex = /AUDIO DIALOGUE \(SPOKEN ONLY\):\s*([\s\S]*?)(?:\r?\n\s*VISUALS:|$)/i;
+      const match = (videoPrompt || "").match(dialogueRegex);
+      const extractedText = match ? match[1].trim() : "";
+      
+      const result = await step.run(`generate-video-${generationId}`, async () => {
         return await generateUgcVideo({
           request: {
-            text: text || segData.text || "",
-            estimatedDuration: segData.estimatedDuration ?? 5,
-            shot: segData.shots?.[0] as any,
-            mode: firstFrameUrl ? "FIRST_FRAME_TO_VIDEO" : "REFERENCE_TO_VIDEO",
-            firstFrameSource: firstFrameUrl ? "last_frame" : "avatar",
+            text: extractedText || dbSegment.segment_data.text || "",
+            estimatedDuration: dbSegment.segment_data.estimatedDuration ?? 5,
+            shot: {
+              ...(dbSegment.segment_data.shots?.[0] || {}),
+              videoPrompt: videoPrompt,
+            } as any,
+            mode: mode,
+            firstFrameSource: firstFrameSource,
             avatarUrl,
             product: {
               urls: productUrls || [],
@@ -151,7 +172,7 @@ export const generateUGCVideo = inngest.createFunction(
               description: (schema as any)?.product?.description,
             },
             aspectRatio: aspectRatio || "9:16",
-            schemaId,
+            schemaId: schemeId,
             segmentId,
             firstFrameUrl: firstFrameUrl || undefined,
           },
@@ -161,7 +182,7 @@ export const generateUGCVideo = inngest.createFunction(
 
       await generationQueries.update(generationId, { progress: 70 });
 
-      await step.run("update-db", async () => {
+      await step.run(`update-db-${generationId}`, async () => {
         const finalUrl = result.finalTrimmedUrl || result.rawR2Url;
         const actualDuration = result.actualDuration || 0;
         const durationMs = actualDuration * 1000;
@@ -179,7 +200,7 @@ export const generateUGCVideo = inngest.createFunction(
             url: finalUrl,
             status: "completed" as const,
             active: true,
-            prompt: videoPrompt || text || dbSegment.segment_data.text || "",
+            prompt: videoPrompt || dbSegment.segment_data.text || "",
           },
         ];
 
@@ -197,7 +218,13 @@ export const generateUGCVideo = inngest.createFunction(
             status: "completed",
             duration: durationMs,
             display: { from: 0, to: durationMs },
+            videoPrompt: videoPrompt || originalShot.videoPrompt,
+            text: extractedText || originalShot.text || dbSegment.segment_data.text || "",
           };
+          // Also update the top-level segment text if we extracted it
+          if (extractedText) {
+            updatePayload.text = extractedText;
+          }
         }
 
         await db

@@ -179,35 +179,28 @@ export function useUGCGeneration() {
           }
         }
 
-        const response = await fetch("/api/ugc/generate-frames", {
+        const response = await fetch("/api/workflow/generate-ugc-shot", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            schemaId: schema.id,
-            segments: [
-              {
-                id: selectedSegment.id,
-                shotId: selectedSegment.shots?.[0]?.id,
-                type: selectedSegment.shots?.[0]?.type,
-                description: prompt,
-                text: selectedSegment.text,
-                previousFrameUrl,
-                shotType: selectedSegment.shots?.[0]?.type ?? "generic",
-                firstFrame: selectedSegment.shots?.[0]?.firstFrame,
-              },
-            ],
+            schemeId: schema.id,
+            segmentId: selectedSegment.id,
+            shotId: selectedSegment.shots?.[0]?.id,
+            text: selectedSegment.text,
+            prompt, // Standardized from description
+            previousFrameUrl,
             avatarUrl,
             productUrls,
             aspectRatio: schema.aspectRatio || "9:16",
+            mode: "image",
           }),
         });
 
         if (!response.ok) throw new Error("Failed to generate frames");
 
-        const { generationIds } = await response.json();
+        const { generationId } = await response.json();
 
-        if (generationIds && generationIds[selectedSegment.id]) {
-          const generationId = generationIds[selectedSegment.id];
+        if (generationId) {
           updateSegmentAsset(selectedSegment.id, assetId, { taskId: generationId });
           pollGenerationStatus(selectedSegment.id, generationId, assetId);
         }
@@ -222,7 +215,7 @@ export function useUGCGeneration() {
 
 
   const handleGenerateUGCVideo = useCallback(
-    async (segmentId: string) => {
+    async (segmentId: string, options?: { mode?: string; firstFrameSource?: string }) => {
       const selectedSegment = (schema?.segments || []).find((s) => s.id === segmentId);
       if (!segmentId || !selectedSegment || !schema) return;
 
@@ -263,21 +256,38 @@ export function useUGCGeneration() {
           }
         }
 
-        const response = await fetch("/api/ugc/generate-video", {
+        // console.log("Generating video with:", {
+        //   schemaId: schema.id,
+        //   segmentId: selectedSegment.id,
+        //   shotId: selectedSegment.shots?.[0]?.id,
+        //   text: selectedSegment.text,
+        //   scenePrompt: selectedSegment.shots?.[0]?.scenePrompt,
+        //   videoPrompt: prompt,
+        //   firstFrameUrl: frames[segmentId]?.url,
+        //   lastFrameUrl,
+        //   aspectRatio: schema.aspectRatio || "9:16",
+        //   avatarUrl,
+        //   productUrls,
+        //   mode: options?.mode,
+        //   firstFrameSource: options?.firstFrameSource,
+        // })
+        // return
+        const response = await fetch("/api/workflow/generate-ugc-shot", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            schemaId: schema.id,
+            schemeId: schema.id,
             segmentId: selectedSegment.id,
             shotId: selectedSegment.shots?.[0]?.id,
             text: selectedSegment.text,
-            scenePrompt: selectedSegment.shots?.[0]?.scenePrompt,
-            videoPrompt: prompt,
+            prompt, // Standardized from videoPrompt
             firstFrameUrl: frames[segmentId]?.url,
             lastFrameUrl,
             aspectRatio: schema.aspectRatio || "9:16",
             avatarUrl,
             productUrls,
+            mode: options?.mode,
+            firstFrameSource: options?.firstFrameSource,
           }),
         });
 
