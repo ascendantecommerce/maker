@@ -25,7 +25,7 @@ export const generateUGCImage = inngest.createFunction(
   async ({ event, step }) => {
     const { generationId, schemeId, segments, avatarUrl, productUrls, aspectRatio } = event.data;
     const segment = segments[0]; // UGC frames API usually takes one segment at a time from UI
-    
+
     try {
       await generationQueries.update(generationId, { progress: 10, status: "PROGRESS" });
 
@@ -54,7 +54,7 @@ export const generateUGCImage = inngest.createFunction(
           .executeTakeFirst();
 
         const currentSegData = freshSeg ? ensureObject(freshSeg.segment_data) : segment;
-        
+
         const newAsset = {
           id: `asset-${nanoid()}`,
           type: "image" as const,
@@ -63,11 +63,11 @@ export const generateUGCImage = inngest.createFunction(
           active: true,
           prompt: segment.description,
         };
-        
+
         currentSegData.assets = [...(currentSegData.assets || []), newAsset];
         if (currentSegData.shots?.[0]) {
-            currentSegData.shots[0].imageUrl = url;
-            currentSegData.shots[0].status = "completed";
+          currentSegData.shots[0].imageUrl = url;
+          currentSegData.shots[0].status = "completed";
         }
 
         await db
@@ -77,18 +77,21 @@ export const generateUGCImage = inngest.createFunction(
           .execute();
       });
 
-      await generationQueries.update(generationId, { 
-        status: "COMPLETED", 
-        progress: 100, 
-        output: { url } 
+      await generationQueries.update(generationId, {
+        status: "COMPLETED",
+        progress: 100,
+        output: { url },
       });
 
       return { success: true, url };
     } catch (error: any) {
-      await generationQueries.update(generationId, { status: "FAILED", output: { error: error.message } });
+      await generationQueries.update(generationId, {
+        status: "FAILED",
+        output: { error: error.message },
+      });
       throw error;
     }
-  }
+  },
 );
 
 /**
@@ -100,36 +103,48 @@ export const generateUGCVideo = inngest.createFunction(
     triggers: { event: "ugc/shot.generate.video" },
   },
   async ({ event, step }) => {
-    const { 
-      generationId, schemeId, segmentId, shotId, 
-      firstFrameUrl, lastFrameUrl, aspectRatio, 
+    const {
+      generationId,
+      schemeId,
+      segmentId,
+      shotId,
+      firstFrameUrl,
+      lastFrameUrl,
+      aspectRatio,
       videoPrompt,
-      userId, assetId, avatarUrl, productUrls,
-      mode, firstFrameSource
+      userId,
+      assetId,
+      avatarUrl,
+      productUrls,
+      mode,
+      firstFrameSource,
     } = event.data;
 
     try {
-
       // debug params
       await step.run(`debug-params-${generationId}`, async () => {
         return event.data;
-      })
+      });
       const services = initializeUgcServices();
       await generationQueries.update(generationId, { progress: 10 });
 
       // Fetch segment data
       const dbSegment = await step.run(`fetch-segment-${generationId}`, async () => {
-        const res = await db.selectFrom("segments").selectAll().where("id", "=", segmentId).executeTakeFirst();
+        const res = await db
+          .selectFrom("segments")
+          .selectAll()
+          .where("id", "=", segmentId)
+          .executeTakeFirst();
         if (!res) throw new Error("Segment not found");
-        return { 
-          ...res, 
-          segment_data: ensureObject(res.segment_data) as Segment 
+        return {
+          ...res,
+          segment_data: ensureObject(res.segment_data) as Segment,
         };
       });
 
       const schema = await step.run(`fetch-schema-${generationId}`, async () => {
         let res = await segmentQueries.findSchemaById(schemeId);
-        
+
         if (!res) {
           const project = await projectQueries.findByGenerationId(schemeId);
           if (project) {
@@ -138,7 +153,7 @@ export const generateUGCVideo = inngest.createFunction(
         }
 
         if (!res) throw new Error("Schema not found");
-        
+
         // Map DB snake_case to Interface camelCase
         return {
           ...res,
@@ -153,7 +168,7 @@ export const generateUGCVideo = inngest.createFunction(
       const dialogueRegex = /AUDIO DIALOGUE \(SPOKEN ONLY\):\s*([\s\S]*?)(?:\r?\n\s*VISUALS:|$)/i;
       const match = (videoPrompt || "").match(dialogueRegex);
       const extractedText = match ? match[1].trim() : "";
-      
+
       const result = await step.run(`generate-video-${generationId}`, async () => {
         return await generateUgcVideo({
           request: {
@@ -219,11 +234,11 @@ export const generateUGCVideo = inngest.createFunction(
             duration: durationMs,
             display: { from: 0, to: durationMs },
             videoPrompt: videoPrompt || originalShot.videoPrompt,
-            text: extractedText || originalShot.text || dbSegment.segment_data.text || "",
+            text: result.originalText || extractedText || originalShot.text || "",
           };
           // Also update the top-level segment text if we extracted it
-          if (extractedText) {
-            updatePayload.text = extractedText;
+          if (result.originalText || extractedText) {
+            updatePayload.text = result.originalText || extractedText;
           }
         }
 
@@ -235,16 +250,19 @@ export const generateUGCVideo = inngest.createFunction(
       });
 
       const finalVideoUrl = result.finalTrimmedUrl || result.rawR2Url;
-      await generationQueries.update(generationId, { 
-        status: "COMPLETED", 
-        progress: 100, 
-        output: { url: finalVideoUrl } 
+      await generationQueries.update(generationId, {
+        status: "COMPLETED",
+        progress: 100,
+        output: { url: finalVideoUrl },
       });
 
       return { success: true, url: result.finalTrimmedUrl || result.rawR2Url };
     } catch (error: any) {
-      await generationQueries.update(generationId, { status: "FAILED", output: { error: error.message } });
+      await generationQueries.update(generationId, {
+        status: "FAILED",
+        output: { error: error.message },
+      });
       throw error;
     }
-  }
+  },
 );

@@ -1,5 +1,5 @@
-import * as React from 'react';
-import { useEffect, useState, useMemo } from 'react';
+import * as React from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   ColorPicker,
   ColorPickerAlpha,
@@ -8,20 +8,16 @@ import {
   ColorPickerHue,
   ColorPickerOutput,
   ColorPickerSelection,
-} from '@/components/ui/color-picker';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { IClip, AnimationOptions, KeyframeData } from '@openvideo/engine-pixi';
+} from "@/components/ui/color-picker";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { IClip, AnimationOptions, KeyframeData } from "@openvideo/engine-pixi";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   IconAlignLeft,
   IconAlignCenter,
@@ -42,27 +38,27 @@ import {
   IconEdit,
   IconChevronDown,
   IconCheck,
-} from '@tabler/icons-react';
-import { cn } from '@/lib/utils';
+} from "@tabler/icons-react";
+import { cn } from "@/lib/utils";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-} from '@/components/ui/input-group';
-import { Textarea } from '@/components/ui/textarea';
-import { Slider } from '@/components/ui/slider';
-import color from 'color';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Button } from '@/components/ui/button';
+} from "@/components/ui/input-group";
+import { Textarea } from "@/components/ui/textarea";
+import { Slider } from "@/components/ui/slider";
+import color from "color";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
 
-import { fontManager } from '@openvideo/engine-pixi';
-import { getGroupedFonts, getFontByPostScriptName } from '@/utils/font-utils';
-import { NumberInput } from '@/components/ui/number-input';
-import useLayoutStore from '../store/use-layout-store';
-import { useStore } from 'zustand';
-import { useEphemeralClip } from '@/hooks/use-ephemeral-clip';
-import { projectStore, core } from '@/lib/project';
+import { fontManager } from "@openvideo/engine-pixi";
+import { getGroupedFonts, getFontByPostScriptName } from "@/utils/font-utils";
+import { NumberInput } from "@/components/ui/number-input";
+import useLayoutStore from "../store/use-layout-store";
+import { useStore } from "zustand";
+import { useEphemeralClip } from "@/hooks/use-ephemeral-clip";
+import { projectStore, core } from "@/lib/project";
 
 const GROUPED_FONTS = getGroupedFonts();
 
@@ -81,9 +77,8 @@ const FontPicker = React.memo(
         <button
           key={family.family}
           className={cn(
-            'flex w-full items-center px-2 py-2 text-sm rounded-md transition-colors hover:bg-accent hover:text-accent-foreground',
-            currentFamily.family === family.family &&
-            'bg-accent/50 text-accent-foreground'
+            "flex w-full items-center px-2 py-2 text-sm rounded-md transition-colors hover:bg-accent hover:text-accent-foreground",
+            currentFamily.family === family.family && "bg-accent/50 text-accent-foreground",
           )}
           onClick={() => {
             handleFontChange(family.mainFont.postScriptName);
@@ -91,9 +86,7 @@ const FontPicker = React.memo(
           }}
         >
           <span className="flex-1 text-left">{family.family}</span>
-          {currentFamily.family === family.family && (
-            <IconCheck className="size-4 ml-2" />
-          )}
+          {currentFamily.family === family.family && <IconCheck className="size-4 ml-2" />}
         </button>
       ));
     }, [currentFamily.family, handleFontChange]);
@@ -111,17 +104,14 @@ const FontPicker = React.memo(
             <IconChevronDown className="size-4 opacity-50 shrink-0 ml-2" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent
-          className="w-[var(--radix-popover-trigger-width)] p-0 gap-0"
-          align="start"
-        >
+        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 gap-0" align="start">
           <ScrollArea className="h-72 w-full">
             <div className="flex flex-col p-1 gap-px">{fontItems}</div>
           </ScrollArea>
         </PopoverContent>
       </Popover>
     );
-  }
+  },
 );
 
 interface TextPropertiesProps {
@@ -166,16 +156,13 @@ export function TextProperties({ clip }: TextPropertiesProps) {
 
   // Memoize font computations to prevent unnecessary recalculations
   const currentFont = useMemo(
-    () =>
-      getFontByPostScriptName(style.fontFamily) || GROUPED_FONTS[0].mainFont,
-    [style.fontFamily]
+    () => getFontByPostScriptName(style.fontFamily) || GROUPED_FONTS[0].mainFont,
+    [style.fontFamily],
   );
 
   const currentFamily = useMemo(
-    () =>
-      GROUPED_FONTS.find((f) => f.family === currentFont.family) ||
-      GROUPED_FONTS[0],
-    [currentFont.family]
+    () => GROUPED_FONTS.find((f) => f.family === currentFont.family) || GROUPED_FONTS[0],
+    [currentFont.family],
   );
 
   const handleStrokeUpdate = (strokeUpdates: any) => {
@@ -183,7 +170,7 @@ export function TextProperties({ clip }: TextPropertiesProps) {
       style: {
         ...style,
         stroke: {
-          ...(style.stroke || { color: '#ffffff', width: 0 }),
+          ...(style.stroke || { color: "#ffffff", width: 0 }),
           ...strokeUpdates,
         },
       },
@@ -192,7 +179,7 @@ export function TextProperties({ clip }: TextPropertiesProps) {
 
   const handleBlurUpdate = (blurUpdates: any) => {
     const currentShadow = style.dropShadow || {
-      color: '#000000',
+      color: "#000000",
       alpha: 1,
       blur: 0,
       distance: 0,
@@ -223,9 +210,7 @@ export function TextProperties({ clip }: TextPropertiesProps) {
   const { setFloatingControl } = useLayoutStore();
 
   const handleAnimationRemove = (id: string) => {
-    const animations = (coreClip.animations || []).filter(
-      (a: any) => a.id !== id
-    );
+    const animations = (coreClip.animations || []).filter((a: any) => a.id !== id);
     handleUpdate({ animations });
   };
 
@@ -239,7 +224,7 @@ export function TextProperties({ clip }: TextPropertiesProps) {
           Content
         </label>
         <Textarea
-          value={coreClip.text || ''}
+          value={coreClip.text || ""}
           onChange={(e) => handleUpdate({ text: e.target.value })}
           className="resize-none text-sm"
           placeholder="Enter text..."
@@ -254,9 +239,7 @@ export function TextProperties({ clip }: TextPropertiesProps) {
         <div className="grid grid-cols-2 gap-2">
           <InputGroup>
             <InputGroupAddon align="inline-start">
-              <span className="text-[10px] font-medium text-muted-foreground">
-                X
-              </span>
+              <span className="text-[10px] font-medium text-muted-foreground">X</span>
             </InputGroupAddon>
             <NumberInput
               value={Math.round(coreClip.left || 0)}
@@ -266,9 +249,7 @@ export function TextProperties({ clip }: TextPropertiesProps) {
           </InputGroup>
           <InputGroup>
             <InputGroupAddon align="inline-start">
-              <span className="text-[10px] font-medium text-muted-foreground">
-                Y
-              </span>
+              <span className="text-[10px] font-medium text-muted-foreground">Y</span>
             </InputGroupAddon>
             <NumberInput
               value={Math.round(coreClip.top || 0)}
@@ -280,9 +261,7 @@ export function TextProperties({ clip }: TextPropertiesProps) {
         <div className="grid grid-cols-2 gap-2">
           <InputGroup>
             <InputGroupAddon align="inline-start">
-              <span className="text-[10px] font-medium text-muted-foreground">
-                W
-              </span>
+              <span className="text-[10px] font-medium text-muted-foreground">W</span>
             </InputGroupAddon>
             <NumberInput
               value={Math.round(coreClip.width || 0)}
@@ -292,9 +271,7 @@ export function TextProperties({ clip }: TextPropertiesProps) {
           </InputGroup>
           <InputGroup>
             <InputGroupAddon align="inline-start">
-              <span className="text-[10px] font-medium text-muted-foreground">
-                H
-              </span>
+              <span className="text-[10px] font-medium text-muted-foreground">H</span>
             </InputGroupAddon>
             <NumberInput
               value={Math.round(coreClip.height || 0)}
@@ -338,24 +315,17 @@ export function TextProperties({ clip }: TextPropertiesProps) {
           Font
         </label>
 
-        <FontPicker
-          currentFamily={currentFamily}
-          handleFontChange={handleFontChange}
-        />
+        <FontPicker currentFamily={currentFamily} handleFontChange={handleFontChange} />
 
         <div className="grid grid-cols-2 gap-2">
-          <Select
-            value={currentFont.postScriptName}
-            onValueChange={(v) => handleFontChange(v)}
-          >
+          <Select value={currentFont.postScriptName} onValueChange={(v) => handleFontChange(v)}>
             <SelectTrigger className="border h-9 w-full overflow-hidden">
               <SelectValue placeholder="Style" />
             </SelectTrigger>
             <SelectContent>
               {currentFamily.styles.map((style) => (
                 <SelectItem key={style.id} value={style.postScriptName}>
-                  {style.fullName.replace(currentFamily.family, '').trim() ||
-                    'Regular'}
+                  {style.fullName.replace(currentFamily.family, "").trim() || "Regular"}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -378,18 +348,18 @@ export function TextProperties({ clip }: TextPropertiesProps) {
       <div className="grid grid-cols-2 gap-2">
         <div className="flex bg-input/30 rounded-md p-1 gap-1">
           {[
-            { icon: IconAlignLeft, value: 'left' },
-            { icon: IconAlignCenter, value: 'center' },
-            { icon: IconAlignRight, value: 'right' },
+            { icon: IconAlignLeft, value: "left" },
+            { icon: IconAlignCenter, value: "center" },
+            { icon: IconAlignRight, value: "right" },
           ].map((item) => (
             <button
               key={item.value}
               onClick={() => handleUpdate({ textAlign: item.value })}
               className={cn(
-                'flex-1 flex items-center justify-center rounded-sm py-1 transition-colors',
+                "flex-1 flex items-center justify-center rounded-sm py-1 transition-colors",
                 coreClip.textAlign === item.value
-                  ? 'bg-white/10 text-white'
-                  : 'text-muted-foreground hover:bg-white/5'
+                  ? "bg-white/10 text-white"
+                  : "text-muted-foreground hover:bg-white/5",
               )}
             >
               <item.icon className="size-3.5" />
@@ -399,18 +369,18 @@ export function TextProperties({ clip }: TextPropertiesProps) {
 
         <div className="flex bg-input/30 rounded-md p-1 gap-1">
           {[
-            { icon: IconUnderline, value: 'underline' },
-            { icon: IconOverline, value: 'overline' },
-            { icon: IconStrikethrough, value: 'strikethrough' },
+            { icon: IconUnderline, value: "underline" },
+            { icon: IconOverline, value: "overline" },
+            { icon: IconStrikethrough, value: "strikethrough" },
           ].map((item) => (
             <button
               key={item.value}
               onClick={() => handleUpdate({ verticalAlign: item.value })}
               className={cn(
-                'flex-1 flex items-center justify-center rounded-sm py-1 transition-colors',
+                "flex-1 flex items-center justify-center rounded-sm py-1 transition-colors",
                 coreClip.verticalAlign === item.value
-                  ? 'bg-white/10 text-white'
-                  : 'text-muted-foreground hover:bg-white/5'
+                  ? "bg-white/10 text-white"
+                  : "text-muted-foreground hover:bg-white/5",
               )}
             >
               <item.icon className="size-3.5" />
@@ -423,18 +393,18 @@ export function TextProperties({ clip }: TextPropertiesProps) {
       <div className="grid grid-cols-2 gap-2">
         <div className="flex bg-secondary/30 rounded-md p-1 gap-1">
           {[
-            { label: 'aA', value: 'none' },
-            { label: 'AA', value: 'uppercase' },
-            { label: 'aa', value: 'lowercase' },
+            { label: "aA", value: "none" },
+            { label: "AA", value: "uppercase" },
+            { label: "aa", value: "lowercase" },
           ].map((item) => (
             <button
               key={item.value}
               onClick={() => handleUpdate({ textCase: item.value })}
               className={cn(
-                'flex-1 text-[10px] font-medium flex items-center justify-center rounded-sm py-1 transition-colors',
-                (coreClip.textCase || 'none') === item.value
-                  ? 'bg-white/10 text-white'
-                  : 'text-muted-foreground hover:bg-white/5'
+                "flex-1 text-[10px] font-medium flex items-center justify-center rounded-sm py-1 transition-colors",
+                (coreClip.textCase || "none") === item.value
+                  ? "bg-white/10 text-white"
+                  : "text-muted-foreground hover:bg-white/5",
               )}
             >
               {item.label}
@@ -446,15 +416,11 @@ export function TextProperties({ clip }: TextPropertiesProps) {
           <InputGroupAddon align="inline-start" className="relative p-0">
             <Popover modal={true}>
               <PopoverTrigger asChild>
-                <InputGroupButton
-                  variant="ghost"
-                  size="icon-xs"
-                  className="h-full w-8"
-                >
+                <InputGroupButton variant="ghost" size="icon-xs" className="h-full w-8">
                   <div
                     className="h-4 ml-2 w-4 border border-white/10 shadow-sm"
                     style={{
-                      backgroundColor: (style.fill as string) || '#000000',
+                      backgroundColor: (style.fill as string) || "#000000",
                     }}
                   />
                 </InputGroupButton>
@@ -484,14 +450,11 @@ export function TextProperties({ clip }: TextPropertiesProps) {
             </Popover>
           </InputGroupAddon>
           <InputGroupInput
-            value={style.fill?.toUpperCase() || '#000000'}
+            value={style.fill?.toUpperCase() || "#000000"}
             onChange={(e) => handleStyleUpdate({ fill: e.target.value })}
             className="text-sm p-0 text-[10px] font-mono"
           />
-          <InputGroupAddon
-            align="inline-end"
-            className="border-l border-white/5 pl-2"
-          >
+          <InputGroupAddon align="inline-end" className="border-l border-white/5 pl-2">
             <span className="text-[10px]">100%</span>
           </InputGroupAddon>
         </InputGroup>
@@ -532,9 +495,9 @@ export function TextProperties({ clip }: TextPropertiesProps) {
           </label>
           <button
             onClick={() => {
-              setFloatingControl('animation-properties-picker', {
+              setFloatingControl("animation-properties-picker", {
                 clipId: coreClip.id,
-                mode: 'add',
+                mode: "add",
               });
             }}
             className="text-muted-foreground hover:text-white transition-colors"
@@ -556,9 +519,7 @@ export function TextProperties({ clip }: TextPropertiesProps) {
                 className="flex items-center justify-between p-2 bg-secondary/30 rounded-md group"
               >
                 <div className="flex flex-col flex-1">
-                  <span className="text-xs font-medium capitalize">
-                    {anim.type}
-                  </span>
+                  <span className="text-xs font-medium capitalize">{anim.type}</span>
                   <span className="text-[10px] text-muted-foreground">
                     {Math.round((anim.options?.duration ?? 0) / 1e6)}s duration
                   </span>
@@ -566,10 +527,10 @@ export function TextProperties({ clip }: TextPropertiesProps) {
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => {
-                      setFloatingControl('animation-properties-picker', {
+                      setFloatingControl("animation-properties-picker", {
                         clipId: coreClip.id,
                         animationId: anim.id,
-                        mode: 'edit',
+                        mode: "edit",
                       });
                     }}
                     className="p-1 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-white transition-all"
@@ -605,16 +566,11 @@ export function TextProperties({ clip }: TextPropertiesProps) {
             <InputGroupAddon align="inline-start" className="relative p-0">
               <Popover modal={true}>
                 <PopoverTrigger asChild>
-                  <InputGroupButton
-                    variant="ghost"
-                    size="icon-xs"
-                    className="h-full w-8"
-                  >
+                  <InputGroupButton variant="ghost" size="icon-xs" className="h-full w-8">
                     <div
                       className="h-4 w-4 rounded-full border border-white/10 shadow-sm"
                       style={{
-                        backgroundColor:
-                          (style.stroke?.color as string) || '#000000',
+                        backgroundColor: (style.stroke?.color as string) || "#000000",
                       }}
                     />
                   </InputGroupButton>
@@ -643,14 +599,11 @@ export function TextProperties({ clip }: TextPropertiesProps) {
               </Popover>
             </InputGroupAddon>
             <InputGroupInput
-              value={style.stroke?.color?.toUpperCase() || '#000000'}
+              value={style.stroke?.color?.toUpperCase() || "#000000"}
               onChange={(e) => handleStrokeUpdate({ color: e.target.value })}
               className="text-sm p-0 text-[10px] font-mono"
             />
-            <InputGroupAddon
-              align="inline-end"
-              className="border-l border-white/5 pl-2"
-            >
+            <InputGroupAddon align="inline-end" className="border-l border-white/5 pl-2">
               <span className="text-[10px]">100%</span>
             </InputGroupAddon>
           </InputGroup>
@@ -691,9 +644,7 @@ export function TextProperties({ clip }: TextPropertiesProps) {
               <IconRotate className="size-3.5" />
             </InputGroupAddon>
             <NumberInput
-              value={Math.round(
-                ((style.dropShadow?.angle || 0) * 180) / Math.PI
-              )}
+              value={Math.round(((style.dropShadow?.angle || 0) * 180) / Math.PI)}
               onChange={(val) => handleBlurUpdate({ angle: val })}
             />
           </InputGroup>
@@ -714,15 +665,11 @@ export function TextProperties({ clip }: TextPropertiesProps) {
             <InputGroupAddon align="inline-start" className="relative p-0">
               <Popover modal={true}>
                 <PopoverTrigger asChild>
-                  <InputGroupButton
-                    variant="ghost"
-                    size="icon-xs"
-                    className="h-full w-8"
-                  >
+                  <InputGroupButton variant="ghost" size="icon-xs" className="h-full w-8">
                     <div
                       className="h-4 w-4 border border-white/10 shadow-sm"
                       style={{
-                        backgroundColor: style.dropShadow?.color || '#000000',
+                        backgroundColor: style.dropShadow?.color || "#000000",
                       }}
                     />
                   </InputGroupButton>
@@ -751,7 +698,7 @@ export function TextProperties({ clip }: TextPropertiesProps) {
               </Popover>
             </InputGroupAddon>
             <InputGroupInput
-              value={style.dropShadow?.color?.toUpperCase() || '#000000'}
+              value={style.dropShadow?.color?.toUpperCase() || "#000000"}
               onChange={(e) => handleBlurUpdate({ color: e.target.value })}
               className="text-sm p-0 text-[10px] font-mono"
             />

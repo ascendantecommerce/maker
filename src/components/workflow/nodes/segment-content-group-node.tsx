@@ -16,15 +16,11 @@ function SegmentContentGroupNode({ data, selected }: NodeProps<SegmentContentGro
     <div
       className={cn(
         "relative w-full h-full rounded-xl  border-border border-2 transition-all duration-500 bg-card",
-        selected && "border-primary/40"
+        selected && "border-primary/40",
       )}
     >
       <div className="absolute -top-12 left-0 flex items-center gap-3">
-        <div className={cn(
-          "text-base px-4 font-bold"
-
-        )}>  Scene voice
-        </div>
+        <div className={cn("text-base px-4 font-bold")}> Scene voice</div>
       </div>
     </div>
   );

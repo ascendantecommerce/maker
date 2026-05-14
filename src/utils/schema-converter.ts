@@ -238,7 +238,7 @@ export const groupWordsByWidth = (
 
     lines.forEach((line) => {
       const lineText = textCase === "uppercase" ? line.toUpperCase() : line;
-      const width = measureTextWidth(lineText) ;
+      const width = measureTextWidth(lineText);
       maxW = Math.max(maxW, width);
     });
 
@@ -456,8 +456,8 @@ export const convertSchemaToDesign = async (
   };
 
   // Find the style preset based on the caption ID
-  const styleCaptions: ICaptionsControlProps =  CAPTION_PRESETS[0];
-  console.log('styleCaptions', styleCaptions);
+  const styleCaptions: ICaptionsControlProps = CAPTION_PRESETS[0];
+  console.log("styleCaptions", styleCaptions);
   // Map size to fontSize
   const sizeToFontSize: Record<string, number> = {
     small: 48,
@@ -879,8 +879,8 @@ export const convertSchemaToDesign = async (
             const words = captionData.results.main.words;
             const maxLines = styleCaptions?.textBoxStyle?.maxLines ?? 1;
             const verticalPadding = styleCaptions?.textBoxStyle?.verticalPadding ?? 0;
-            const typeCaption=styleCaptions.type||"multiple";
-            const textCase=styleCaptions.textTransform ?? "normal";
+            const typeCaption = styleCaptions.type || "multiple";
+            const textCase = styleCaptions.textTransform ?? "normal";
             let captionChunks: any[] = [];
             await fontManager.loadFonts([
               {
@@ -891,52 +891,52 @@ export const convertSchemaToDesign = async (
 
             // Group words by width using the configured font size
             const maxCaptionWidth = 1080 * 0.8;
-            const shots=extractFields(segment.shots)
-                const canvas = typeof document !== "undefined" ? document.createElement("canvas") : null;
-                const ctx = canvas?.getContext("2d");
-                if (ctx) {
-                  ctx.font = `${fontSize}px ${styleCaptions.fontFamily}`;
-                }
-                const measureText = (text: string) => {
-                  if (!ctx) return { width: 0, height: fontSize };
-                  const metrics = ctx.measureText(text);
-                  const height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
-                  return {
-                    width: metrics.width,
-                    height: height || fontSize,
-                  };
-                };
+            const shots = extractFields(segment.shots);
+            const canvas =
+              typeof document !== "undefined" ? document.createElement("canvas") : null;
+            const ctx = canvas?.getContext("2d");
+            if (ctx) {
+              ctx.font = `${fontSize}px ${styleCaptions.fontFamily}`;
+            }
+            const measureText = (text: string) => {
+              if (!ctx) return { width: 0, height: fontSize };
+              const metrics = ctx.measureText(text);
+              const height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+              return {
+                width: metrics.width,
+                height: height || fontSize,
+              };
+            };
 
-            if (typeCaption==="word") {
-              captionChunks = words.map((word:any) => {
-                    const text = word.word || word.text || "";
-                    const textTransform=textCase==="uppercase"?text.toUpperCase():  text;
-                    const dims = measureText(textTransform);
-                    const bitmapText = new PIXI.BitmapText(textTransform, {
-                      fontFamily:styleCaptions.fontFamily ?? FONT_DEFAULT,
-                      fontSize,
-                    });
-                    const testWidth = bitmapText.width + 60;
-                    return {
+            if (typeCaption === "word") {
+              captionChunks = words.map((word: any) => {
+                const text = word.word || word.text || "";
+                const textTransform = textCase === "uppercase" ? text.toUpperCase() : text;
+                const dims = measureText(textTransform);
+                const bitmapText = new PIXI.BitmapText(textTransform, {
+                  fontFamily: styleCaptions.fontFamily ?? FONT_DEFAULT,
+                  fontSize,
+                });
+                const testWidth = bitmapText.width + 60;
+                return {
+                  text,
+                  from: word.start ?? word.from,
+                  to: word.end ?? word.to,
+                  width: testWidth,
+                  height: dims.height,
+                  mediaClipId: word.mediaClipId,
+                  words: [
+                    {
                       text,
-                      from: word.start ?? word.from,
-                      to: word.end ?? word.to,
-                      width: testWidth,
-                      height: dims.height,
-                      mediaClipId: word.mediaClipId,
-                      words: [
-                        {
-                          text,
-                          from: 0,
-                          to: (word.end - word.start)*1000,
-                          isKeyWord: word.isKeyWord,
-                          paragraphIndex: word.paragraphIndex ?? 0,
-                        },
-                      ],
-                    };
-                  });
-            
-            }else{
+                      from: 0,
+                      to: (word.end - word.start) * 1000,
+                      isKeyWord: word.isKeyWord,
+                      paragraphIndex: word.paragraphIndex ?? 0,
+                    },
+                  ],
+                };
+              });
+            } else {
               captionChunks = groupWordsByWidth(
                 words,
                 maxCaptionWidth,
@@ -1069,7 +1069,6 @@ export const convertSchemaToDesign = async (
           console.error("Error processing caption data:", error);
         }
       }
-
 
       // Process sound effects
       if (segment.soundEffects && Array.isArray(segment.soundEffects)) {

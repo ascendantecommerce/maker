@@ -29,7 +29,7 @@ async function main() {
   const videoGenerator = new VideoGenerator({
     provider: "veo",
     params: {
-      geminiApiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY || "", 
+      geminiApiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY || "",
     },
   });
   // console.log("\n--- 1. Testing Lite Image-to-Video (Failing Case with Auto-Fix) ---");
@@ -72,9 +72,11 @@ async function main() {
 
   // 3. Test Reference-to-Video
   console.log("\n--- 3. Testing Reference-to-Video ---");
-  const sixSecs ="I see a lot of misinformation going around about methylene blue, so let's clear up a couple of things."
-  const eightSecs = "Myth number one is that methylene blue is just a stimulant. It's actually not because it doesn't stimulate your body or your brain the way caffeine does"
-  const fourSecs ="because you're actually teaching your body how to produce more energy."
+  const sixSecs =
+    "I see a lot of misinformation going around about methylene blue, so let's clear up a couple of things.";
+  const eightSecs =
+    "Myth number one is that methylene blue is just a stimulant. It's actually not because it doesn't stimulate your body or your brain the way caffeine does";
+  const fourSecs = "because you're actually teaching your body how to produce more energy.";
   // try {
   //   const result = await videoGenerator.create({
   //     prompt: `SCRIPT: "I see a lot of misinformation going around about methylene blue, so let's clear up a couple of things. Mhm. Yeah, exactly."\nClear studio voiceover, clean audio track, pure isolated speech.\nDELIVERY: Confident, fluent delivery with smooth, continuous speech and natural professional cadence. NO hesitation, NO stumbled words, NO filler words, NO vocal clutter. STICKLY FORBIDDEN: 'um', 'uh', 'er', 'ah', 'meh', 'hmm', or any other non-script sounds. Subject must deliver the SCRIPT exactly as written with perfect professional articulation.\nACTION: Scale: palm-sized small bottle.  Subject speaks directly to camera with highly accurate articulation. [product_reveal] The young woman with light brown hair tied back and a grey v-neck knit sweater reaches forward to the desk, picks up the closed navy blue stand-up pouch of METHYLENE BLUE GUMMIES from image_0.png with bold white text 'METHYLENE BLUE GUMMIES' and a molecular graphic, and brings it up to chest height [product_in_hand] while continuing to speak directly to the camera.. Perfect audio-visual alignment, highly expressive and dynamic lip-sync that exactly matches the spoken words. Mouth rests naturally closed only when audio ceases.\nSCENE: Bright home office with natural window light, warm environment, handheld UGC smartphone video aesthetic.`,
@@ -98,8 +100,8 @@ async function main() {
 
   // 4. Test First-Last Frame (Interpolation)
 
-   const DELIVERY_CONTROL =
-  "Confident, fluent delivery with smooth, continuous speech and natural professional cadence. NO hesitation, NO stumbled words, NO filler words, NO vocal clutter. STICKLY FORBIDDEN: 'um', 'uh', 'er', 'ah', 'meh', 'hmm', or any other non-script sounds. Subject must deliver the SCRIPT exactly as written with perfect professional articulation.";
+  const DELIVERY_CONTROL =
+    "Confident, fluent delivery with smooth, continuous speech and natural professional cadence. NO hesitation, NO stumbled words, NO filler words, NO vocal clutter. STICKLY FORBIDDEN: 'um', 'uh', 'er', 'ah', 'meh', 'hmm', or any other non-script sounds. Subject must deliver the SCRIPT exactly as written with perfect professional articulation.";
 
   console.log("\n--- 4. Testing First-Last Frame Interpolation ---");
   try {

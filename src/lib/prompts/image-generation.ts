@@ -127,7 +127,10 @@ export interface StyledPromptOptions {
  * Creates a highly descriptive and structured prompt for image generation.
  * This is a pure function that can be easily understood and tweaked by non-developers.
  */
-export function generateCreativePrompt(originalPrompt: string, options: StyledPromptOptions): string {
+export function generateCreativePrompt(
+  originalPrompt: string,
+  options: StyledPromptOptions,
+): string {
   const { styleDescription, isProduct = false, shotType } = options;
 
   // 1. Shot Context Booster
@@ -175,7 +178,10 @@ ${styleSection}
 `.trim();
 }
 
-export function injectStructuralConstraints(creativePrompt: string, options: StyledPromptOptions): string {
+export function injectStructuralConstraints(
+  creativePrompt: string,
+  options: StyledPromptOptions,
+): string {
   const { isProduct = false, shotType, aspectRatio } = options;
 
   // 1. Frame and Orientation Instructions

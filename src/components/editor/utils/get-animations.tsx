@@ -1,5 +1,5 @@
-import { IClip } from '@openvideo/timeline';
-import { easings } from '@openvideo/engine-pixi';
+import { IClip } from "@openvideo/timeline";
+import { easings } from "@openvideo/engine-pixi";
 
 export interface ICompositionAnimation {
   property: string;
@@ -31,7 +31,7 @@ export const getAnimations = (
   },
   item: IClip,
   _frame?: number,
-  _fps?: number
+  _fps?: number,
 ): {
   animationIn: Animation | Animation[] | null;
   animationOut: Animation | Animation[] | null;
@@ -47,7 +47,7 @@ export const getAnimations = (
   if (animIn) {
     animationIn = [];
     animIn.composition.forEach((comp) => {
-      if (animIn.name.includes('slide')) {
+      if (animIn.name.includes("slide")) {
         const slideAnim = getSlideAnimation(animIn.name, comp, item);
         if (slideAnim) animationIn!.push(slideAnim);
       } else {
@@ -66,7 +66,7 @@ export const getAnimations = (
   if (animOut) {
     animationOut = [];
     animOut.composition.forEach((comp) => {
-      if (animOut.name.includes('slide')) {
+      if (animOut.name.includes("slide")) {
         const slideAnim = getSlideAnimation(animOut.name, comp, item);
         if (slideAnim) animationOut!.push(slideAnim);
       } else {
@@ -92,35 +92,31 @@ export const getAnimations = (
 const getSlideAnimation = (
   type: string,
   anim: ICompositionAnimation,
-  item: IClip
+  item: IClip,
 ): Animation | null => {
-  const transformString = (item as any).transform || '';
+  const transformString = (item as any).transform || "";
   const scaleMatch = /scale\(([^,]+), ([^)]+)\)/.exec(transformString);
   const scale = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
 
   let from = anim.from;
   let to = anim.to;
 
-  if (type === 'slideInRight' || type === 'slideOutLeft') {
-    const commonValue =
-      -parseFloat((item as any).left) - (item as any).width / scale;
-    from = type.includes('In') ? commonValue : anim.from;
-    to = type.includes('In') ? anim.to : commonValue;
-  } else if (type === 'slideInLeft' || type === 'slideOutRight') {
-    const commonValue =
-      parseFloat((item as any).left) + (item as any).width / scale;
-    from = type.includes('In') ? commonValue : anim.from;
-    to = type.includes('In') ? anim.to : commonValue;
-  } else if (type === 'slideInBottom' || type === 'slideOutTop') {
-    const commonValue =
-      -parseFloat((item as any).top) - (item as any).height / scale;
-    from = type.includes('In') ? commonValue : anim.from;
-    to = type.includes('In') ? anim.to : commonValue;
-  } else if (type === 'slideInTop' || type === 'slideOutBottom') {
-    const commonValue =
-      parseFloat((item as any).top) + (item as any).height / scale;
-    from = type.includes('In') ? commonValue : anim.from;
-    to = type.includes('In') ? anim.to : commonValue;
+  if (type === "slideInRight" || type === "slideOutLeft") {
+    const commonValue = -parseFloat((item as any).left) - (item as any).width / scale;
+    from = type.includes("In") ? commonValue : anim.from;
+    to = type.includes("In") ? anim.to : commonValue;
+  } else if (type === "slideInLeft" || type === "slideOutRight") {
+    const commonValue = parseFloat((item as any).left) + (item as any).width / scale;
+    from = type.includes("In") ? commonValue : anim.from;
+    to = type.includes("In") ? anim.to : commonValue;
+  } else if (type === "slideInBottom" || type === "slideOutTop") {
+    const commonValue = -parseFloat((item as any).top) - (item as any).height / scale;
+    from = type.includes("In") ? commonValue : anim.from;
+    to = type.includes("In") ? anim.to : commonValue;
+  } else if (type === "slideInTop" || type === "slideOutBottom") {
+    const commonValue = parseFloat((item as any).top) + (item as any).height / scale;
+    from = type.includes("In") ? commonValue : anim.from;
+    to = type.includes("In") ? anim.to : commonValue;
   } else {
     return null;
   }

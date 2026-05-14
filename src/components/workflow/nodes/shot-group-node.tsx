@@ -19,15 +19,12 @@ function ShotGroupNode({ data, selected }: NodeProps<ShotGroupNode>) {
     <div
       className={cn(
         "relative w-full h-full rounded-xl  border-border border-2 transition-all duration-500 bg-card",
-        selected && "border-primary/40"
+        selected && "border-primary/40",
       )}
     >
       {/* Label for the shot group */}
       <div className="absolute -top-9 left-0 flex items-center gap-3">
-        <div className={cn(
-          "text-base px-4 font-bold"
-
-        )}>
+        <div className={cn("text-base px-4 font-bold")}>
           {isVideo ? "Motion Shot" : "Visual Shot"} {data.index + 1}
         </div>
       </div>

@@ -1,9 +1,9 @@
-import { useMemo } from 'react';
-import { useStore } from 'zustand';
-import { projectStore, core } from '@/lib/project';
-import { ICaptionStyle, ICaptionColors } from '@openvideo/core';
-import { fontManager } from '@openvideo/engine-pixi';
-import { getFontByPostScriptName } from '@/utils/font-utils';
+import { useMemo } from "react";
+import { useStore } from "zustand";
+import { projectStore, core } from "@/lib/project";
+import { ICaptionStyle, ICaptionColors } from "@openvideo/core";
+import { fontManager } from "@openvideo/engine-pixi";
+import { getFontByPostScriptName } from "@/utils/font-utils";
 
 /**
  * Clean caption update hook.
@@ -25,7 +25,7 @@ export function useCaptionUpdate(clipId: string) {
     const mediaId = clip?.mediaId;
     if (!mediaId) return [clipId];
     return Object.keys(clips).filter(
-      (id) => clips[id].type === 'Caption' && (clips[id] as any).mediaId === mediaId
+      (id) => clips[id].type === "Caption" && (clips[id] as any).mediaId === mediaId,
     );
   }, [clips, clipId]);
 
@@ -58,7 +58,7 @@ export function useCaptionUpdate(clipId: string) {
      * Move this clip and its siblings to a vertical position slot.
      * Uses mediaId siblings, not all captions — intentionally scoped.
      */
-    setVerticalPosition: (position: 'top' | 'center' | 'bottom') => {
+    setVerticalPosition: (position: "top" | "center" | "bottom") => {
       core.caption.setVerticalPosition(position, siblingIds);
     },
 

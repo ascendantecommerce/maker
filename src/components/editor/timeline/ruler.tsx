@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   MICROSECONDS_PER_SECOND,
@@ -6,15 +6,15 @@ import {
   SECONDARY_FONT,
   TIMELINE_OFFSET_CANVAS_LEFT,
   ITimelineScaleState,
-} from '@openvideo/timeline';
-import { useStore } from 'zustand';
-import { projectStore } from '@/lib/project';
-import { useTimelineOffsetX } from '../hooks/use-timeline-offset';
+} from "@openvideo/timeline";
+import { useStore } from "zustand";
+import { projectStore } from "@/lib/project";
+import { useTimelineOffsetX } from "../hooks/use-timeline-offset";
 
 const RULER_COLORS = {
-  bg: '#111010',
-  text: '#9ca3af',
-  border: '#374151',
+  bg: "#111010",
+  text: "#9ca3af",
+  border: "#374151",
 };
 
 interface RulerProps {
@@ -40,7 +40,6 @@ const Ruler = (props: RulerProps) => {
     onScroll,
     scale,
   } = props;
-  console.log({ scale });
   const durationUs = useStore(projectStore, (s) => s.settings.duration);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -63,12 +62,7 @@ const Ruler = (props: RulerProps) => {
   const pixelsPerSecond = PIXELS_PER_SECOND * scale.zoom;
 
   const draw = useCallback(
-    (
-      context: CanvasRenderingContext2D,
-      scrollLeft: number,
-      width: number,
-      height: number
-    ) => {
+    (context: CanvasRenderingContext2D, scrollLeft: number, width: number, height: number) => {
       const zoom = scale.zoom;
       const dpr = window.devicePixelRatio || 1;
 
@@ -81,8 +75,8 @@ const Ruler = (props: RulerProps) => {
       context.strokeStyle = colors.border;
       context.lineWidth = 1;
       context.font = `11px ${SECONDARY_FONT}`;
-      context.textAlign = 'left';
-      context.textBaseline = 'middle';
+      context.textAlign = "left";
+      context.textBaseline = "middle";
 
       // Calculate intervals
       const minTextSpacing = 60;
@@ -102,8 +96,8 @@ const Ruler = (props: RulerProps) => {
         const s = Math.floor(seconds % 60);
         const ms = Math.floor((seconds % 1) * 10);
 
-        const mStr = m.toString().padStart(2, '0');
-        const sStr = s.toString().padStart(2, '0');
+        const mStr = m.toString().padStart(2, "0");
+        const sStr = s.toString().padStart(2, "0");
 
         if (h > 0) return `${h}:${mStr}:${sStr}`;
         if (mainInterval < 1) return `${mStr}:${sStr}.${ms}`;
@@ -121,8 +115,7 @@ const Ruler = (props: RulerProps) => {
       }
 
       const startTime =
-        Math.floor((scrollLeft - offsetX) / pixelsPerSecond / subInterval) *
-        subInterval;
+        Math.floor((scrollLeft - offsetX) / pixelsPerSecond / subInterval) * subInterval;
       const endTime = (scrollLeft - offsetX + width) / pixelsPerSecond;
       const count = Math.ceil((endTime - startTime) / subInterval) + 1;
 
@@ -130,14 +123,12 @@ const Ruler = (props: RulerProps) => {
         const time = startTime + i * subInterval;
         if (time < 0) continue;
 
-        const x =
-          Math.floor(time * pixelsPerSecond - scrollLeft + offsetX) + 0.5;
+        const x = Math.floor(time * pixelsPerSecond - scrollLeft + offsetX) + 0.5;
 
         if (x > width) break;
         if (x < -50) continue;
 
-        const isBeyondDuration =
-          time > durationUs / MICROSECONDS_PER_SECOND + 0.001;
+        const isBeyondDuration = time > durationUs / MICROSECONDS_PER_SECOND + 0.001;
         context.globalAlpha = isBeyondDuration ? 0.4 : 1.0;
 
         const isMain =
@@ -161,14 +152,14 @@ const Ruler = (props: RulerProps) => {
 
       context.restore();
     },
-    [scale.zoom, pixelsPerSecond, offsetX, durationUs]
+    [scale.zoom, pixelsPerSecond, offsetX, durationUs],
   );
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const context = canvas.getContext('2d');
+    const context = canvas.getContext("2d");
     if (!context) return;
 
     const offsetParent = canvas.offsetParent as HTMLDivElement;
@@ -252,7 +243,7 @@ const Ruler = (props: RulerProps) => {
       const totalX = currentX + scrollLeft - offsetX;
       onClick?.(totalX);
     },
-    [onClick, scrollLeft, offsetX]
+    [onClick, scrollLeft, offsetX],
   );
 
   const handleTouchMove = useCallback(
@@ -272,7 +263,7 @@ const Ruler = (props: RulerProps) => {
       const totalX = currentX + scrollLeft - offsetX;
       onClick?.(totalX);
     },
-    [onClick, scrollLeft, offsetX]
+    [onClick, scrollLeft, offsetX],
   );
 
   const handleMouseUp = useCallback(() => {
@@ -312,34 +303,28 @@ const Ruler = (props: RulerProps) => {
   // Add global mouse and touch event listeners for drag
   useEffect(() => {
     if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.addEventListener('touchmove', handleTouchMove as any, {
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+      document.addEventListener("touchmove", handleTouchMove as any, {
         passive: false,
       });
-      document.addEventListener('touchend', handleTouchEnd);
+      document.addEventListener("touchend", handleTouchEnd);
 
       return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-        document.removeEventListener('touchmove', handleTouchMove as any);
-        document.removeEventListener('touchend', handleTouchEnd);
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+        document.removeEventListener("touchmove", handleTouchMove as any);
+        document.removeEventListener("touchend", handleTouchEnd);
       };
     }
-  }, [
-    isDragging,
-    handleMouseMove,
-    handleMouseUp,
-    handleTouchMove,
-    handleTouchEnd,
-  ]);
+  }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
 
   return (
     <div
       className="border-t border-border"
       style={{
-        position: 'relative',
-        width: '100%',
+        position: "relative",
+        width: "100%",
         height: `${canvasSize.height}px`,
       }}
     >
@@ -352,10 +337,10 @@ const Ruler = (props: RulerProps) => {
         ref={canvasRef}
         height={canvasSize.height}
         style={{
-          cursor: isDragging ? 'grabbing' : 'grab',
-          width: '100%',
-          display: 'block',
-          touchAction: 'none', // Prevent default touch behaviors
+          cursor: isDragging ? "grabbing" : "grab",
+          width: "100%",
+          display: "block",
+          touchAction: "none", // Prevent default touch behaviors
         }}
       />
     </div>

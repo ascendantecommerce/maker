@@ -17,9 +17,7 @@ export function buildUgcNegativePrompt() {
   return UGC_NEGATIVE_PROMPT;
 }
 
-export function buildUgcPrompt(
-  videoPrompt?: string,
-) {
+export function buildUgcPrompt(videoPrompt?: string) {
   return `
 ${videoPrompt || ""}
 DELIVERY: ${DELIVERY_CONTROL}

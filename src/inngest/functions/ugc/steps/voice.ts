@@ -37,9 +37,7 @@ export const selectVoiceCandidates = async (segments: any[], services: UgcServic
     candidates.map((c) => ({ index: c.index, url: c.videoUrl })),
   );
 
-  console.log(
-    `[Voice Selection] Gemini selected candidate index ${bestIndex}`,
-  );
+  console.log(`[Voice Selection] Gemini selected candidate index ${bestIndex}`);
 
   return candidates
     .map((c) => ({

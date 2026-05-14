@@ -123,10 +123,16 @@ export function useUGCGeneration() {
         }
 
         // Continue polling
-        setTimeout(() => pollGenerationStatus(segmentId, generationId, assetId, attempt + 1), INTERVAL);
+        setTimeout(
+          () => pollGenerationStatus(segmentId, generationId, assetId, attempt + 1),
+          INTERVAL,
+        );
       } catch (error) {
         console.error(`Error polling status for ${segmentId}:`, error);
-        setTimeout(() => pollGenerationStatus(segmentId, generationId, assetId, attempt + 1), INTERVAL);
+        setTimeout(
+          () => pollGenerationStatus(segmentId, generationId, assetId, attempt + 1),
+          INTERVAL,
+        );
       }
     },
     [updateFrame, updateSegmentAsset, persistSegment],
@@ -211,8 +217,6 @@ export function useUGCGeneration() {
     },
     [schema, avatarUrl, productUrls, frames, addSegmentAsset, persistSegment, pollGenerationStatus],
   );
-
-
 
   const handleGenerateUGCVideo = useCallback(
     async (segmentId: string, options?: { mode?: string; firstFrameSource?: string }) => {

@@ -1,28 +1,10 @@
-import { useStore } from 'zustand';
-import { projectStore } from '@/lib/project';
-import {
-  MouseEvent,
-  TouchEvent,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useCallback,
-} from 'react';
-import {
-  timeUsToUnits,
-  unitsToTimeUs,
-  ITimelineScaleState,
-} from '@openvideo/timeline';
-import { useTimelineOffsetX } from '../hooks/use-timeline-offset';
+import { useStore } from "zustand";
+import { projectStore } from "@/lib/project";
+import { MouseEvent, TouchEvent, useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { timeUsToUnits, unitsToTimeUs, ITimelineScaleState } from "@openvideo/timeline";
+import { useTimelineOffsetX } from "../hooks/use-timeline-offset";
 
-const Playhead = ({
-  scrollLeft,
-  scale,
-}: {
-  scrollLeft: number;
-  scale: ITimelineScaleState;
-}) => {
+const Playhead = ({ scrollLeft, scale }: { scrollLeft: number; scale: ITimelineScaleState }) => {
   const currentTimeUs = useStore(projectStore, (s) => s.currentTime);
   const timelineOffsetX = useTimelineOffsetX();
 
@@ -48,7 +30,7 @@ const Playhead = ({
     setMounted(true);
   }, []);
 
-  const color = '#ffffff';
+  const color = "#ffffff";
 
   const handleMouseMove = useCallback(
     (e: MouseEvent | TouchEvent | any) => {
@@ -67,7 +49,7 @@ const Playhead = ({
       // 2. Update CORE state (source of truth)
       projectStore.getState().seek(newTimeUs);
     },
-    [scale.zoom]
+    [scale.zoom],
   );
 
   const handleMouseUp = useCallback(() => {
@@ -75,20 +57,16 @@ const Playhead = ({
       dragRef.current.isDragging = false;
       setLocalTimeUs(null);
 
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('touchmove', handleMouseMove);
-      document.removeEventListener('touchend', handleMouseUp);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("touchmove", handleMouseMove);
+      document.removeEventListener("touchend", handleMouseUp);
     }
   }, [handleMouseMove]);
 
-  const handleMouseDown = (
-    e: MouseEvent<HTMLDivElement> | TouchEvent<HTMLDivElement>
-  ) => {
+  const handleMouseDown = (e: MouseEvent<HTMLDivElement> | TouchEvent<HTMLDivElement>) => {
     e.preventDefault();
-    const clientX = (e as any).touches
-      ? (e as any).touches[0].clientX
-      : (e as any).clientX;
+    const clientX = (e as any).touches ? (e as any).touches[0].clientX : (e as any).clientX;
 
     // Capture current state at the moment of interaction
     const startTimeUs = projectStore.getState().currentTime;
@@ -101,19 +79,19 @@ const Playhead = ({
 
     setLocalTimeUs(startTimeUs);
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    document.addEventListener('touchmove', handleMouseMove, { passive: false });
-    document.addEventListener('touchend', handleMouseUp);
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    document.addEventListener("touchmove", handleMouseMove, { passive: false });
+    document.addEventListener("touchend", handleMouseUp);
   };
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('touchmove', handleMouseMove);
-      document.removeEventListener('touchend', handleMouseUp);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("touchmove", handleMouseMove);
+      document.removeEventListener("touchend", handleMouseUp);
     };
   }, [handleMouseMove, handleMouseUp]);
 
@@ -123,25 +101,25 @@ const Playhead = ({
       onTouchStart={handleMouseDown}
       id="playhead"
       style={{
-        position: 'absolute',
+        position: "absolute",
         left: timelineOffsetX + 16 + position,
         top: 50,
         width: 1,
-        height: 'calc(100% - 50px)',
+        height: "calc(100% - 50px)",
         zIndex: 100,
-        cursor: 'ew-resize',
-        touchAction: 'none',
+        cursor: "ew-resize",
+        touchAction: "none",
       }}
     >
       {/* Handle */}
       <div
         style={{
-          borderRadius: '0 0 4px 4px',
+          borderRadius: "0 0 4px 4px",
           backgroundColor: color,
-          height: '16px',
-          width: '12px',
-          transform: 'translateX(-50%)',
-          cursor: 'grab',
+          height: "16px",
+          width: "12px",
+          transform: "translateX(-50%)",
+          cursor: "grab",
         }}
         className="absolute top-0 flex items-center justify-center shadow-lg border border-black/10"
       >
@@ -149,7 +127,7 @@ const Playhead = ({
           style={{
             width: 1,
             height: 8,
-            backgroundColor: '#000',
+            backgroundColor: "#000",
             opacity: 0.5,
           }}
         />

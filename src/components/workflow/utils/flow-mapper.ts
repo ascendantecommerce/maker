@@ -99,7 +99,12 @@ export const mapSchemaToFlow = (
   }
 
   // Shared product assets for injection into product-shot prompts
-  const schemaProductAssets = productImages as { id: string; url: string; name: string; type: string }[];
+  const schemaProductAssets = productImages as {
+    id: string;
+    url: string;
+    name: string;
+    type: string;
+  }[];
 
   // 2.1 Avatar Node
   const avatarNodeId = "global-avatar";
@@ -174,7 +179,7 @@ export const mapSchemaToFlow = (
     // Visuals Group Node (Inner Container - Child of segmentGroup)
     const visualsGroupId = `visuals-group-${segment.id}`;
     const shots = segment.shots || [];
-    
+
     nodes.push({
       id: visualsGroupId,
       type: "visualsGroup",
@@ -218,8 +223,8 @@ export const mapSchemaToFlow = (
       const shotBaseId = `shot-${segment.id}-${shotIndex}`;
 
       // Try to find the active assets for this segment as fallback
-      const activeImgAsset = segment.assets?.find(a => a.type === 'image' && a.active);
-      const activeVidAsset = segment.assets?.find(a => a.type === 'video' && a.active);
+      const activeImgAsset = segment.assets?.find((a) => a.type === "image" && a.active);
+      const activeVidAsset = segment.assets?.find((a) => a.type === "video" && a.active);
 
       // --- 1. Image Shot Flow ---
       const imgShotGroupId = `${shotBaseId}-img-group`;
@@ -235,7 +240,7 @@ export const mapSchemaToFlow = (
       const imgUrl = shot.imageUrl || activeImgAsset?.url;
       const isImgGenerating = generatingShots[`${segment.id}-${shotIndex}-img`];
       let imgStatus = "idle";
-      if (isImgGenerating || activeImgAsset?.status === 'generating') imgStatus = "processing";
+      if (isImgGenerating || activeImgAsset?.status === "generating") imgStatus = "processing";
       else if (imgUrl) imgStatus = "success";
       else if (shot.status === "failed") imgStatus = "error";
 
@@ -307,7 +312,7 @@ export const mapSchemaToFlow = (
         const vidUrl = shot.videoUrl || activeVidAsset?.url;
         const isVidGenerating = generatingShots[`${segment.id}-${shotIndex}-vid`];
         let vidStatus = "idle";
-        if (isVidGenerating || activeVidAsset?.status === 'generating') vidStatus = "processing";
+        if (isVidGenerating || activeVidAsset?.status === "generating") vidStatus = "processing";
         else if (vidUrl) vidStatus = "success";
         else if (shot.status === "failed") vidStatus = "error";
 
@@ -322,7 +327,7 @@ export const mapSchemaToFlow = (
           mode: (shot as any).mode,
           firstFrameSource: (shot as any).firstFrameSource,
           assets: schema?.assets as any,
-          shot
+          shot,
         });
         nodes.push({
           id: vidPromptId,

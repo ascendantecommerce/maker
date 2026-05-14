@@ -5,17 +5,14 @@ import {
   TrimmableProps,
   timeUsToUnits,
   unitsToTimeUs,
-} from '@openvideo/timeline';
-import { Filmstrip, FilmstripBacklogOptions } from '../types';
-import ThumbnailCache from '../../utils/thumbnail-cache';
-import { IDisplay, IMetadata, ITrim } from '@openvideo/timeline';
-import {
-  calculateOffscreenSegments,
-  calculateThumbnailSegmentLayout,
-} from '../../utils/filmstrip';
-import { createMediaControls } from '../controls';
-import { SECONDARY_FONT } from '../../constants/constants';
-import { extractFrames } from '../../utils/mediabunny';
+} from "@openvideo/timeline";
+import { Filmstrip, FilmstripBacklogOptions } from "../types";
+import ThumbnailCache from "../../utils/thumbnail-cache";
+import { IDisplay, IMetadata, ITrim } from "@openvideo/timeline";
+import { calculateOffscreenSegments, calculateThumbnailSegmentLayout } from "../../utils/filmstrip";
+import { createMediaControls } from "../controls";
+import { SECONDARY_FONT } from "../../constants/constants";
+import { extractFrames } from "../../utils/mediabunny";
 
 const EMPTY_FILMSTRIP: Filmstrip = {
   offset: 0,
@@ -35,10 +32,10 @@ interface VideoProps extends TrimmableProps {
   preview?: string;
 }
 class Video extends Trimmable {
-  static type = 'Video';
+  static type = "Video";
   public extractFramesController: AbortController | null = null;
   declare id: string;
-  public resourceId = '';
+  public resourceId = "";
   declare tScale: number;
   public isSelected = false;
   declare display: IDisplay;
@@ -47,7 +44,7 @@ class Video extends Trimmable {
   public hasSrc = true;
   declare duration: number;
   public prevDuration: number;
-  public itemType = 'video';
+  public itemType = "video";
   public metadata?: Partial<IMetadata>;
   declare src: string;
 
@@ -75,7 +72,7 @@ class Video extends Trimmable {
 
   private fallbackSegmentIndex = 0;
   private fallbackSegmentsCount = 0;
-  private previewUrl = '';
+  private previewUrl = "";
 
   static createControls(): { controls: Record<string, Control> } {
     return { controls: createMediaControls() };
@@ -83,7 +80,7 @@ class Video extends Trimmable {
 
   constructor(props: VideoProps) {
     super(props);
-    console.warn('Props', props);
+    console.warn("Props", props);
     this.id = props.id;
     this.tScale = props.tScale;
     this.objectCaching = false;
@@ -93,7 +90,7 @@ class Video extends Trimmable {
     this.trim = props.trim;
     this.duration = props.duration;
     this.prevDuration = props.duration;
-    this.fill = '#27272a';
+    this.fill = "#27272a";
     this.borderOpacityWhenMoving = 1;
     this.metadata = props.metadata;
 
@@ -105,7 +102,7 @@ class Video extends Trimmable {
     this.transparentCorners = false;
     this.hasBorders = false;
 
-    this.previewUrl = props.preview || props.metadata?.previewUrl || '';
+    this.previewUrl = props.preview || props.metadata?.previewUrl || "";
     this.initOffscreenCanvas();
     this.initialize();
   }
@@ -113,14 +110,11 @@ class Video extends Trimmable {
   private initOffscreenCanvas() {
     if (!this.offscreenCanvas) {
       this.offscreenCanvas = new OffscreenCanvas(this.width, this.height);
-      this.offscreenCtx = this.offscreenCanvas.getContext('2d');
+      this.offscreenCtx = this.offscreenCanvas.getContext("2d");
     }
 
     // Resize if dimensions changed
-    if (
-      this.offscreenCanvas.width !== this.width ||
-      this.offscreenCanvas.height !== this.height
-    ) {
+    if (this.offscreenCanvas.width !== this.width || this.offscreenCanvas.height !== this.height) {
       this.offscreenCanvas.width = this.width;
       this.offscreenCanvas.height = this.height;
       this.isDirty = true;
@@ -164,23 +158,14 @@ class Video extends Trimmable {
     const shouldUseLeftBacklog = segmentIndex > 0;
     const leftBacklogSize = shouldUseLeftBacklog ? this.segmentSize : 0;
 
-    const totalWidth = timeUsToUnits(
-      this.duration,
-      this.tScale,
-      this.playbackRate
-    );
+    const totalWidth = timeUsToUnits(this.duration, this.tScale, this.playbackRate);
 
-    const rightRemainingSize =
-      totalWidth - widthOnScreen - leftBacklogSize - filmstripOffset;
+    const rightRemainingSize = totalWidth - widthOnScreen - leftBacklogSize - filmstripOffset;
     const rightBacklogSize = Math.min(this.segmentSize, rightRemainingSize);
 
     const filmstripStartTime = unitsToTimeUs(filmstripOffset, this.tScale);
     const filmstrimpThumbnailsCount =
-      1 +
-      Math.round(
-        (widthOnScreen + leftBacklogSize + rightBacklogSize) /
-          this.thumbnailWidth
-      );
+      1 + Math.round((widthOnScreen + leftBacklogSize + rightBacklogSize) / this.thumbnailWidth);
 
     return {
       filmstripOffset,
@@ -198,12 +183,12 @@ class Video extends Trimmable {
 
     return new Promise<void>((resolve) => {
       const img = new Image();
-      img.crossOrigin = 'anonymous';
+      img.crossOrigin = "anonymous";
       img.src = `${fallbackThumbnail}?t=${Date.now()}`;
       img.onload = () => {
         // Create a temporary canvas to resize the image
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
         if (!ctx) return;
 
         // Calculate new width maintaining aspect ratio
@@ -221,18 +206,14 @@ class Video extends Trimmable {
         // Update aspect ratio and cache the resized image
         this.aspectRatio = aspectRatio;
         this.thumbnailWidth = targetWidth;
-        this.thumbnailCache.setThumbnail('fallback', resizedImg);
+        this.thumbnailCache.setThumbnail("fallback", resizedImg);
         resolve();
       };
     });
   }
 
   private generateTimestamps(startTime: number, count: number): number[] {
-    const timePerThumbnail = unitsToTimeUs(
-      this.thumbnailWidth,
-      this.tScale,
-      this.playbackRate
-    );
+    const timePerThumbnail = unitsToTimeUs(this.thumbnailWidth, this.tScale, this.playbackRate);
 
     return Array.from({ length: count }, (_, i) => {
       const timeInFilmstripe = startTime + i * timePerThumbnail;
@@ -246,7 +227,7 @@ class Video extends Trimmable {
 
     const canvasWidth = canvas.width;
     const maxPatternSize = 12000;
-    const fallbackSource = this.thumbnailCache.getThumbnail('fallback');
+    const fallbackSource = this.thumbnailCache.getThumbnail("fallback");
 
     if (!fallbackSource) return;
 
@@ -257,34 +238,28 @@ class Video extends Trimmable {
     const patternWidth = segmentsRequired * this.segmentSize;
 
     // Setup canvas dimensions
-    const offCanvas = document.createElement('canvas');
+    const offCanvas = document.createElement("canvas");
     offCanvas.height = this.thumbnailHeight;
     offCanvas.width = patternWidth;
 
-    const context = offCanvas.getContext('2d');
+    const context = offCanvas.getContext("2d");
     if (!context) return;
     const thumbnailsTotal = segmentsRequired * this.thumbnailsPerSegment;
 
     // Draw the fallback image across the entirety of the canvas horizontally
     for (let i = 0; i < thumbnailsTotal; i++) {
       const x = i * this.thumbnailWidth;
-      context.drawImage(
-        fallbackSource,
-        x,
-        0,
-        this.thumbnailWidth,
-        this.thumbnailHeight
-      );
+      context.drawImage(fallbackSource, x, 0, this.thumbnailWidth, this.thumbnailHeight);
     }
 
     // Create the pattern and apply it
     const fillPattern = new Pattern({
       source: offCanvas,
-      repeat: 'no-repeat',
+      repeat: "no-repeat",
       offsetX: 0,
     });
 
-    this.set('fill', fillPattern);
+    this.set("fill", fillPattern);
     this.canvas?.requestRenderAll();
   }
   public async loadAndRenderThumbnails() {
@@ -315,10 +290,10 @@ class Video extends Trimmable {
           const timestampMs = Math.round(frame.timestamp * 1000);
           if (this.thumbnailCache.getThumbnail(timestampMs)) return;
 
-          const canvas = document.createElement('canvas');
+          const canvas = document.createElement("canvas");
           canvas.width = this.thumbnailWidth;
           canvas.height = this.thumbnailHeight;
-          const ctx = canvas.getContext('2d');
+          const ctx = canvas.getContext("2d");
 
           if (!ctx) return;
 
@@ -341,10 +316,10 @@ class Video extends Trimmable {
 
       this.currentFilmstrip = { ...this.loadingFilmstrip };
     } catch (error: any) {
-      if (error.name === 'AbortError' || error.message === 'Aborted') {
+      if (error.name === "AbortError" || error.message === "Aborted") {
         // Normal cancellation
       } else {
-        console.error('Failed to extract frames:', error);
+        console.error("Failed to extract frames:", error);
       }
     } finally {
       this.isFetchingThumbnails = false;
@@ -402,18 +377,10 @@ class Video extends Trimmable {
     const thumbnailWidth = this.thumbnailWidth;
     const thumbnailHeight = this.thumbnailHeight;
     // Calculate the offset caused by the trimming
-    const trimFromSize = timeUsToUnits(
-      this.trim.from,
-      this.tScale,
-      this.playbackRate
-    );
+    const trimFromSize = timeUsToUnits(this.trim.from, this.tScale, this.playbackRate);
 
     let timeInFilmstripe = startTime;
-    const timePerThumbnail = unitsToTimeUs(
-      thumbnailWidth,
-      this.tScale,
-      this.playbackRate || 1
-    );
+    const timePerThumbnail = unitsToTimeUs(thumbnailWidth, this.tScale, this.playbackRate || 1);
 
     // Clear the offscreen canvas
     ctx.clearRect(0, 0, this.width, this.height);
@@ -424,12 +391,10 @@ class Video extends Trimmable {
     ctx.clip();
     // Draw thumbnails
     for (let i = 0; i < thumbnailsCount; i++) {
-      let img = this.thumbnailCache.getThumbnail(
-        Math.ceil(timeInFilmstripe / 1000)
-      );
+      let img = this.thumbnailCache.getThumbnail(Math.ceil(timeInFilmstripe / 1000));
 
       if (!img) {
-        img = this.thumbnailCache.getThumbnail('fallback');
+        img = this.thumbnailCache.getThumbnail("fallback");
       }
 
       if (img?.complete) {
@@ -445,20 +410,20 @@ class Video extends Trimmable {
 
   public drawTextIdentity(ctx: CanvasRenderingContext2D) {
     const iconPath = new Path2D(
-      'M16.5625 0.925L12.5 3.275V0.625L11.875 0H0.625L0 0.625V9.375L0.625 10H11.875L12.5 9.375V6.875L16.5625 9.2125L17.5 8.625V1.475L16.5625 0.925ZM11.25 8.75H1.25V1.25H11.25V8.75ZM16.25 7.5L12.5 5.375V4.725L16.25 2.5V7.5Z'
+      "M16.5625 0.925L12.5 3.275V0.625L11.875 0H0.625L0 0.625V9.375L0.625 10H11.875L12.5 9.375V6.875L16.5625 9.2125L17.5 8.625V1.475L16.5625 0.925ZM11.25 8.75H1.25V1.25H11.25V8.75ZM16.25 7.5L12.5 5.375V4.725L16.25 2.5V7.5Z",
     );
     ctx.save();
     ctx.translate(-this.width / 2, -this.height / 2);
     ctx.translate(0, 14);
     ctx.font = `400 12px ${SECONDARY_FONT}`;
-    ctx.fillStyle = '#f4f4f5';
-    ctx.textAlign = 'left';
+    ctx.fillStyle = "#f4f4f5";
+    ctx.textAlign = "left";
     ctx.clip();
-    ctx.fillText('Video', 36, 10);
+    ctx.fillText("Video", 36, 10);
 
     ctx.translate(8, 1);
 
-    ctx.fillStyle = '#f4f4f5';
+    ctx.fillStyle = "#f4f4f5";
     ctx.fill(iconPath);
     ctx.restore();
   }
@@ -469,9 +434,7 @@ class Video extends Trimmable {
   }
 
   public updateSelected(ctx: CanvasRenderingContext2D) {
-    const borderColor = this.isSelected
-      ? 'rgba(255, 255, 255,1.0)'
-      : 'rgba(255, 255, 255,0.05)';
+    const borderColor = this.isSelected ? "rgba(255, 255, 255,1.0)" : "rgba(255, 255, 255,0.05)";
     const borderWidth = 1.5;
     const innerRadius = 0;
 
@@ -488,28 +451,22 @@ class Video extends Trimmable {
       -this.height / 2 + borderWidth,
       this.width - borderWidth * 2,
       this.height - borderWidth * 2,
-      innerRadius
+      innerRadius,
     );
 
     // Use even-odd fill rule to create the border effect
-    ctx.fill('evenodd');
+    ctx.fill("evenodd");
     ctx.restore();
   }
 
   public calulateWidthOnScreen() {
-    const canvasEl = document.getElementById('designcombo-timeline-canvas');
+    const canvasEl = document.getElementById("designcombo-timeline-canvas");
     const canvasWidth = canvasEl?.clientWidth;
     const scrollLeft = this.scrollLeft;
     if (!canvasWidth) return 0;
     const timelineWidth = canvasWidth;
-    const cutFromBottomEdge = Math.max(
-      timelineWidth - (this.width + this.left + scrollLeft),
-      0
-    );
-    const visibleHeight = Math.min(
-      timelineWidth - this.left - scrollLeft,
-      timelineWidth
-    );
+    const cutFromBottomEdge = Math.max(timelineWidth - (this.width + this.left + scrollLeft), 0);
+    const visibleHeight = Math.min(timelineWidth - this.left - scrollLeft, timelineWidth);
 
     return Math.max(visibleHeight - cutFromBottomEdge, 0);
   }
@@ -521,24 +478,14 @@ class Video extends Trimmable {
     return Math.abs(offscreenWidth);
   }
 
-  public onScrollChange({
-    scrollLeft,
-    force,
-  }: {
-    scrollLeft: number;
-    force?: boolean;
-  }) {
+  public onScrollChange({ scrollLeft, force }: { scrollLeft: number; force?: boolean }) {
     const offscreenWidth = this.calculateOffscreenWidth({ scrollLeft });
-    const trimFromSize = timeUsToUnits(
-      this.trim.from,
-      this.tScale,
-      this.playbackRate
-    );
+    const trimFromSize = timeUsToUnits(this.trim.from, this.tScale, this.playbackRate);
 
     const offscreenSegments = calculateOffscreenSegments(
       offscreenWidth,
       trimFromSize,
-      this.segmentSize
+      this.segmentSize,
     );
 
     this.offscreenSegments = offscreenSegments;
@@ -554,8 +501,7 @@ class Video extends Trimmable {
       const fillPattern = this.fill as Pattern;
       if (fillPattern instanceof Pattern) {
         fillPattern.offsetX =
-          this.segmentSize *
-          (segmentToDraw - Math.floor(this.fallbackSegmentsCount / 2));
+          this.segmentSize * (segmentToDraw - Math.floor(this.fallbackSegmentsCount / 2));
       }
 
       this.fallbackSegmentIndex = segmentToDraw;

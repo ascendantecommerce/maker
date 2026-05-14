@@ -1,4 +1,4 @@
-import { ITimelineScaleState } from '@openvideo/timeline';
+import { ITimelineScaleState } from "@openvideo/timeline";
 
 export const TIMELINE_ZOOM_LEVELS: ITimelineScaleState[] = [
   {

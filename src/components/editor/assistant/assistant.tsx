@@ -1,36 +1,29 @@
-'use client';
+"use client";
 
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import {
-  ArrowUpIcon,
-  Wand2,
-  RefreshCw,
-  SquarePen,
-  PlusIcon,
-  PaperclipIcon,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { projectStore } from '@/lib/project';
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { ArrowUpIcon, Wand2, RefreshCw, SquarePen, PlusIcon, PaperclipIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { projectStore } from "@/lib/project";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupTextarea,
-} from '@/components/ui/input-group';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { useStore } from 'zustand';
-import { IClip } from '@/types/timeline';
-import { ImportAsset } from '@/genkit/type';
-import { Icons } from '@/components/shared/icons';
-import { HoverBorderGradient } from '@/components/ui/hover-border-gradient';
-import { Paperclip } from '@hugeicons/core-free-icons';
-import { IconSparkles2 } from '@tabler/icons-react';
+} from "@/components/ui/input-group";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useStore } from "zustand";
+import { IClip } from "@/types/timeline";
+import { ImportAsset } from "@/genkit/type";
+import { Icons } from "@/components/shared/icons";
+import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
+import { Paperclip } from "@hugeicons/core-free-icons";
+import { IconSparkles2 } from "@tabler/icons-react";
 
 interface Message {
-  role: 'user' | 'model';
+  role: "user" | "model";
   content: string;
   status?: string;
 }
@@ -41,10 +34,10 @@ interface Suggestion {
 }
 
 const SUGGESTIONS: Suggestion[] = [
-  { text: 'Search and add futurist city video' },
+  { text: "Search and add futurist city video" },
   { text: 'Generate voiceover "Welcome"' },
-  { text: 'Auto-caption video' },
-  { text: 'Make text yellow and bigger' },
+  { text: "Auto-caption video" },
+  { text: "Make text yellow and bigger" },
 ];
 
 export default function Assistant() {
@@ -53,7 +46,7 @@ export default function Assistant() {
   const tracks = useStore(projectStore, (s) => s.tracks);
   const getClip = (id: string) => projectStore.getState().clips[id];
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -65,15 +58,14 @@ export default function Assistant() {
         const trackId = track ? track.id : `unknown_track`;
 
         const assetType = clip.type.toLowerCase();
-        const textContent =
-          clip.text || (clip as any)._text || clip.caption?.text || '';
+        const textContent = clip.text || (clip as any)._text || clip.caption?.text || "";
 
         return {
           assetId: clip.id,
-          type: 'import',
-          assetType: assetType === 'caption' ? 'text' : assetType,
+          type: "import",
+          assetType: assetType === "caption" ? "text" : assetType,
           text: textContent,
-          url: clip.src || '',
+          url: clip.src || "",
           label: clip.name || `Clip ${clip.id}`,
           trackId,
           display: {
@@ -82,20 +74,18 @@ export default function Assistant() {
           },
           trim: clip.trim
             ? {
-              from: clip.trim.from / 1000,
-              to: clip.trim.to / 1000,
-            }
+                from: clip.trim.from / 1000,
+                to: clip.trim.to / 1000,
+              }
             : undefined,
         };
       });
     },
-    [tracks]
+    [tracks],
   );
 
   const selectedAssets = useMemo(() => {
-    const selectedClips = selectedClipIds
-      .map(getClip)
-      .filter(Boolean) as IClip[];
+    const selectedClips = selectedClipIds.map(getClip).filter(Boolean) as IClip[];
     return mapClipsToAssets(selectedClips);
   }, [selectedClipIds, getClip, mapClipsToAssets]);
 
@@ -103,9 +93,7 @@ export default function Assistant() {
   useEffect(() => {
     if (scrollRef.current) {
       setTimeout(() => {
-        const scrollElement = scrollRef.current?.closest(
-          '[data-radix-scroll-area-viewport]'
-        );
+        const scrollElement = scrollRef.current?.closest("[data-radix-scroll-area-viewport]");
         if (scrollElement) {
           scrollElement.scrollTop = scrollElement.scrollHeight;
         }
@@ -113,9 +101,9 @@ export default function Assistant() {
     }
   }, [messages]);
 
-  const handleSubmit = async (suggestionText?: string) => { };
+  const handleSubmit = async (suggestionText?: string) => {};
 
-  const handleToolAction = async (input: any, engine: any) => { };
+  const handleToolAction = async (input: any, engine: any) => {};
 
   const handleSuggestionClick = (suggestion: Suggestion) => {
     setInput(suggestion.text);
@@ -171,24 +159,22 @@ export default function Assistant() {
                 <div
                   key={i}
                   className={cn(
-                    'flex gap-4 w-full group animate-in fade-in slide-in-from-bottom-2 duration-300',
-                    m.role === 'user'
-                      ? 'flex-row-reverse'
-                      : 'flex-row max-w-[90%]'
+                    "flex gap-4 w-full group animate-in fade-in slide-in-from-bottom-2 duration-300",
+                    m.role === "user" ? "flex-row-reverse" : "flex-row max-w-[90%]",
                   )}
                 >
                   <div
                     className={cn(
-                      'flex flex-col space-y-3 w-full min-w-0',
-                      m.role === 'user' ? 'items-end' : 'items-start'
+                      "flex flex-col space-y-3 w-full min-w-0",
+                      m.role === "user" ? "items-end" : "items-start",
                     )}
                   >
                     <div
                       className={cn(
-                        'py-3.5 rounded-3xl text-[15px] leading-relaxed shadow-sm transition-all min-w-0 flex flex-col',
-                        m.role === 'user'
-                          ? 'bg-foreground/10 rounded-tr-none font-medium px-5'
-                          : 'bg-card text-card-foreground rounded-tl-none w-full px-5'
+                        "py-3.5 rounded-3xl text-[15px] leading-relaxed shadow-sm transition-all min-w-0 flex flex-col",
+                        m.role === "user"
+                          ? "bg-foreground/10 rounded-tr-none font-medium px-5"
+                          : "bg-card text-card-foreground rounded-tl-none w-full px-5",
                       )}
                     >
                       <div className="w-full grid overflow-hidden">
@@ -198,8 +184,8 @@ export default function Assistant() {
                             h1: ({ className, ...props }) => (
                               <h1
                                 className={cn(
-                                  'scroll-m-20 text-4xl font-extrabold tracking-tight last:mb-0',
-                                  className
+                                  "scroll-m-20 text-4xl font-extrabold tracking-tight last:mb-0",
+                                  className,
                                 )}
                                 {...props}
                               />
@@ -207,8 +193,8 @@ export default function Assistant() {
                             h2: ({ className, ...props }) => (
                               <h2
                                 className={cn(
-                                  'mt-8 mb-4 scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0 last:mb-0',
-                                  className
+                                  "mt-8 mb-4 scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0 last:mb-0",
+                                  className,
                                 )}
                                 {...props}
                               />
@@ -216,48 +202,34 @@ export default function Assistant() {
                             h3: ({ className, ...props }) => (
                               <h3
                                 className={cn(
-                                  'mt-6 mb-4 scroll-m-20 text-2xl font-semibold tracking-tight first:mt-0 last:mb-0',
-                                  className
+                                  "mt-6 mb-4 scroll-m-20 text-2xl font-semibold tracking-tight first:mt-0 last:mb-0",
+                                  className,
                                 )}
                                 {...props}
                               />
                             ),
                             p: ({ className, ...props }) => (
-                              <p
-                                className={cn(
-                                  'leading-7 not-first:mt-6',
-                                  className
-                                )}
-                                {...props}
-                              />
+                              <p className={cn("leading-7 not-first:mt-6", className)} {...props} />
                             ),
                             ul: ({ className, ...props }) => (
                               <ul
-                                className={cn(
-                                  'my-6 ml-6 list-disc [&>li]:mt-2',
-                                  className
-                                )}
+                                className={cn("my-6 ml-6 list-disc [&>li]:mt-2", className)}
                                 {...props}
                               />
                             ),
                             ol: ({ className, ...props }) => (
                               <ol
-                                className={cn(
-                                  'my-6 ml-6 list-decimal [&>li]:mt-2',
-                                  className
-                                )}
+                                className={cn("my-6 ml-6 list-decimal [&>li]:mt-2", className)}
                                 {...props}
                               />
                             ),
                             code: ({ className, children, ...props }) => {
-                              const isInline =
-                                !className?.includes('language-');
+                              const isInline = !className?.includes("language-");
                               return (
                                 <code
                                   className={cn(
-                                    isInline &&
-                                    'bg-muted px-1.5 py-0.5 rounded font-mono text-sm',
-                                    className
+                                    isInline && "bg-muted px-1.5 py-0.5 rounded font-mono text-sm",
+                                    className,
                                   )}
                                   {...props}
                                 >
@@ -268,8 +240,8 @@ export default function Assistant() {
                             pre: ({ className, ...props }) => (
                               <pre
                                 className={cn(
-                                  'overflow-x-auto rounded-lg bg-black p-4 text-white my-4',
-                                  className
+                                  "overflow-x-auto rounded-lg bg-black p-4 text-white my-4",
+                                  className,
                                 )}
                                 {...props}
                               />
@@ -307,16 +279,13 @@ export default function Assistant() {
       )}
 
       <div className="p-4 md:p-2 space-y-4 shrink-0">
-        <HoverBorderGradient
-          containerClassName="rounded-lg"
-          className="bg-[#050505]!"
-        >
+        <HoverBorderGradient containerClassName="rounded-lg" className="bg-[#050505]!">
           <InputGroup className="rounded-xl border-none bg-transparent has-disabled:opacity-100">
             <InputGroupTextarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
+                if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
                   handleSubmit();
                 }

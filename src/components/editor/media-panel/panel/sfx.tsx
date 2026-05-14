@@ -1,19 +1,15 @@
-'use client';
+"use client";
 
-import { Log } from '@openvideo/engine-pixi';
-import { IconWaveSine } from '@tabler/icons-react';
-import { useState, useEffect, useCallback } from 'react';
-import { AudioItem } from './audio-item';
-import { SfxChatPanel } from '../sfx-chat-panel';
-import { Search, Loader2 } from 'lucide-react';
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from '@/components/ui/input-group';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { debounce } from 'lodash';
-import { core } from '@/lib/project';
+import { Log } from "@openvideo/engine-pixi";
+import { IconWaveSine } from "@tabler/icons-react";
+import { useState, useEffect, useCallback } from "react";
+import { AudioItem } from "./audio-item";
+import { SfxChatPanel } from "../sfx-chat-panel";
+import { Search, Loader2 } from "lucide-react";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { debounce } from "lodash";
+import { core } from "@/lib/project";
 
 interface SoundEffect {
   id: string;
@@ -29,17 +25,17 @@ interface SoundEffect {
 
 export default function PanelSFX() {
   const [playingId, setPlayingId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SoundEffect[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchSFX = async (query: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/audio/sfx', {
-        method: 'POST',
+      const response = await fetch("/api/audio/sfx", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           limit: 20,
@@ -54,7 +50,7 @@ export default function PanelSFX() {
         setSearchResults([]);
       }
     } catch (error) {
-      console.error('Failed to fetch SFX:', error);
+      console.error("Failed to fetch SFX:", error);
     } finally {
       setIsLoading(false);
     }
@@ -62,11 +58,11 @@ export default function PanelSFX() {
 
   const debouncedFetch = useCallback(
     debounce((query: string) => fetchSFX(query), 500),
-    []
+    [],
   );
 
   useEffect(() => {
-    fetchSFX('');
+    fetchSFX("");
   }, []);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -78,12 +74,12 @@ export default function PanelSFX() {
   const handleAddAudio = async (url: string, name: string) => {
     try {
       await core.clip.add({
-        type: 'Audio',
+        type: "Audio",
         src: url,
         name: name,
       });
     } catch (error) {
-      Log.error('Failed to add audio:', error);
+      Log.error("Failed to add audio:", error);
     }
   };
 

@@ -258,8 +258,6 @@ export const convertUgcSchemaToDesign = async (
 ): Promise<Design> => {
   const type = schemaType || schemaJson.type;
 
-
-
   const clips: any[] = [];
   const tracks: any[] = [];
 

@@ -12,7 +12,7 @@ export interface FilmstripBacklogOptions {
 }
 
 export const calculateThumbnailSegmentLayout = (
-  thumbnailHeight: number
+  thumbnailHeight: number,
 ): FilmstripBacklogOptions => {
   // Calculate the maximum number of thumbnails based on the thumbnail width
   let maxThumbnails = Math.floor(1200 / thumbnailHeight);
@@ -30,11 +30,9 @@ export const calculateThumbnailSegmentLayout = (
 export const calculateOffscreenSegments = (
   offscreenHeight: number,
   trimFromSize: number,
-  segmentSize: number
+  segmentSize: number,
 ) => {
-  const offscreenSegments = Math.floor(
-    (offscreenHeight + trimFromSize) / segmentSize
-  );
+  const offscreenSegments = Math.floor((offscreenHeight + trimFromSize) / segmentSize);
   return offscreenSegments;
 };
 
@@ -50,7 +48,7 @@ interface Result {
 
 export function matchTimestampsToNearestThumbnails(
   timestamps: number[],
-  thumbnailsList: Thumbnail[]
+  thumbnailsList: Thumbnail[],
 ): Result[] {
   const results: Result[] = [];
 

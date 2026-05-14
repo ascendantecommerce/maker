@@ -1,14 +1,9 @@
-import {
-  clipToJSON,
-  type IClip as StudioClip,
-  Studio,
-  jsonToClip,
-} from '@openvideo/engine-pixi';
-import CanvasTimeline, { TIMELINE_SEEK } from '@openvideo/timeline';
-import { IClip } from '@/types/timeline';
-import { core, projectStore } from '@/lib/project';
-import { useStudioStore } from '@/stores/studio-store';
-import { nanoid } from 'nanoid';
+import { clipToJSON, type IClip as StudioClip, Studio, jsonToClip } from "@openvideo/engine-pixi";
+import CanvasTimeline, { TIMELINE_SEEK } from "@openvideo/timeline";
+import { IClip } from "@/types/timeline";
+import { core, projectStore } from "@/lib/project";
+import { useStudioStore } from "@/stores/studio-store";
+import { nanoid } from "nanoid";
 
 /**
  * Connects the Timeline instance to the Zustand store for Store -> Engine sync.
@@ -19,11 +14,7 @@ import { nanoid } from 'nanoid';
 /**
  * Connects the Studio instance to the Store and Timeline.
  */
-export const addStudioSync = (
-  studio: Studio,
-  timeline: CanvasTimeline
-): (() => void) => {
-  console.log('Adding studio sync with Core-First flow');
+export const addStudioSync = (studio: Studio, timeline: CanvasTimeline): (() => void) => {
   // --- 1. ENGINES -> CORE (Interaction Capture) ---
 
   // Captures changes from Studio (e.g. property panel or direct canvas edits)
@@ -32,13 +23,13 @@ export const addStudioSync = (
   const handleClipTransforming = ({ clip }: { clip: IClip }) => {
     const serialized = clipToJSON(clip as unknown as StudioClip) as any;
     // Real-time signaling only — no state commit yet
-    core.emit('clip:transforming', { id: clip.id, updates: serialized });
+    core.emit("clip:transforming", { id: clip.id, updates: serialized });
   };
 
   // When Core is attached (via StudioBridge) the Studio no longer needs to write
   // back to the store directly — the core command pipeline handles it. We only
   // sync selection which is still a lightweight store write.
-  studio.on('clip:transforming', handleClipTransforming as any);
+  studio.on("clip:transforming", handleClipTransforming as any);
 
   // Captures timeline seek events
   const handleTimelineSeek = ({ payload }: any) => {
@@ -49,16 +40,15 @@ export const addStudioSync = (
 
   // Timeline drop events → route through core.clip.add
   const handleAddClip = async ({ payload, options }: any) => {
-    console.log('timeline add event: ', { payload, options });
     await core.clip.add(payload, options);
   };
 
-  timeline.emitter.on('add:video', handleAddClip);
-  timeline.emitter.on('add:image', handleAddClip);
-  timeline.emitter.on('add:audio', handleAddClip);
-  timeline.emitter.on('add:text', handleAddClip);
-  timeline.emitter.on('add:transition', handleAddClip);
-  timeline.emitter.on('add:effect', handleAddClip);
+  timeline.emitter.on("add:video", handleAddClip);
+  timeline.emitter.on("add:image", handleAddClip);
+  timeline.emitter.on("add:audio", handleAddClip);
+  timeline.emitter.on("add:text", handleAddClip);
+  timeline.emitter.on("add:transition", handleAddClip);
+  timeline.emitter.on("add:effect", handleAddClip);
 
   // --- 2. CORE -> ENGINES (Reconciliation via store subscription) ---
   // The StudioBridge + TimelineBridge handle patch-driven reconciliation.
@@ -85,19 +75,19 @@ export const addStudioSync = (
         setSelectedClips(engineClips as any[]);
       }
     } catch (e) {
-      console.warn('Core subscription error:', e);
+      console.warn("Core subscription error:", e);
     }
   });
 
   return () => {
-    studio.off('clip:transforming', handleClipTransforming as any);
+    studio.off("clip:transforming", handleClipTransforming as any);
     timeline.emitter.off(TIMELINE_SEEK, handleTimelineSeek);
-    timeline.emitter.off('add:video', handleAddClip);
-    timeline.emitter.off('add:image', handleAddClip);
-    timeline.emitter.off('add:audio', handleAddClip);
-    timeline.emitter.off('add:text', handleAddClip);
-    timeline.emitter.off('add:transition', handleAddClip);
-    timeline.emitter.off('add:effect', handleAddClip);
+    timeline.emitter.off("add:video", handleAddClip);
+    timeline.emitter.off("add:image", handleAddClip);
+    timeline.emitter.off("add:audio", handleAddClip);
+    timeline.emitter.off("add:text", handleAddClip);
+    timeline.emitter.off("add:transition", handleAddClip);
+    timeline.emitter.off("add:effect", handleAddClip);
     unsubCore();
   };
 };

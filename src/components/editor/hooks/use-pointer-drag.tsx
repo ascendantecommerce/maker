@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from "react";
 
 /**
  * Event object to be applied on the target element.
@@ -167,12 +167,10 @@ export interface IPointerDragOptions<T> {
 }
 
 export function usePointerDrag<T>(
-  options: IPointerDragOptions<T>
-): unknown extends T
-  ? IPointerDragReturnWithoutState
-  : IPointerDragReturnWithState<T>;
+  options: IPointerDragOptions<T>,
+): unknown extends T ? IPointerDragReturnWithoutState : IPointerDragReturnWithState<T>;
 export function usePointerDrag<T>(
-  options: IPointerDragOptions<T>
+  options: IPointerDragOptions<T>,
 ): IPointerDragReturnWithoutState | IPointerDragReturnWithState<T> {
   const [dragState, setDragState] = useState<T | undefined>(undefined);
   const [isDragging, setIsDragging] = useState(false);
@@ -268,12 +266,12 @@ export function usePointerDrag<T>(
       setIsStarted(false);
     };
 
-    document.addEventListener('pointermove', handleMove);
-    document.addEventListener('pointerup', handleUp);
+    document.addEventListener("pointermove", handleMove);
+    document.addEventListener("pointerup", handleUp);
 
     return () => {
-      document.removeEventListener('pointermove', handleMove);
-      document.removeEventListener('pointerup', handleUp);
+      document.removeEventListener("pointermove", handleMove);
+      document.removeEventListener("pointerup", handleUp);
     };
   }, [isStarted]);
 
@@ -284,7 +282,7 @@ export function usePointerDrag<T>(
       setIsDragging(true);
       infoRef.current.dragging = true;
     },
-    [setDragState, setIsStarted, setIsDragging]
+    [setDragState, setIsStarted, setIsDragging],
   );
 
   const dragProps = useCallback(
@@ -328,7 +326,7 @@ export function usePointerDrag<T>(
         },
       };
     },
-    [setDragState, setIsStarted]
+    [setDragState, setIsStarted],
   );
 
   return {

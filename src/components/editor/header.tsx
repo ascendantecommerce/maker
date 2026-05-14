@@ -1,16 +1,16 @@
-'use client';
-import { useState } from 'react';
-import { cn } from '@/lib/utils';
-import { IconShare } from '@tabler/icons-react';
-import { Button } from '@/components/ui/button';
-import { useStudioStore } from '@/stores/studio-store';
-import { usePanelStore } from '@/stores/panel-store';
-import { useProjectStore } from '@/stores/project-store';
-import { fontManager, Log, type IClip } from '@openvideo/engine-pixi';
-import { ExportModal } from './export-modal';
-import { LogoIcons } from '../shared/logos';
-import Link from 'next/link';
-import { Icons } from '../shared/icons';
+"use client";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+import { IconShare } from "@tabler/icons-react";
+import { Button } from "@/components/ui/button";
+import { useStudioStore } from "@/stores/studio-store";
+import { usePanelStore } from "@/stores/panel-store";
+import { useProjectStore } from "@/stores/project-store";
+import { fontManager, Log, type IClip } from "@openvideo/engine-pixi";
+import { ExportModal } from "./export-modal";
+import { LogoIcons } from "../shared/logos";
+import Link from "next/link";
+import { Icons } from "../shared/icons";
 import {
   Keyboard,
   FileJson,
@@ -24,25 +24,25 @@ import {
   Smartphone,
   Monitor,
   ChevronLeft,
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { Compositor } from '@openvideo/engine-pixi';
-import { ShortcutsModal } from './shortcuts-modal';
-import { useEffect } from 'react';
+} from "lucide-react";
+import { toast } from "sonner";
+import { Compositor } from "@openvideo/engine-pixi";
+import { ShortcutsModal } from "./shortcuts-modal";
+import { useEffect } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { useRouter, useParams } from 'next/navigation';
-import { storageService } from '@/lib/storage/storage-service';
-import { Save } from 'lucide-react';
-import AutosizeInput from '../ui/autosize-input';
-import { authClient } from '@/lib/auth-client';
-import { core, projectStore } from '@/lib/project';
-import { useStore } from 'zustand';
-import { template } from './sample';
+} from "@/components/ui/dropdown-menu";
+import { useRouter, useParams } from "next/navigation";
+import { storageService } from "@/lib/storage/storage-service";
+import { Save } from "lucide-react";
+import AutosizeInput from "../ui/autosize-input";
+import { authClient } from "@/lib/auth-client";
+import { core, projectStore } from "@/lib/project";
+import { useStore } from "zustand";
+import { template } from "./sample";
 
 export default function Header() {
   const { studio } = useStudioStore();
@@ -51,15 +51,15 @@ export default function Header() {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isBatchExporting, setIsBatchExporting] = useState(false);
-  const [customWidth, setCustomWidth] = useState('');
-  const [customHeight, setCustomHeight] = useState('');
+  const [customWidth, setCustomWidth] = useState("");
+  const [customHeight, setCustomHeight] = useState("");
   const router = useRouter();
   const params = useParams();
   const projectId = params.projectId as string;
   const { data: session } = authClient.useSession();
   const { projectName, setProjectName } = useProjectStore();
   const [isSaving, setIsSaving] = useState(false);
-  const [title, setTitle] = useState(projectName || 'Untitled video');
+  const [title, setTitle] = useState(projectName || "Untitled video");
 
   // Sync title with store when project name changes externally (like on initial load)
   useEffect(() => {
@@ -68,14 +68,13 @@ export default function Header() {
     }
   }, [projectName]);
 
-
   const handleApplyCustomSize = () => {
     const w = parseInt(customWidth);
     const h = parseInt(customHeight);
     if (!isNaN(w) && !isNaN(h) && w > 0 && h > 0) {
-      setCanvasSize({ width: w, height: h }, 'Custom');
+      setCanvasSize({ width: w, height: h }, "Custom");
     } else {
-      toast.error('Invalid dimensions');
+      toast.error("Invalid dimensions");
     }
   };
 
@@ -155,7 +154,7 @@ export default function Header() {
 
   const handleNew = () => {
     const confirmed = window.confirm(
-      'Are you sure you want to start a new project? Unsaved changes will be lost.'
+      "Are you sure you want to start a new project? Unsaved changes will be lost.",
     );
     if (confirmed) {
       core.project.new();
@@ -166,18 +165,18 @@ export default function Header() {
     try {
       const json = core.project.export();
       if (Object.keys(json.clips).length === 0) {
-        alert('No clips to export');
+        alert("No clips to export");
         return;
       }
 
       const jsonString = JSON.stringify(json, null, 2);
-      const blob = new Blob([jsonString], { type: 'application/json' });
+      const blob = new Blob([jsonString], { type: "application/json" });
       const url = URL.createObjectURL(blob);
 
-      const aEl = document.createElement('a');
+      const aEl = document.createElement("a");
       document.body.appendChild(aEl);
       aEl.href = url;
-      aEl.download = `${projectName || 'project'}-${Date.now()}.json`;
+      aEl.download = `${projectName || "project"}-${Date.now()}.json`;
       aEl.click();
 
       setTimeout(() => {
@@ -187,16 +186,16 @@ export default function Header() {
         URL.revokeObjectURL(url);
       }, 100);
     } catch (error) {
-      Log.error('Export to JSON error:', error);
-      alert('Failed to export to JSON: ' + (error as Error).message);
+      Log.error("Export to JSON error:", error);
+      alert("Failed to export to JSON: " + (error as Error).message);
     }
   };
 
   const handleImportJSON = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json,application/json';
-    input.style.display = 'none';
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json,application/json";
+    input.style.display = "none";
 
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
@@ -206,10 +205,10 @@ export default function Header() {
         const text = await file.text();
         const json = JSON.parse(text);
         core.project.import(json);
-        toast.success('Project imported successfully');
+        toast.success("Project imported successfully");
       } catch (error) {
-        Log.error('Load from JSON error:', error);
-        alert('Failed to load from JSON: ' + (error as Error).message);
+        Log.error("Load from JSON error:", error);
+        alert("Failed to load from JSON: " + (error as Error).message);
       } finally {
         if (document.body.contains(input)) {
           document.body.removeChild(input);
@@ -220,7 +219,6 @@ export default function Header() {
     document.body.appendChild(input);
     input.click();
   };
-
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTitle(e.target.value);
@@ -287,14 +285,8 @@ export default function Header() {
           Download
         </Button>
 
-        <ExportModal
-          open={isExportModalOpen}
-          onOpenChange={setIsExportModalOpen}
-        />
-        <ShortcutsModal
-          open={isShortcutsModalOpen}
-          onOpenChange={setIsShortcutsModalOpen}
-        />
+        <ExportModal open={isExportModalOpen} onOpenChange={setIsExportModalOpen} />
+        <ShortcutsModal open={isShortcutsModalOpen} onOpenChange={setIsShortcutsModalOpen} />
       </div>
     </header>
   );

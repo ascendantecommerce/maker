@@ -18,10 +18,10 @@ export type GlobalScriptNode = Node<GlobalScriptNodeData, "globalScript">;
 
 function GlobalScriptNode({ id, data, selected }: NodeProps<GlobalScriptNode>) {
   return (
-    <Card 
+    <Card
       className={cn(
         "w-[400px] p-0 overflow-hidden border-2 shadow-2xl transition-all rounded-[24px]",
-        selected ? "border-primary ring-4 ring-primary/10" : "border-border/40 bg-card"
+        selected ? "border-primary ring-4 ring-primary/10" : "border-border/40 bg-card",
       )}
     >
       <CardHeader className="m-0 bg-muted/30 px-4 py-3 border-b border-border/50 flex flex-row items-center gap-2">
@@ -54,7 +54,9 @@ function GlobalScriptNode({ id, data, selected }: NodeProps<GlobalScriptNode>) {
                 position={Position.Bottom}
                 className="!w-3 !h-3 !bg-muted-foreground/40 !border-2 !border-background shadow-lg"
               />
-              <span className="text-[10px] font-bold text-muted-foreground/80">Global Settings</span>
+              <span className="text-[10px] font-bold text-muted-foreground/80">
+                Global Settings
+              </span>
             </div>
             <div className="relative flex items-center justify-end gap-2 p-2 rounded-lg bg-primary/5 border border-primary/10">
               <span className="text-[10px] font-bold text-primary/80">Scene Flow</span>

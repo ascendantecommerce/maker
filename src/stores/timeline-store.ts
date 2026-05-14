@@ -58,7 +58,7 @@ export const useTimelineStore = create<TimelineStore>((set, get) => {
   const { tracks: initialTracks, clips: initialClips } = {
     tracks: [],
     clips: {},
-  }
+  };
 
   return {
     _tracks: initialTracks,

@@ -33,8 +33,8 @@ const videoPlayerVariants = cva(
 
 export interface VideoPlayerProps
   extends
-  Omit<React.VideoHTMLAttributes<HTMLVideoElement>, "controls">,
-  VariantProps<typeof videoPlayerVariants> {
+    Omit<React.VideoHTMLAttributes<HTMLVideoElement>, "controls">,
+    VariantProps<typeof videoPlayerVariants> {
   src: string;
   poster?: string;
   showControls?: boolean;
@@ -46,18 +46,21 @@ export interface VideoPlayerProps
 }
 
 const VideoPlayer = React.forwardRef<HTMLVideoElement, VideoPlayerProps>(
-  ({
-    className,
-    size,
-    src,
-    poster,
-    showControls = true,
-    showCenterButton = true,
-    showBottomControls = true,
-    objectFit = "cover",
-    autoHide = true,
-    ...props
-  }, ref) => {
+  (
+    {
+      className,
+      size,
+      src,
+      poster,
+      showControls = true,
+      showCenterButton = true,
+      showBottomControls = true,
+      objectFit = "cover",
+      autoHide = true,
+      ...props
+    },
+    ref,
+  ) => {
     const [isPlaying, setIsPlaying] = React.useState(false);
     const [currentTime, setCurrentTime] = React.useState(0);
     const [duration, setDuration] = React.useState(0);
@@ -270,7 +273,7 @@ const VideoPlayer = React.forwardRef<HTMLVideoElement, VideoPlayerProps>(
           aria-label="Video"
           className={cn(
             "h-full w-full",
-            objectFit === "contain" ? "object-contain" : "object-cover"
+            objectFit === "contain" ? "object-contain" : "object-cover",
           )}
           onClick={togglePlay}
           poster={poster}
@@ -312,145 +315,144 @@ const VideoPlayer = React.forwardRef<HTMLVideoElement, VideoPlayerProps>(
                   showControlsState ? "opacity-100" : "opacity-0",
                 )}
               >
-              <div className="pointer-events-auto flex flex-col gap-2 p-4">
-                <div className="flex items-center gap-2 text-sm text-white">
-                  <span aria-live="off" className="min-w-0 font-mono text-xs">
-                    {formatTime(currentTime)}
-                  </span>
-                  <div className="group/progress relative flex-1">
-                    <label className="sr-only" htmlFor="video-progress">
-                      Seek
-                    </label>
-                    <input
-                      aria-label="Seek"
-                      aria-valuemax={Math.max(0, Math.floor(duration))}
-                      aria-valuemin={0}
-                      aria-valuenow={Math.floor(currentTime)}
-                      className="h-1 w-full cursor-pointer appearance-none rounded-full bg-white/30 focus-visible:outline-none motion-safe:duration-200 [&::-webkit-slider-thumb]:size-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white group-hover/progress:[&::-webkit-slider-thumb]:scale-125"
-                      id="video-progress"
-                      max={duration || 0}
-                      min={0}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        handleSeek(Number.parseFloat(e.target.value));
-                      }}
-                      role="slider"
-                      style={{
-                        background: `linear-gradient(to right, #ffffff 0%, #ffffff ${progressPct}%, rgba(255,255,255,0.3) ${progressPct}%, rgba(255,255,255,0.3) 100%)`,
-                      }}
-                      type="range"
-                      value={currentTime}
-                    />
+                <div className="pointer-events-auto flex flex-col gap-2 p-4">
+                  <div className="flex items-center gap-2 text-sm text-white">
+                    <span aria-live="off" className="min-w-0 font-mono text-xs">
+                      {formatTime(currentTime)}
+                    </span>
+                    <div className="group/progress relative flex-1">
+                      <label className="sr-only" htmlFor="video-progress">
+                        Seek
+                      </label>
+                      <input
+                        aria-label="Seek"
+                        aria-valuemax={Math.max(0, Math.floor(duration))}
+                        aria-valuemin={0}
+                        aria-valuenow={Math.floor(currentTime)}
+                        className="h-1 w-full cursor-pointer appearance-none rounded-full bg-white/30 focus-visible:outline-none motion-safe:duration-200 [&::-webkit-slider-thumb]:size-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white group-hover/progress:[&::-webkit-slider-thumb]:scale-125"
+                        id="video-progress"
+                        max={duration || 0}
+                        min={0}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleSeek(Number.parseFloat(e.target.value));
+                        }}
+                        role="slider"
+                        style={{
+                          background: `linear-gradient(to right, #ffffff 0%, #ffffff ${progressPct}%, rgba(255,255,255,0.3) ${progressPct}%, rgba(255,255,255,0.3) 100%)`,
+                        }}
+                        type="range"
+                        value={currentTime}
+                      />
+                    </div>
+                    <span className="min-w-0 font-mono text-xs">{formatTime(duration)}</span>
                   </div>
-                  <span className="min-w-0 font-mono text-xs">{formatTime(duration)}</span>
-                </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <button
-                      aria-label="Skip back 10 seconds"
-                      className="rounded-md p-2 text-white transition-colors hover:bg-white/20"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        skip(-10);
-                      }}
-                      type="button"
-                    >
-                      <SkipBack aria-hidden="true" className="size-4" />
-                    </button>
-                    <button
-                      aria-label={isPlaying ? "Pause" : "Play"}
-                      className="rounded-md p-2 text-white transition-colors hover:bg-white/20"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        togglePlay();
-                      }}
-                      type="button"
-                    >
-                      {isPlaying ? (
-                        <Pause aria-hidden="true" className="size-4" />
-                      ) : (
-                        <Play aria-hidden="true" className="size-4" />
-                      )}
-                    </button>
-                    <button
-                      aria-label="Skip forward 10 seconds"
-                      className="rounded-md p-2 text-white transition-colors hover:bg-white/20"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        skip(10);
-                      }}
-                      type="button"
-                    >
-                      <SkipForward aria-hidden="true" className="size-4" />
-                    </button>
-                    <div className="group/volume flex items-center gap-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
                       <button
-                        aria-label={isMuted || volume === 0 ? "Unmute" : "Mute"}
+                        aria-label="Skip back 10 seconds"
                         className="rounded-md p-2 text-white transition-colors hover:bg-white/20"
                         onClick={(e) => {
                           e.stopPropagation();
-                          toggleMute();
+                          skip(-10);
                         }}
                         type="button"
                       >
-                        {isMuted || volume === 0 ? (
-                          <VolumeX aria-hidden="true" className="size-4" />
+                        <SkipBack aria-hidden="true" className="size-4" />
+                      </button>
+                      <button
+                        aria-label={isPlaying ? "Pause" : "Play"}
+                        className="rounded-md p-2 text-white transition-colors hover:bg-white/20"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          togglePlay();
+                        }}
+                        type="button"
+                      >
+                        {isPlaying ? (
+                          <Pause aria-hidden="true" className="size-4" />
                         ) : (
-                          <Volume2 aria-hidden="true" className="size-4" />
+                          <Play aria-hidden="true" className="size-4" />
                         )}
                       </button>
-                      <div className="w-0 overflow-hidden transition-all group-hover/volume:w-20 motion-safe:duration-200">
-                        <label className="sr-only" htmlFor="video-volume">
-                          Volume
-                        </label>
-                        <input
-                          aria-label="Volume"
-                          aria-valuemax={100}
-                          aria-valuemin={0}
-                          aria-valuenow={Math.round(volumePct)}
-                          className="h-1 w-full cursor-pointer appearance-none rounded-full bg-white/30 focus-visible:outline-none [&::-webkit-slider-thumb]:size-2 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
-                          id="video-volume"
-                          max={1}
-                          min={0}
-                          onChange={(e) => {
+                      <button
+                        aria-label="Skip forward 10 seconds"
+                        className="rounded-md p-2 text-white transition-colors hover:bg-white/20"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          skip(10);
+                        }}
+                        type="button"
+                      >
+                        <SkipForward aria-hidden="true" className="size-4" />
+                      </button>
+                      <div className="group/volume flex items-center gap-2">
+                        <button
+                          aria-label={isMuted || volume === 0 ? "Unmute" : "Mute"}
+                          className="rounded-md p-2 text-white transition-colors hover:bg-white/20"
+                          onClick={(e) => {
                             e.stopPropagation();
-                            handleVolumeChange(Number.parseFloat(e.target.value));
+                            toggleMute();
                           }}
-                          role="slider"
-                          step={0.1}
-                          style={{
-                            background: `linear-gradient(to right, #ffffff 0%, #ffffff ${volumePct}%, rgba(255,255,255,0.3) ${volumePct}%, rgba(255,255,255,0.3) 100%)`,
-                          }}
-                          type="range"
-                          value={isMuted ? 0 : volume}
-                        />
+                          type="button"
+                        >
+                          {isMuted || volume === 0 ? (
+                            <VolumeX aria-hidden="true" className="size-4" />
+                          ) : (
+                            <Volume2 aria-hidden="true" className="size-4" />
+                          )}
+                        </button>
+                        <div className="w-0 overflow-hidden transition-all group-hover/volume:w-20 motion-safe:duration-200">
+                          <label className="sr-only" htmlFor="video-volume">
+                            Volume
+                          </label>
+                          <input
+                            aria-label="Volume"
+                            aria-valuemax={100}
+                            aria-valuemin={0}
+                            aria-valuenow={Math.round(volumePct)}
+                            className="h-1 w-full cursor-pointer appearance-none rounded-full bg-white/30 focus-visible:outline-none [&::-webkit-slider-thumb]:size-2 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+                            id="video-volume"
+                            max={1}
+                            min={0}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              handleVolumeChange(Number.parseFloat(e.target.value));
+                            }}
+                            role="slider"
+                            step={0.1}
+                            style={{
+                              background: `linear-gradient(to right, #ffffff 0%, #ffffff ${volumePct}%, rgba(255,255,255,0.3) ${volumePct}%, rgba(255,255,255,0.3) 100%)`,
+                            }}
+                            type="range"
+                            value={isMuted ? 0 : volume}
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-                      className="rounded-md p-2 text-white transition-colors hover:bg-white/20"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleFullscreen();
-                      }}
-                      type="button"
-                    >
-                      {isFullscreen ? (
-                        <Minimize aria-hidden="true" className="size-4" />
-                      ) : (
-                        <Maximize aria-hidden="true" className="size-4" />
-                      )}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                        className="rounded-md p-2 text-white transition-colors hover:bg-white/20"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFullscreen();
+                        }}
+                        type="button"
+                      >
+                        {isFullscreen ? (
+                          <Minimize aria-hidden="true" className="size-4" />
+                        ) : (
+                          <Maximize aria-hidden="true" className="size-4" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
             )}
-
           </>
         )}
       </div>
