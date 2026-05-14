@@ -385,12 +385,6 @@ export function AnimationPropertiesPicker() {
     setMirrorEnabled(mirror);
   }, [clipDuration, activeTab, animation, typeClip]);
 
-  useEffect(() => {
-    const hasProperties = Object.values(keyframes).some((frame) => Object.keys(frame).length > 0);
-
-    console.log(hasProperties);
-  }, [keyframes]);
-
   return (
     <Popover.Root open={!!clipId} onOpenChange={(open) => !open && setFloatingControl("")}>
       <Popover.Anchor className="absolute left-full top-0" />

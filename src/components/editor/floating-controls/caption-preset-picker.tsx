@@ -110,7 +110,6 @@ const CaptionPresetPicker = () => {
     }
 
     const allCaptionClips = studio?.clips.filter((c) => c.type === "Caption") || [];
-    console.log("preset.type", preset);
 
     if (preset.type === "word") {
       for (const clip of allCaptionClips) {

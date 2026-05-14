@@ -233,9 +233,6 @@ export default function PanelCaptions() {
 
     const part1Words = words.slice(0, splitWordIndex);
     const part2Words = words.slice(splitWordIndex);
-    console.log("part1Words", part1Words);
-    console.log("part2Words", part2Words);
-    console.log("clipJson", clipJson);
 
     if (part1Words.length === 0 || part2Words.length === 0) return;
     const lastWordPart1 = part1Words[part1Words.length - 1];

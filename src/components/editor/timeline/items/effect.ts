@@ -20,7 +20,6 @@ class Effect extends Resizable {
 
   constructor(props: EffectProps) {
     super(props);
-    console.log("Effect props", props);
     this.id = props.id;
     this.rx = 0;
     this.ry = 0;

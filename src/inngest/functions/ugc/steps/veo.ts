@@ -510,24 +510,26 @@ export async function generateUgcVideo({
     if (match) {
       const currentText = match[1].trim();
       const textWithDot = currentText.endsWith(".") ? currentText : `${currentText}.`;
-      const updatedDialogue = `AUDIO DIALOGUE (SPOKEN ONLY): ${textWithDot} ${selectedFiller}`;
 
       if (localRequest.shot) {
+        // Deep-copy to avoid mutating the original reference passed from shot-generator.ts
+        localRequest.shot = { ...localRequest.shot };
+
         // Use a function in replace to avoid issues with special characters in the text
         localRequest.shot.videoPrompt = prompt.replace(dialogueRegex, (matchStr, p1) => {
           return matchStr.replace(p1, `${textWithDot} ${selectedFiller}\n`);
         });
       }
       localRequest.text = `${textWithDot} ${selectedFiller}`;
+      (localRequest as any).originalText = currentText; // Keep track of the clean version
     }
 
-    localRequest.estimatedDuration = estimatedDurationInit + fillerSecondsNeeded; // Override so orchestration recognizes the bump
+    localRequest.estimatedDuration = estimatedDurationInit + fillerSecondsNeeded;
   }
 
   // 1. Resolve Strategy
   const veoInput = await resolveVeoGenerationStrategy(localRequest, services);
 
-  console.log("veoInput", veoInput);
   // 2. Generate the video
   const { rawR2Url } = await generateVeoVideoRaw({
     input: veoInput,
@@ -541,7 +543,7 @@ export async function generateUgcVideo({
     rawR2Url,
     schemaId: request.schemaId,
     segmentId: request.segmentId,
-    expectedText: localRequest.text,
+    expectedText: (localRequest as any).originalText || localRequest.text,
     tts: services.tts,
   });
 
@@ -555,5 +557,6 @@ export async function generateUgcVideo({
     finalTrimmedUrl: finalR2Url, // This applies the isolated audio video BUT correctly trimmed!
     actualDuration,
     tsUrl,
+    originalText: (localRequest as any).originalText || request.text, // Return the clean text
   };
 }

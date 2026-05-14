@@ -234,11 +234,11 @@ export const generateUGCVideo = inngest.createFunction(
             duration: durationMs,
             display: { from: 0, to: durationMs },
             videoPrompt: videoPrompt || originalShot.videoPrompt,
-            text: extractedText || originalShot.text || dbSegment.segment_data.text || "",
+            text: result.originalText || extractedText || originalShot.text || "",
           };
           // Also update the top-level segment text if we extracted it
-          if (extractedText) {
-            updatePayload.text = extractedText;
+          if (result.originalText || extractedText) {
+            updatePayload.text = result.originalText || extractedText;
           }
         }
 

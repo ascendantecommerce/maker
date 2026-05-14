@@ -216,7 +216,6 @@ const Timeline = () => {
   useEffect(() => {
     if (!studio || !timeline) return;
 
-    console.log("Studio ready, adding studio events", studio);
     const disposeStudioSync = addStudioSync(studio, timeline);
 
     return () => {

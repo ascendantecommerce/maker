@@ -18,7 +18,6 @@ class Text extends Resizable {
 
   constructor(props: TextProps) {
     super(props);
-    console.log("Text props", props);
 
     this.fill = "#7c2d12";
     this.id = props.id;

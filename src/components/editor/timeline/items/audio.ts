@@ -61,7 +61,6 @@ class Audio extends Trimmable {
 
   constructor(props: AudioProps) {
     super(props);
-    console.log("Audio props", props);
     this.id = props.id;
     this.tScale = props.tScale;
     this.display = props.display;

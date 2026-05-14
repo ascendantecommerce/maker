@@ -75,7 +75,6 @@ export default function PanelVideos() {
     try {
       const videoFile = asset.video_files.find((f) => f.quality === "hd") || asset.video_files[0];
       if (!videoFile) throw new Error("No video file found");
-      console.log("Adding video:", asset);
       // Use the new Core command-based API to add a video clip
       await core.clip.add(
         {
