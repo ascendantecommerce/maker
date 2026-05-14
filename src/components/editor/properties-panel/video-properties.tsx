@@ -1,5 +1,5 @@
-import * as React from 'react';
-import { useEffect, useState } from 'react';
+import * as React from "react";
+import { useEffect, useState } from "react";
 import {
   ColorPicker,
   ColorPickerAlpha,
@@ -8,13 +8,9 @@ import {
   ColorPickerHue,
   ColorPickerOutput,
   ColorPickerSelection,
-} from '@/components/ui/color-picker';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { IClip, AnimationOptions, KeyframeData } from '@openvideo/engine-pixi';
+} from "@/components/ui/color-picker";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { IClip, AnimationOptions, KeyframeData } from "@openvideo/engine-pixi";
 import {
   IconAlignLeft,
   IconAlignCenter,
@@ -37,22 +33,22 @@ import {
   IconEdit,
   IconFlipHorizontal,
   IconFlipVertical,
-} from '@tabler/icons-react';
-import { cn } from '@/lib/utils';
+} from "@tabler/icons-react";
+import { cn } from "@/lib/utils";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-} from '@/components/ui/input-group';
-import { Slider } from '@/components/ui/slider';
-import color from 'color';
-import { NumberInput } from '@/components/ui/number-input';
-import { Switch } from '@/components/ui/switch';
-import useLayoutStore from '../store/use-layout-store';
-import { useStore } from 'zustand';
-import { useEphemeralClip } from '@/hooks/use-ephemeral-clip';
-import { projectStore, core } from '@/lib/project';
+} from "@/components/ui/input-group";
+import { Slider } from "@/components/ui/slider";
+import color from "color";
+import { NumberInput } from "@/components/ui/number-input";
+import { Switch } from "@/components/ui/switch";
+import useLayoutStore from "../store/use-layout-store";
+import { useStore } from "zustand";
+import { useEphemeralClip } from "@/hooks/use-ephemeral-clip";
+import { projectStore, core } from "@/lib/project";
 
 interface VideoPropertiesProps {
   clip: IClip;
@@ -84,7 +80,7 @@ export function VideoProperties({ clip }: VideoPropertiesProps) {
       style: {
         ...style,
         stroke: {
-          ...(style.stroke || { color: '#ffffff', width: 0 }),
+          ...(style.stroke || { color: "#ffffff", width: 0 }),
           ...strokeUpdates,
         },
       },
@@ -93,7 +89,7 @@ export function VideoProperties({ clip }: VideoPropertiesProps) {
 
   const handleShadowUpdate = (shadowUpdates: any) => {
     const currentShadow = style.dropShadow || {
-      color: '#000000',
+      color: "#000000",
       alpha: 1,
       blur: 0,
       distance: 0,
@@ -132,9 +128,7 @@ export function VideoProperties({ clip }: VideoPropertiesProps) {
   const { setFloatingControl } = useLayoutStore();
 
   const handleAnimationRemove = (id: string) => {
-    const animations = (coreClip.animations || []).filter(
-      (a: any) => a.id !== id
-    );
+    const animations = (coreClip.animations || []).filter((a: any) => a.id !== id);
     handleUpdate({ animations });
   };
 
@@ -150,9 +144,7 @@ export function VideoProperties({ clip }: VideoPropertiesProps) {
         <div className="grid grid-cols-2 gap-2">
           <InputGroup>
             <InputGroupAddon align="inline-start">
-              <span className="text-[10px] font-medium text-muted-foreground">
-                X
-              </span>
+              <span className="text-[10px] font-medium text-muted-foreground">X</span>
             </InputGroupAddon>
             <NumberInput
               value={Math.round(coreClip.left || 0)}
@@ -162,9 +154,7 @@ export function VideoProperties({ clip }: VideoPropertiesProps) {
           </InputGroup>
           <InputGroup>
             <InputGroupAddon align="inline-start">
-              <span className="text-[10px] font-medium text-muted-foreground">
-                Y
-              </span>
+              <span className="text-[10px] font-medium text-muted-foreground">Y</span>
             </InputGroupAddon>
             <NumberInput
               value={Math.round(coreClip.top || 0)}
@@ -176,9 +166,7 @@ export function VideoProperties({ clip }: VideoPropertiesProps) {
         <div className="grid grid-cols-2 gap-2">
           <InputGroup>
             <InputGroupAddon align="inline-start">
-              <span className="text-[10px] font-medium text-muted-foreground">
-                W
-              </span>
+              <span className="text-[10px] font-medium text-muted-foreground">W</span>
             </InputGroupAddon>
             <NumberInput
               value={Math.round(coreClip.width || 0)}
@@ -188,9 +176,7 @@ export function VideoProperties({ clip }: VideoPropertiesProps) {
           </InputGroup>
           <InputGroup>
             <InputGroupAddon align="inline-start">
-              <span className="text-[10px] font-medium text-muted-foreground">
-                H
-              </span>
+              <span className="text-[10px] font-medium text-muted-foreground">H</span>
             </InputGroupAddon>
             <NumberInput
               value={Math.round(coreClip.height || 0)}
@@ -245,8 +231,8 @@ export function VideoProperties({ clip }: VideoPropertiesProps) {
             }
             className={`flex items-center justify-center flex-1 py-1.5 rounded-md border transition-colors ${
               coreClip.flip?.x
-                ? 'bg-primary/20 border-primary text-primary'
-                : 'bg-secondary/30 border-transparent text-muted-foreground hover:text-white'
+                ? "bg-primary/20 border-primary text-primary"
+                : "bg-secondary/30 border-transparent text-muted-foreground hover:text-white"
             }`}
           >
             <IconFlipHorizontal className="size-4 mr-2" />
@@ -263,8 +249,8 @@ export function VideoProperties({ clip }: VideoPropertiesProps) {
             }
             className={`flex items-center justify-center flex-1 py-1.5 rounded-md border transition-colors ${
               coreClip.flip?.y
-                ? 'bg-primary/20 border-primary text-primary'
-                : 'bg-secondary/30 border-transparent text-muted-foreground hover:text-white'
+                ? "bg-primary/20 border-primary text-primary"
+                : "bg-secondary/30 border-transparent text-muted-foreground hover:text-white"
             }`}
           >
             <IconFlipVertical className="size-4 mr-2" />
@@ -335,9 +321,9 @@ export function VideoProperties({ clip }: VideoPropertiesProps) {
           </label>
           <button
             onClick={() => {
-              setFloatingControl('animation-properties-picker', {
+              setFloatingControl("animation-properties-picker", {
                 clipId: coreClip.id,
-                mode: 'add',
+                mode: "add",
               });
             }}
             className="text-muted-foreground hover:text-white transition-colors"
@@ -359,9 +345,7 @@ export function VideoProperties({ clip }: VideoPropertiesProps) {
                 className="flex items-center justify-between p-2 bg-secondary/30 rounded-md group"
               >
                 <div className="flex flex-col flex-1">
-                  <span className="text-xs font-medium capitalize">
-                    {anim.type}
-                  </span>
+                  <span className="text-xs font-medium capitalize">{anim.type}</span>
                   <span className="text-[10px] text-muted-foreground">
                     {Math.round((anim.options?.duration ?? 0) / 1e6)}s duration
                   </span>
@@ -369,10 +353,10 @@ export function VideoProperties({ clip }: VideoPropertiesProps) {
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => {
-                      setFloatingControl('animation-properties-picker', {
+                      setFloatingControl("animation-properties-picker", {
                         clipId: coreClip.id,
                         animationId: anim.id,
-                        mode: 'edit',
+                        mode: "edit",
                       });
                     }}
                     className="p-1 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-white transition-all"
@@ -400,9 +384,7 @@ export function VideoProperties({ clip }: VideoPropertiesProps) {
           </label>
           <Switch
             checked={coreClip.chromaKey?.enabled ?? false}
-            onCheckedChange={(checked) =>
-              handleChromaKeyUpdate({ enabled: checked })
-            }
+            onCheckedChange={(checked) => handleChromaKeyUpdate({ enabled: checked })}
           />
         </div>
 
@@ -413,16 +395,11 @@ export function VideoProperties({ clip }: VideoPropertiesProps) {
                 <InputGroupAddon align="inline-start" className="relative p-0">
                   <Popover modal={true}>
                     <PopoverTrigger asChild>
-                      <InputGroupButton
-                        variant="ghost"
-                        size="icon-xs"
-                        className="h-full w-8"
-                      >
+                      <InputGroupButton variant="ghost" size="icon-xs" className="h-full w-8">
                         <div
                           className="h-4 w-4 rounded-full border border-white/10 shadow-sm"
                           style={{
-                            backgroundColor:
-                              coreClip.chromaKey?.color || '#00FF00',
+                            backgroundColor: coreClip.chromaKey?.color || "#00FF00",
                           }}
                         />
                       </InputGroupButton>
@@ -451,10 +428,8 @@ export function VideoProperties({ clip }: VideoPropertiesProps) {
                   </Popover>
                 </InputGroupAddon>
                 <InputGroupInput
-                  value={coreClip.chromaKey?.color?.toUpperCase() || '#00FF00'}
-                  onChange={(e) =>
-                    handleChromaKeyUpdate({ color: e.target.value })
-                  }
+                  value={coreClip.chromaKey?.color?.toUpperCase() || "#00FF00"}
+                  onChange={(e) => handleChromaKeyUpdate({ color: e.target.value })}
                   className="text-sm p-0 text-[10px] font-mono"
                 />
               </InputGroup>
@@ -462,18 +437,14 @@ export function VideoProperties({ clip }: VideoPropertiesProps) {
 
             <div className="flex flex-col gap-1">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground">
-                  Similarity
-                </span>
+                <span className="text-[10px] text-muted-foreground">Similarity</span>
                 <span className="text-[10px] text-muted-foreground">
                   {Math.round((coreClip.chromaKey?.similarity ?? 0.1) * 100)}%
                 </span>
               </div>
               <Slider
                 value={[(coreClip.chromaKey?.similarity ?? 0.1) * 100]}
-                onValueChange={(v) =>
-                  handleChromaKeyUpdate({ similarity: v[0] / 100 })
-                }
+                onValueChange={(v) => handleChromaKeyUpdate({ similarity: v[0] / 100 })}
                 max={100}
                 step={1}
               />
@@ -488,9 +459,7 @@ export function VideoProperties({ clip }: VideoPropertiesProps) {
               </div>
               <Slider
                 value={[(coreClip.chromaKey?.spill ?? 0.05) * 100]}
-                onValueChange={(v) =>
-                  handleChromaKeyUpdate({ spill: v[0] / 100 })
-                }
+                onValueChange={(v) => handleChromaKeyUpdate({ spill: v[0] / 100 })}
                 max={100}
                 step={1}
               />
@@ -542,16 +511,11 @@ export function VideoProperties({ clip }: VideoPropertiesProps) {
             <InputGroupAddon align="inline-start" className="relative p-0">
               <Popover modal={true}>
                 <PopoverTrigger asChild>
-                  <InputGroupButton
-                    variant="ghost"
-                    size="icon-xs"
-                    className="h-full w-8"
-                  >
+                  <InputGroupButton variant="ghost" size="icon-xs" className="h-full w-8">
                     <div
                       className="h-4 w-4 rounded-full border border-white/10 shadow-sm"
                       style={{
-                        backgroundColor:
-                          (style.stroke?.color as string) || '#000000',
+                        backgroundColor: (style.stroke?.color as string) || "#000000",
                       }}
                     />
                   </InputGroupButton>
@@ -580,14 +544,11 @@ export function VideoProperties({ clip }: VideoPropertiesProps) {
               </Popover>
             </InputGroupAddon>
             <InputGroupInput
-              value={style.stroke?.color?.toUpperCase() || '#000000'}
+              value={style.stroke?.color?.toUpperCase() || "#000000"}
               onChange={(e) => handleStrokeUpdate({ color: e.target.value })}
               className="text-sm p-0 text-[10px] font-mono"
             />
-            <InputGroupAddon
-              align="inline-end"
-              className="border-l border-white/5 pl-2"
-            >
+            <InputGroupAddon align="inline-end" className="border-l border-white/5 pl-2">
               <span className="text-[10px]">100%</span>
             </InputGroupAddon>
           </InputGroup>
@@ -630,9 +591,7 @@ export function VideoProperties({ clip }: VideoPropertiesProps) {
               <IconRotate className="size-3.5" />
             </InputGroupAddon>
             <NumberInput
-              value={Math.round(
-                ((style.dropShadow?.angle || 0) * 180) / Math.PI
-              )}
+              value={Math.round(((style.dropShadow?.angle || 0) * 180) / Math.PI)}
               onChange={(val) => handleShadowUpdate({ angle: val })}
               className="p-0"
             />
@@ -655,15 +614,11 @@ export function VideoProperties({ clip }: VideoPropertiesProps) {
             <InputGroupAddon align="inline-start" className="relative p-0">
               <Popover modal={true}>
                 <PopoverTrigger asChild>
-                  <InputGroupButton
-                    variant="ghost"
-                    size="icon-xs"
-                    className="h-full w-8"
-                  >
+                  <InputGroupButton variant="ghost" size="icon-xs" className="h-full w-8">
                     <div
                       className="h-4 w-4 border border-white/10 shadow-sm"
                       style={{
-                        backgroundColor: style.dropShadow?.color || '#000000',
+                        backgroundColor: style.dropShadow?.color || "#000000",
                       }}
                     />
                   </InputGroupButton>
@@ -692,7 +647,7 @@ export function VideoProperties({ clip }: VideoPropertiesProps) {
               </Popover>
             </InputGroupAddon>
             <InputGroupInput
-              value={style.dropShadow?.color?.toUpperCase() || '#000000'}
+              value={style.dropShadow?.color?.toUpperCase() || "#000000"}
               onChange={(e) => handleShadowUpdate({ color: e.target.value })}
               className="text-sm p-0 text-[10px] font-mono"
             />

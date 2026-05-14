@@ -392,7 +392,7 @@ export async function generateShotBRolls(
                 false,
                 broll.firstFramePrompt || broll.words || "",
                 "b-roll",
-                fallbackModel
+                fallbackModel,
               );
 
               const { buffer, extension } = await fileUrlToBuffer(img);
@@ -420,7 +420,7 @@ export async function generateShotBRolls(
             return { i, success: false, error: err.message };
           }
         });
-      })
+      }),
     );
 
     brollResults.forEach((result: any) => {

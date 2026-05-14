@@ -165,10 +165,10 @@ export async function regenerateCaptionClips({
 
   // 5. Enrich and Clean each generated JSON
   const paddingY = styleUpdate?.textBoxStyle?.verticalPadding ?? 0;
-  
+
   const clipsToAdd = newClipsJSON.map((json) => {
     const clipDuration = json.display.to - json.display.from;
-    
+
     // Construct base object without root pollution
     let enriched: any = {
       type: "Caption",
@@ -215,6 +215,6 @@ export async function regenerateCaptionClips({
   }));
 
   core.batch([removeCommand, ...addCommands]);
-  
+
   return clipsToAdd;
 }

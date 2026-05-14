@@ -1,23 +1,15 @@
-import * as React from 'react';
-import {
-  IClip,
-  getTransitionOptions,
-  registerCustomTransition,
-} from '@openvideo/engine-pixi';
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from '@/components/ui/input-group';
-import { Slider } from '@/components/ui/slider';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Timer } from 'lucide-react';
-import { createPortal } from 'react-dom';
-import { Icons } from '@/components/shared/icons';
-import { useStore } from 'zustand';
-import { projectStore, core } from '@/lib/project';
-import { nanoid } from 'nanoid';
+import * as React from "react";
+import { IClip, getTransitionOptions, registerCustomTransition } from "@openvideo/engine-pixi";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { Slider } from "@/components/ui/slider";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, Timer } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Icons } from "@/components/shared/icons";
+import { useStore } from "zustand";
+import { projectStore, core } from "@/lib/project";
+import { nanoid } from "nanoid";
 
 interface TransitionPropertiesProps {
   clip: IClip;
@@ -43,7 +35,7 @@ const DraggableTransitionItem = ({
 }: {
   effect: any;
   loaded: any;
-  onLoaded: (key: string, type: 'static' | 'dynamic') => void;
+  onLoaded: (key: string, type: "static" | "dynamic") => void;
   onClick: () => void;
 }) => {
   const [dragState, setDragState] = React.useState<{
@@ -73,10 +65,7 @@ const DraggableTransitionItem = ({
 
       const bounds = timelineBoundsRef.current;
       const overTimeline = bounds
-        ? x >= bounds.left &&
-          x <= bounds.right &&
-          y >= bounds.top &&
-          y <= bounds.bottom
+        ? x >= bounds.left && x <= bounds.right && y >= bounds.top && y <= bounds.bottom
         : false;
 
       setDragState((prev) => {
@@ -85,8 +74,8 @@ const DraggableTransitionItem = ({
       });
     };
 
-    document.addEventListener('dragover', handleGlobalDrag);
-    return () => document.removeEventListener('dragover', handleGlobalDrag);
+    document.addEventListener("dragover", handleGlobalDrag);
+    return () => document.removeEventListener("dragover", handleGlobalDrag);
   }, [isDragging]);
 
   const isReady = loaded[effect.key]?.static && loaded[effect.key]?.dynamic;
@@ -96,16 +85,16 @@ const DraggableTransitionItem = ({
       <div
         draggable
         onDragStart={(e) => {
-          e.dataTransfer.setData('text/plain', effect.key);
-          e.dataTransfer.setData('type', 'transition');
+          e.dataTransfer.setData("text/plain", effect.key);
+          e.dataTransfer.setData("type", "transition");
 
           const img = new Image();
           img.src =
-            'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+            "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
           e.dataTransfer.setDragImage(img, 0, 0);
 
           // Cache timeline bounds for faster hit testing
-          const el = document.getElementById('timeline-canvas');
+          const el = document.getElementById("timeline-canvas");
           if (el) timelineBoundsRef.current = el.getBoundingClientRect();
 
           setDragState({
@@ -134,14 +123,14 @@ const DraggableTransitionItem = ({
 
           <img
             src={effect.previewStatic}
-            onLoad={() => onLoaded(effect.key, 'static')}
+            onLoad={() => onLoaded(effect.key, "static")}
             loading="lazy"
             className="absolute inset-0 w-full h-full object-cover rounded-sm transition-opacity duration-150 opacity-100 group-hover:opacity-0"
           />
 
           <img
             src={effect.previewDynamic}
-            onLoad={() => onLoaded(effect.key, 'dynamic')}
+            onLoad={() => onLoaded(effect.key, "dynamic")}
             loading="lazy"
             className="absolute inset-0 w-full h-full object-cover rounded-sm transition-opacity duration-150 opacity-0 group-hover:opacity-100"
           />
@@ -157,12 +146,12 @@ const DraggableTransitionItem = ({
           <div
             ref={ghostRef}
             style={{
-              position: 'fixed',
+              position: "fixed",
               left: 0,
               top: 0,
               transform: `translate3d(${dragState.x + 15}px, ${dragState.y + 15}px, 0)`,
-              willChange: 'transform',
-              pointerEvents: 'none',
+              willChange: "transform",
+              pointerEvents: "none",
               zIndex: 99999,
             }}
           >
@@ -184,7 +173,7 @@ const DraggableTransitionItem = ({
               </div>
             )}
           </div>,
-          document.body
+          document.body,
         )}
     </>
   );
@@ -195,9 +184,7 @@ export function TransitionProperties({ clip }: TransitionPropertiesProps) {
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
   const [loaded, setLoaded] = React.useState(LOADED_CACHE);
-  const [localDuration, setLocalDuration] = React.useState(
-    (coreClip?.duration || 0) / 1_000_000
-  );
+  const [localDuration, setLocalDuration] = React.useState((coreClip?.duration || 0) / 1_000_000);
 
   React.useEffect(() => {
     if (coreClip?.duration) {
@@ -206,15 +193,13 @@ export function TransitionProperties({ clip }: TransitionPropertiesProps) {
   }, [coreClip?.duration]);
 
   React.useLayoutEffect(() => {
-    const viewport = scrollRef.current?.querySelector(
-      '[data-radix-scroll-area-viewport]'
-    );
+    const viewport = scrollRef.current?.querySelector("[data-radix-scroll-area-viewport]");
     if (viewport) {
       viewport.scrollTop = LAST_SCROLL_POS;
     }
   }, []);
 
-  const markLoaded = (key: string, type: 'static' | 'dynamic') => {
+  const markLoaded = (key: string, type: "static" | "dynamic") => {
     if (LOADED_CACHE[key]?.[type]) return;
     LOADED_CACHE[key] = {
       ...LOADED_CACHE[key],
@@ -226,13 +211,9 @@ export function TransitionProperties({ clip }: TransitionPropertiesProps) {
   const fromClip = projectStore.getState().clips[coreClip.fromClipId];
   const toClip = projectStore.getState().clips[coreClip.toClipId];
 
-  const minFromToDuration = Math.min(
-    fromClip?.duration ?? Infinity,
-    toClip?.duration ?? Infinity
-  );
+  const minFromToDuration = Math.min(fromClip?.duration ?? Infinity, toClip?.duration ?? Infinity);
 
-  const maxDurationMicro =
-    minFromToDuration === Infinity ? 10_000_000 : minFromToDuration * 0.25;
+  const maxDurationMicro = minFromToDuration === Infinity ? 10_000_000 : minFromToDuration * 0.25;
   const minDurationMicro = 100_000; // 0.1s
 
   const handleUpdate = async (updates: any) => {
@@ -247,10 +228,7 @@ export function TransitionProperties({ clip }: TransitionPropertiesProps) {
     const newKey = updates.key ?? coreClip.transitionEffect.key;
 
     if (newDuration !== undefined || updates.key !== undefined) {
-      newDuration = Math.max(
-        minDurationMicro,
-        Math.min(maxDurationMicro, newDuration)
-      );
+      newDuration = Math.max(minDurationMicro, Math.min(maxDurationMicro, newDuration));
 
       const transitionStart = toClip.display.from - newDuration / 2;
       const transitionEnd = transitionStart + newDuration;
@@ -295,7 +273,7 @@ export function TransitionProperties({ clip }: TransitionPropertiesProps) {
 
       const commands = updatesList.map(({ id, updates }) => ({
         id: nanoid(),
-        type: 'clip.update',
+        type: "clip.update",
         payload: { id, updates },
       }));
 
@@ -326,9 +304,7 @@ export function TransitionProperties({ clip }: TransitionPropertiesProps) {
 
   // ─── Custom presets state ──────────────────────────────────────────────────
   const [ownPresets, setOwnPresets] = React.useState<CustomPreset[]>([]);
-  const [publishedPresets, setPublishedPresets] = React.useState<
-    CustomPreset[]
-  >([]);
+  const [publishedPresets, setPublishedPresets] = React.useState<CustomPreset[]>([]);
   const [presetsLoading, setPresetsLoading] = React.useState(true);
   const [presetsError, setPresetsError] = React.useState<string | null>(null);
 
@@ -337,13 +313,13 @@ export function TransitionProperties({ clip }: TransitionPropertiesProps) {
       setPresetsLoading(true);
       setPresetsError(null);
       try {
-        const res = await fetch('/api/custom-presets?category=transitions');
-        if (!res.ok) throw new Error('Failed to fetch');
+        const res = await fetch("/api/custom-presets?category=transitions");
+        if (!res.ok) throw new Error("Failed to fetch");
         const json = await res.json();
         setOwnPresets(json.own ?? []);
         setPublishedPresets(json.published ?? []);
       } catch {
-        setPresetsError('Could not load custom transitions.');
+        setPresetsError("Could not load custom transitions.");
       } finally {
         setPresetsLoading(false);
       }
@@ -368,8 +344,8 @@ export function TransitionProperties({ clip }: TransitionPropertiesProps) {
       onClick={() => handleCustomClick(preset)}
       draggable
       onDragStart={(e) => {
-        e.dataTransfer.setData('text/plain', preset.id);
-        e.dataTransfer.setData('type', 'transition');
+        e.dataTransfer.setData("text/plain", preset.id);
+        e.dataTransfer.setData("type", "transition");
       }}
     >
       <div className="relative w-full aspect-video rounded-md bg-primary/40 border overflow-hidden">
@@ -445,7 +421,7 @@ export function TransitionProperties({ clip }: TransitionPropertiesProps) {
             ref={scrollRef}
             onScrollCapture={() => {
               const viewport = scrollRef.current?.querySelector(
-                '[data-radix-scroll-area-viewport]'
+                "[data-radix-scroll-area-viewport]",
               );
               if (viewport) {
                 LAST_SCROLL_POS = viewport.scrollTop;
@@ -471,14 +447,12 @@ export function TransitionProperties({ clip }: TransitionPropertiesProps) {
             ) : ownPresets.length === 0 && publishedPresets.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground">
                 <span className="text-xs">No custom transitions yet.</span>
-                <span className="text-[10px]">
-                  Create one from the Gallery to see it here.
-                </span>
+                <span className="text-[10px]">Create one from the Gallery to see it here.</span>
               </div>
             ) : (
               <div className="grid grid-cols-[repeat(auto-fill,minmax(92px,1fr))] gap-2.5 justify-items-center">
                 {ownPresets.map((p) => renderCustomPreset(p))}
-                {publishedPresets.map((p) => renderCustomPreset(p, 'Public'))}
+                {publishedPresets.map((p) => renderCustomPreset(p, "Public"))}
               </div>
             )}
           </ScrollArea>

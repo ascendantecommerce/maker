@@ -17,7 +17,7 @@ function VisualsGroupNode({ data, selected }: NodeProps<VisualsGroupNode>) {
     <div
       className={cn(
         "relative w-full h-full rounded-xl  border-border border-2 transition-all duration-500 bg-card",
-        selected && "border-primary/40"
+        selected && "border-primary/40",
       )}
     >
       {/* Target handle for the connection from Segment/Voice node */}
@@ -31,11 +31,7 @@ function VisualsGroupNode({ data, selected }: NodeProps<VisualsGroupNode>) {
 
       {/* Label for the sub-group */}
       <div className="absolute -top-12 left-0 flex items-center gap-3">
-        <div className={cn(
-          "text-base px-4 font-bold"
-
-        )}>  Generative Pipeline
-        </div>
+        <div className={cn("text-base px-4 font-bold")}> Generative Pipeline</div>
       </div>
     </div>
   );

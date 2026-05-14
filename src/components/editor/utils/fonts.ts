@@ -1,12 +1,10 @@
-import { groupBy } from 'lodash';
+import { groupBy } from "lodash";
 type ICompactFont = any;
 type IFont = any;
 
 export const loadFonts = (fonts: { name: string; url: string }[]) => {
   const promisesList = fonts.map((font) => {
-    return new FontFace(font.name, `url(${font.url})`)
-      .load()
-      .catch((err) => err);
+    return new FontFace(font.name, `url(${font.url})`).load().catch((err) => err);
   });
   return new Promise((resolve, reject) => {
     Promise.all(promisesList)
@@ -23,9 +21,7 @@ export const loadFonts = (fonts: { name: string; url: string }[]) => {
 };
 
 const findDefaultFont = (fonts: IFont[]): IFont => {
-  const regularFont = fonts.find((font) =>
-    font.fullName.toLowerCase().includes('regular')
-  );
+  const regularFont = fonts.find((font) => font.fullName.toLowerCase().includes("regular"));
 
   return regularFont ? regularFont : fonts[0];
 };

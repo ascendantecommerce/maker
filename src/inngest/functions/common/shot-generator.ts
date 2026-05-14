@@ -16,7 +16,10 @@ const inngest = getInngestApp();
 /**
  * Common logic for fetching schema state for standard shots
  */
-async function fetchState(step: any, schemeId: string): Promise<{
+async function fetchState(
+  step: any,
+  schemeId: string,
+): Promise<{
   schema: VideoSchema;
   segments: { id: string; segment_data: Segment }[];
   fetchedProjectId: string | null;
@@ -43,22 +46,24 @@ async function fetchState(step: any, schemeId: string): Promise<{
       throw new Error("Schema or segments not found");
     }
 
-    const segments = rawSegments.map(s => ({ 
-      id: s.id, 
-      segment_data: ensureObject(s.segment_data) as Segment 
+    const segments = rawSegments.map((s) => ({
+      id: s.id,
+      segment_data: ensureObject(s.segment_data) as Segment,
     }));
 
-    const typedSchema = schema ? {
-      ...schema,
-      aspectRatio: (schema as any).aspect_ratio,
-      promptPreview: (schema as any).prompt_preview,
-      segments: [],
-    } as unknown as VideoSchema : null;
+    const typedSchema = schema
+      ? ({
+          ...schema,
+          aspectRatio: (schema as any).aspect_ratio,
+          promptPreview: (schema as any).prompt_preview,
+          segments: [],
+        } as unknown as VideoSchema)
+      : null;
 
-    return { 
-      schema: typedSchema!, 
+    return {
+      schema: typedSchema!,
       segments,
-      fetchedProjectId
+      fetchedProjectId,
     };
   });
 }
@@ -72,7 +77,18 @@ export const generateStandardImage = inngest.createFunction(
     triggers: { event: "standard/shot.generate.image" },
   },
   async ({ event, step, attempt }) => {
-    const { generationId, schemeId, segmentId, shotId, shotIndex, prompt, shotType, userId, projectId, model } = event.data;
+    const {
+      generationId,
+      schemeId,
+      segmentId,
+      shotId,
+      shotIndex,
+      prompt,
+      shotType,
+      userId,
+      projectId,
+      model,
+    } = event.data;
 
     try {
       const { schema, segments, fetchedProjectId } = await fetchState(step, schemeId);
@@ -80,10 +96,12 @@ export const generateStandardImage = inngest.createFunction(
       const context = { services, scheme: schema, schemeId, attempt };
       await generationQueries.update(generationId, { progress: 10, status: "PROGRESS" });
 
-      const targetSegment = segments.find(s => s.id === segmentId)?.segment_data;
+      const targetSegment = segments.find((s) => s.id === segmentId)?.segment_data;
       if (!targetSegment) throw new Error("Segment not found");
 
-      const targetShot = targetSegment.shots?.[shotIndex] || (targetSegment.shots as any[])?.find(s => s.id === shotId);
+      const targetShot =
+        targetSegment.shots?.[shotIndex] ||
+        (targetSegment.shots as any[])?.find((s) => s.id === shotId);
       if (!targetShot) throw new Error("Shot not found");
 
       const isProductShot = targetShot.type === "product" || shotType === "product";
@@ -99,7 +117,7 @@ export const generateStandardImage = inngest.createFunction(
           isProductShot,
           prompt,
           shotType,
-          preferredModel
+          preferredModel,
         );
 
         return { imageUrl, price };
@@ -137,21 +155,30 @@ export const generateStandardImage = inngest.createFunction(
         };
         targetSegment.assets = [...(targetSegment.assets || []), newAsset];
 
-        const dbId = segments.find(s => s.id === segmentId)!.id;
+        const dbId = segments.find((s) => s.id === segmentId)!.id;
         const cleanSeg = { ...targetSegment };
         delete (cleanSeg as any).dbId;
 
-        await segmentQueries.bulkUpdateSegments([{ id: dbId, segment_data: JSON.parse(JSON.stringify(cleanSeg)) }]);
+        await segmentQueries.bulkUpdateSegments([
+          { id: dbId, segment_data: JSON.parse(JSON.stringify(cleanSeg)) },
+        ]);
       });
 
-      await generationQueries.update(generationId, { status: "COMPLETED", progress: 100, output: { url: uploadResult.currentMedia } });
+      await generationQueries.update(generationId, {
+        status: "COMPLETED",
+        progress: 100,
+        output: { url: uploadResult.currentMedia },
+      });
 
       return { success: true, url: uploadResult.currentMedia, generationId };
     } catch (error: any) {
-      await generationQueries.update(generationId, { status: "FAILED", output: { error: error.message } });
+      await generationQueries.update(generationId, {
+        status: "FAILED",
+        output: { error: error.message },
+      });
       throw error;
     }
-  }
+  },
 );
 
 /**
@@ -163,7 +190,18 @@ export const generateStandardVideo = inngest.createFunction(
     triggers: { event: "standard/shot.generate.video" },
   },
   async ({ event, step, attempt }) => {
-    const { generationId, schemeId, segmentId, shotId, shotIndex, prompt, shotType, userId, projectId, model } = event.data;
+    const {
+      generationId,
+      schemeId,
+      segmentId,
+      shotId,
+      shotIndex,
+      prompt,
+      shotType,
+      userId,
+      projectId,
+      model,
+    } = event.data;
 
     try {
       const { schema, segments, fetchedProjectId } = await fetchState(step, schemeId);
@@ -171,10 +209,12 @@ export const generateStandardVideo = inngest.createFunction(
       const context = { services, scheme: schema, schemeId, attempt };
       await generationQueries.update(generationId, { progress: 10, status: "PROGRESS" });
 
-      const targetSegment = segments.find(s => s.id === segmentId)?.segment_data;
+      const targetSegment = segments.find((s) => s.id === segmentId)?.segment_data;
       if (!targetSegment) throw new Error("Segment not found");
 
-      const targetShot = targetSegment.shots?.[shotIndex] || (targetSegment.shots as any[])?.find(s => s.id === shotId);
+      const targetShot =
+        targetSegment.shots?.[shotIndex] ||
+        (targetSegment.shots as any[])?.find((s) => s.id === shotId);
       if (!targetShot) throw new Error("Shot not found");
 
       const isProductShot = targetShot.type === "product" || shotType === "product";
@@ -229,19 +269,28 @@ export const generateStandardVideo = inngest.createFunction(
         };
         targetSegment.assets = [...(targetSegment.assets || []), newAsset];
 
-        const dbId = segments.find(s => s.id === segmentId)!.id;
+        const dbId = segments.find((s) => s.id === segmentId)!.id;
         const cleanSeg = { ...targetSegment };
         delete (cleanSeg as any).dbId;
 
-        await segmentQueries.bulkUpdateSegments([{ id: dbId, segment_data: JSON.parse(JSON.stringify(cleanSeg)) }]);
+        await segmentQueries.bulkUpdateSegments([
+          { id: dbId, segment_data: JSON.parse(JSON.stringify(cleanSeg)) },
+        ]);
       });
 
-      await generationQueries.update(generationId, { status: "COMPLETED", progress: 100, output: { url: uploadResult.currentMedia } });
+      await generationQueries.update(generationId, {
+        status: "COMPLETED",
+        progress: 100,
+        output: { url: uploadResult.currentMedia },
+      });
 
       return { success: true, url: uploadResult.currentMedia, generationId };
     } catch (error: any) {
-      await generationQueries.update(generationId, { status: "FAILED", output: { error: error.message } });
+      await generationQueries.update(generationId, {
+        status: "FAILED",
+        output: { error: error.message },
+      });
       throw error;
     }
-  }
+  },
 );

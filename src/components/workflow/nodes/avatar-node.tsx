@@ -16,10 +16,10 @@ function AvatarNode({ id, data, selected }: NodeProps<AvatarNode>) {
   const avatar = data.avatar;
 
   return (
-    <Card 
+    <Card
       className={cn(
         "w-[300px] p-0 overflow-hidden border-2 shadow-2xl transition-all rounded-[24px]",
-        selected ? "border-primary ring-4 ring-primary/10" : "border-border/40 bg-card"
+        selected ? "border-primary ring-4 ring-primary/10" : "border-border/40 bg-card",
       )}
     >
       <CardHeader className="m-0 bg-muted/30 px-4 py-3 border-b border-border/50 flex flex-row items-center gap-2">

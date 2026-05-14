@@ -2,7 +2,18 @@
 
 import React, { memo } from "react";
 import { Position, type NodeProps, type Node, Handle } from "@xyflow/react";
-import { Eye, RefreshCw, Settings2, Plus, Minus, ChevronDown, Wand2, Loader2, ImageIcon, Type } from "lucide-react";
+import {
+  Eye,
+  RefreshCw,
+  Settings2,
+  Plus,
+  Minus,
+  ChevronDown,
+  Wand2,
+  Loader2,
+  ImageIcon,
+  Type,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { VideoPlayer } from "@/components/ui/video-player";
@@ -29,15 +40,13 @@ function OutputNode({ id, data, selected }: NodeProps<OutputNode>) {
       {/* Label above the card - Moved to absolute -top to sit outside the clipping boundary */}
       <div className="absolute -top-7 left-0 flex items-center gap-2 px-1 pointer-events-none whitespace-nowrap z-30">
         <Eye className="w-3.5 h-3.5" />
-        <span className="text-sm font-bold">
-          {isVideo ? "Motion Output" : "Visual Output"}
-        </span>
+        <span className="text-sm font-bold">{isVideo ? "Motion Output" : "Visual Output"}</span>
       </div>
 
       <div
         className={cn(
           "relative w-full h-full rounded-xl  border-border border-3 transition-all duration-500 bg-card overflow-hidden",
-          selected && "border-primary/40"
+          selected && "border-primary/40",
         )}
       >
         <div className="relative w-full h-full flex flex-col">
@@ -60,12 +69,16 @@ function OutputNode({ id, data, selected }: NodeProps<OutputNode>) {
                 {data.status === "processing" ? (
                   <>
                     <Loader2 className="w-12 h-12 animate-spin text-primary/40" />
-                    <span className="text-[10px] font-black tracking-[0.2em] uppercase animate-pulse">Processing...</span>
+                    <span className="text-[10px] font-black tracking-[0.2em] uppercase animate-pulse">
+                      Processing...
+                    </span>
                   </>
                 ) : (
                   <>
                     <Wand2 className="w-12 h-12 opacity-10" />
-                    <span className="text-[10px] font-black tracking-[0.2em] uppercase">No Result</span>
+                    <span className="text-[10px] font-black tracking-[0.2em] uppercase">
+                      No Result
+                    </span>
                   </>
                 )}
               </div>
@@ -74,22 +87,16 @@ function OutputNode({ id, data, selected }: NodeProps<OutputNode>) {
 
           {/* Floating Overlays */}
           <div className="relative w-full h-full pointer-events-none">
-
             {/* Bottom Overlay Info */}
             <div className="absolute bottom-0 left-0 right-0 z-10 p-6 pt-24 bg-gradient-to-t from-background via-background/20 to-transparent pointer-events-auto">
               <div className="flex flex-col gap-5">
-
-
                 {/* Toolbar */}
                 <div className="flex items-center justify-end gap-2 mt-1">
-
                   <div className="flex items-center gap-2">
                     <Button
                       size="icon"
-                      className={cn(
-                        "h-9 w-9 p-0 rounded-full shadow-2xl transition-all "
-                      )}
-                      variant={data.status === "processing" ? "outline" : 'default'}
+                      className={cn("h-9 w-9 p-0 rounded-full shadow-2xl transition-all ")}
+                      variant={data.status === "processing" ? "outline" : "default"}
                       onClick={() => {
                         if (data.segmentId && data.shotIndex !== undefined) {
                           data.onGenerate?.(data.segmentId, data.shotIndex.toString(), data.type);

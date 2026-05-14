@@ -1,16 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
-import { useStore } from 'zustand';
-import Header from './header';
-import Ruler from './ruler';
-import {
-  timeUsToUnits,
-  unitsToTimeUs,
-  TimelineBridge,
-} from '@openvideo/timeline';
-import CanvasTimeline from './items/timeline';
-import { useStudioStore } from '@/stores/studio-store';
-import { projectStore, core } from '@/lib/project';
-import Playhead from './playhead';
+import { useEffect, useRef, useState } from "react";
+import { useStore } from "zustand";
+import Header from "./header";
+import Ruler from "./ruler";
+import { timeUsToUnits, unitsToTimeUs, TimelineBridge } from "@openvideo/timeline";
+import CanvasTimeline from "./items/timeline";
+import { useStudioStore } from "@/stores/studio-store";
+import { projectStore, core } from "@/lib/project";
+import Playhead from "./playhead";
 import {
   Audio,
   Image,
@@ -24,12 +20,12 @@ import {
   WaveAudioBars,
   HillAudioBars,
   Transition,
-} from './items';
-import PreviewTrackItem from './items/preview-drag-item';
-import { useTimelineOffsetX } from '../hooks/use-timeline-offset';
-import { addStudioSync } from './studio-to-store-sync';
-import { TIMELINE_SCALE_CHANGED } from '@openvideo/timeline';
-import Effect from './items/effect';
+} from "./items";
+import PreviewTrackItem from "./items/preview-drag-item";
+import { useTimelineOffsetX } from "../hooks/use-timeline-offset";
+import { addStudioSync } from "./studio-to-store-sync";
+import { TIMELINE_SCALE_CHANGED } from "@openvideo/timeline";
+import Effect from "./items/effect";
 
 CanvasTimeline.registerItems({
   Text,
@@ -64,9 +60,9 @@ const Timeline = () => {
 
   const timelineOffsetX = useTimelineOffsetX();
   const timelineContainerRef = useRef<HTMLDivElement>(null);
-  const onMouseDown = () => { };
-  const onMouseMove = () => { };
-  const onMouseOut = () => { };
+  const onMouseDown = () => {};
+  const onMouseMove = () => {};
+  const onMouseOut = () => {};
 
   const [timeline, setTimeline] = useState<CanvasTimeline | null>(null);
   useEffect(() => {
@@ -76,15 +72,13 @@ const Timeline = () => {
 
     if (!canvasEl || !horizontalScrollbar) return;
 
-    const canvasBoudingX =
-      canvasEl.getBoundingClientRect().x + canvasEl.clientWidth;
+    const canvasBoudingX = canvasEl.getBoundingClientRect().x + canvasEl.clientWidth;
     const playHeadPos = position - scrollLeft + 40;
     if (playHeadPos >= canvasBoudingX) {
       const scrollDivWidth = horizontalScrollbar.clientWidth;
       const totalScrollWidth = horizontalScrollbar.scrollWidth;
       const currentPosScroll = horizontalScrollbar.scrollLeft;
-      const availableScroll =
-        totalScrollWidth - (scrollDivWidth + currentPosScroll);
+      const availableScroll = totalScrollWidth - (scrollDivWidth + currentPosScroll);
       const scaleScroll = availableScroll / scrollDivWidth;
       if (scaleScroll >= 0) {
         if (scaleScroll > 1)
@@ -98,7 +92,7 @@ const Timeline = () => {
       }
     }
   }, [currentTimeUs]);
-  const onResizeCanvas = (payload: { width: number; height: number }) => { };
+  const onResizeCanvas = (payload: { width: number; height: number }) => {};
 
   useEffect(() => {
     const timelineContainerEl = timelineContainerRef.current;
@@ -120,7 +114,7 @@ const Timeline = () => {
           width: containerWidth,
           height: containerHeight,
         },
-        { force: true }
+        { force: true },
       );
     });
 
@@ -135,8 +129,7 @@ const Timeline = () => {
     if (!canvasEl || !timelineContainerEl) return;
 
     const containerWidth =
-      (document.getElementById('timeline-header')?.clientWidth || 0) -
-      timelineOffsetX;
+      (document.getElementById("timeline-header")?.clientWidth || 0) - timelineOffsetX;
     const containerHeight = (timelineContainerEl.clientHeight || 320) - 75;
     const canvas = new CanvasTimeline(canvasEl, {
       width: containerWidth,
@@ -145,8 +138,8 @@ const Timeline = () => {
         width: containerWidth,
         height: 0,
       },
-      selectionColor: 'rgba(0, 216, 214,0.1)',
-      selectionBorderColor: 'rgba(0, 216, 214,1.0)',
+      selectionColor: "rgba(0, 216, 214,0.1)",
+      selectionBorderColor: "rgba(0, 216, 214,1.0)",
       onResizeCanvas,
       scale: scale,
       duration: durationUs,
@@ -165,27 +158,27 @@ const Timeline = () => {
         main: 48,
       },
       itemTypes: [
-        'text',
-        'image',
-        'audio',
-        'video',
-        'caption',
-        'helper',
-        'effect',
-        'track',
-        'transition',
+        "text",
+        "image",
+        "audio",
+        "video",
+        "caption",
+        "helper",
+        "effect",
+        "track",
+        "transition",
       ],
       acceptsMap: {
-        text: ['text', 'caption'],
-        effect: ['effect'],
-        image: ['image', 'video'],
-        main: ['image', 'video'],
-        video: ['video', 'image'],
-        audio: ['audio'],
-        caption: ['caption', 'text'],
+        text: ["text", "caption"],
+        effect: ["effect"],
+        image: ["image", "video"],
+        main: ["image", "video"],
+        video: ["video", "image"],
+        audio: ["audio"],
+        caption: ["caption", "text"],
       },
-      guideLineColor: '#ffffff',
-      withTransitions: ['image', 'video'],
+      guideLineColor: "#ffffff",
+      withTransitions: ["image", "video"],
     });
 
     canvas.initScrollbars({
@@ -194,7 +187,7 @@ const Timeline = () => {
       extraMarginX: 100,
       extraMarginY: 50,
       scrollbarWidth: 8,
-      scrollbarColor: 'rgba(33, 33, 33, 0.8)',
+      scrollbarColor: "rgba(33, 33, 33, 0.8)",
     });
 
     canvas.onViewportChange((left: number) => {
@@ -223,7 +216,7 @@ const Timeline = () => {
   useEffect(() => {
     if (!studio || !timeline) return;
 
-    console.log('Studio ready, adding studio events', studio);
+    console.log("Studio ready, adding studio events", studio);
     const disposeStudioSync = addStudioSync(studio, timeline);
 
     return () => {
@@ -281,8 +274,7 @@ const Timeline = () => {
           if (rect) {
             const cursorX = e.clientX - rect.left - timelineOffsetX;
             const newScrollLeft =
-              (cursorX + scrollLeft - 16) * (clampedZoom / oldZoom) -
-              (cursorX - 16);
+              (cursorX + scrollLeft - 16) * (clampedZoom / oldZoom) - (cursorX - 16);
             onRulerScroll(newScrollLeft);
           }
         }
@@ -295,8 +287,8 @@ const Timeline = () => {
       }
     };
 
-    container.addEventListener('wheel', handleWheel, { passive: false });
-    return () => container.removeEventListener('wheel', handleWheel);
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    return () => container.removeEventListener("wheel", handleWheel);
   }, [scale, timelineContainerRef, scrollLeft, onRulerScroll]);
 
   return (
@@ -319,10 +311,7 @@ const Timeline = () => {
 
       {/* Container for Tracks and Canvas */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        <div
-          style={{ width: timelineOffsetX }}
-          className="relative flex-none"
-        />
+        <div style={{ width: timelineOffsetX }} className="relative flex-none" />
         <div className="relative flex-1 min-h-0 overflow-hidden">
           <canvas id="designcombo-timeline-canvas" ref={canvasElRef} />
         </div>

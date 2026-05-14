@@ -23,21 +23,18 @@ function ScriptNode({ id, data, selected }: NodeProps<ScriptNode>) {
       {/* Label above the card */}
       <div className="absolute -top-7 left-0 flex items-center gap-2 px-1 pointer-events-none whitespace-nowrap z-30">
         <AlignLeft className="w-3.5 h-3.5" />
-        <span className="text-sm font-bold">   Scene Script
-        </span>
+        <span className="text-sm font-bold"> Scene Script</span>
       </div>
 
       <div
         className={cn(
           "relative w-full h-full rounded-xl  border-border border-3 transition-all duration-500 bg-card",
-          selected && "border-primary/40"
+          selected && "border-primary/40",
         )}
       >
         <div className="flex flex-col h-full">
           <CardContent className="p-6 space-y-4 flex-1">
-            <Label className="text-[10px] uppercase text-muted-foreground">
-              Script Content
-            </Label>
+            <Label className="text-[10px] uppercase text-muted-foreground">Script Content</Label>
             <Textarea
               ref={textareaRef}
               value={data.text || ""}

@@ -1,9 +1,9 @@
-import TimelineBase from '@openvideo/timeline';
-import Video from './video';
-import { throttle } from 'lodash';
-import Audio from './audio';
-import { TimelineOptions } from '@openvideo/timeline';
-import { ITimelineScaleState } from '@openvideo/timeline';
+import TimelineBase from "@openvideo/timeline";
+import Video from "./video";
+import { throttle } from "lodash";
+import Audio from "./audio";
+import { TimelineOptions } from "@openvideo/timeline";
+import { ITimelineScaleState } from "@openvideo/timeline";
 
 class Timeline extends TimelineBase {
   public isShiftKey: boolean = false;
@@ -13,23 +13,23 @@ class Timeline extends TimelineBase {
       scale: ITimelineScaleState;
       duration: number;
       guideLineColor?: string;
-    }
+    },
   ) {
     super(canvasEl, options); // Call the parent class constructor
 
     // Add shift keyboard listener
-    window.addEventListener('keydown', this.handleKeyDown);
-    window.addEventListener('keyup', this.handleKeyUp);
+    window.addEventListener("keydown", this.handleKeyDown);
+    window.addEventListener("keyup", this.handleKeyUp);
   }
 
   private handleKeyDown = (event: KeyboardEvent) => {
-    if (event.key === 'Shift') {
+    if (event.key === "Shift") {
       this.isShiftKey = true;
     }
   };
 
   private handleKeyUp = (event: KeyboardEvent) => {
-    if (event.key === 'Shift') {
+    if (event.key === "Shift") {
       this.isShiftKey = false;
     }
   };
@@ -38,8 +38,8 @@ class Timeline extends TimelineBase {
     super.purge();
 
     // Cleanup event listener for Shift key
-    window.removeEventListener('keydown', this.handleKeyDown);
-    window.removeEventListener('keyup', this.handleKeyUp);
+    window.removeEventListener("keydown", this.handleKeyDown);
+    window.removeEventListener("keyup", this.handleKeyUp);
   }
 
   public setViewportPos(posX: number, posY: number) {
@@ -68,21 +68,15 @@ class Timeline extends TimelineBase {
     }
   }, 250);
 
-  public scrollTo({
-    scrollLeft,
-    scrollTop,
-  }: {
-    scrollLeft?: number;
-    scrollTop?: number;
-  }): void {
+  public scrollTo({ scrollLeft, scrollTop }: { scrollLeft?: number; scrollTop?: number }): void {
     const vt = this.viewportTransform; // Create a shallow copy
     let hasChanged = false;
 
-    if (typeof scrollLeft === 'number') {
+    if (typeof scrollLeft === "number") {
       vt[4] = -scrollLeft + this.spacing.left;
       hasChanged = true;
     }
-    if (typeof scrollTop === 'number') {
+    if (typeof scrollTop === "number") {
       vt[5] = -scrollTop;
       hasChanged = true;
     }

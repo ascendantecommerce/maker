@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { useCallback } from 'react';
-import { useStore } from 'zustand';
-import { Button } from '@/components/ui/button';
+import * as React from "react";
+import { useCallback } from "react";
+import { useStore } from "zustand";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuShortcut,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 import {
   Clipboard,
   Copy,
@@ -20,16 +20,12 @@ import {
   LockKeyholeOpen,
   MoreHorizontalIcon,
   Trash2,
-} from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
-import { useStudioStore } from '@/stores/studio-store';
-import { core, projectStore } from '@/lib/project';
-import { nanoid, AnyClip } from '@openvideo/core';
+} from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
+import { useStudioStore } from "@/stores/studio-store";
+import { core, projectStore } from "@/lib/project";
+import { nanoid, AnyClip } from "@openvideo/core";
 
 // Module-level clipboard — persists across renders
 export let clipboardClipJSON: AnyClip | null = null;
@@ -39,9 +35,7 @@ export function useClipActions(clipOverride?: any) {
   const primaryId = clipOverride?.id || selectedIds[0];
   const selectedClip = useStore(projectStore, (s) => s.clips[primaryId]);
 
-  const [hasClipboard, setHasClipboard] = React.useState(
-    clipboardClipJSON !== null
-  );
+  const [hasClipboard, setHasClipboard] = React.useState(clipboardClipJSON !== null);
 
   const isLocked = selectedClip?.locked ?? false;
 
@@ -64,7 +58,7 @@ export function useClipActions(clipOverride?: any) {
 
     const newId = nanoid();
     const currentTime = core.store.getState().currentTime;
-    
+
     const newClip = {
       ...clipboardClipJSON,
       id: newId,
@@ -128,7 +122,7 @@ export function StudioContextMenu() {
               variant="ghost"
               size="icon"
               className={cn(
-                'w-9 h-9 rounded-full transition-all hover:bg-accent/50 active:scale-90'
+                "w-9 h-9 rounded-full transition-all hover:bg-accent/50 active:scale-90",
               )}
             >
               <MoreHorizontalIcon className="w-4 h-4" />
@@ -156,10 +150,7 @@ export function StudioContextMenu() {
                 <DropdownMenuShortcut>⌘ V</DropdownMenuShortcut>
               </DropdownMenuItem>
 
-              <DropdownMenuItem
-                onClick={handleDuplicate}
-                disabled={!selectedClip}
-              >
+              <DropdownMenuItem onClick={handleDuplicate} disabled={!selectedClip}>
                 <CopyPlus />
                 Duplicate
                 <DropdownMenuShortcut>⌘ D</DropdownMenuShortcut>
@@ -169,7 +160,7 @@ export function StudioContextMenu() {
 
           <DropdownMenuItem onClick={handleToggleLock} disabled={!selectedClip}>
             {isLocked ? <LockKeyholeOpen /> : <LockKeyhole />}
-            {isLocked ? 'Unlock' : 'Lock'}
+            {isLocked ? "Unlock" : "Lock"}
             <DropdownMenuShortcut>⌘ L</DropdownMenuShortcut>
           </DropdownMenuItem>
 

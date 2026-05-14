@@ -66,7 +66,11 @@ interface SchemaState {
   updateSegment: (segmentId: string, updates: Partial<Segment>) => void;
   updateShot: (segmentId: string, shotIndex: number, updates: Partial<VisualShot>) => void;
   deleteSegment: (segmentId: string) => Promise<void>;
-  setGeneratingShots: (updater: Record<string, string | boolean> | ((prev: Record<string, string | boolean>) => Record<string, string | boolean>)) => void;
+  setGeneratingShots: (
+    updater:
+      | Record<string, string | boolean>
+      | ((prev: Record<string, string | boolean>) => Record<string, string | boolean>),
+  ) => void;
   reset: () => void;
 }
 
@@ -518,8 +522,7 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
 
   setGeneratingShots: (updater) =>
     set((state) => ({
-      generatingShots:
-        typeof updater === "function" ? updater(state.generatingShots) : updater,
+      generatingShots: typeof updater === "function" ? updater(state.generatingShots) : updater,
     })),
 
   reset: () => set(initialState),

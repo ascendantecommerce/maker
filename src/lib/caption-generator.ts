@@ -18,9 +18,7 @@ interface CaptionClipOptions {
 /**
  * Generate caption clips from transcription words
  */
-export async function generateCaptionClips(
-  options: CaptionClipOptions,
-): Promise<any[]> {
+export async function generateCaptionClips(options: CaptionClipOptions): Promise<any[]> {
   const {
     videoWidth,
     videoHeight,
@@ -29,11 +27,10 @@ export async function generateCaptionClips(
     fontFamily = FONT_DEFAULT,
     fontUrl = FONT_URL_DEFAULT,
     mode = "multiple",
-    style
+    style,
   } = options;
 
-  const textCase = style?.textCase ?? 'normal';
-  
+  const textCase = style?.textCase ?? "normal";
 
   const maxCaptionWidth = videoWidth * 0.8;
   let captionChunks: any[] = [];
@@ -43,8 +40,7 @@ export async function generateCaptionClips(
       url: fontUrl,
     },
   ]);
-  const canvas =
-    typeof document !== "undefined" ? document.createElement("canvas") : null;
+  const canvas = typeof document !== "undefined" ? document.createElement("canvas") : null;
   const ctx = canvas?.getContext("2d");
   if (ctx) {
     ctx.font = `${fontSize}px ${fontFamily}`;
@@ -53,8 +49,7 @@ export async function generateCaptionClips(
   const measureText = (text: string) => {
     if (!ctx) return { width: 0, height: fontSize };
     const metrics = ctx.measureText(text);
-    const height =
-      metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+    const height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
     return {
       width: metrics.width,
       height: height || fontSize,
@@ -98,7 +93,7 @@ export async function generateCaptionClips(
       fontFamily,
       maxLines,
       [],
-      textCase
+      textCase,
     );
   }
 
@@ -108,9 +103,7 @@ export async function generateCaptionClips(
     const jumpLines = (chunk.text.match(/\r?\n/g) || []).length;
 
     const captionHeight =
-      Math.ceil(chunk.height) +
-      (jumpLines + 1) * verticalPadding * 2 +
-      14 * (jumpLines + 1);
+      Math.ceil(chunk.height) + (jumpLines + 1) * verticalPadding * 2 + 14 * (jumpLines + 1);
 
     return Math.max(max, captionHeight);
   }, 0);
@@ -128,9 +121,7 @@ export async function generateCaptionClips(
     const captionWidth = Math.ceil(chunk.width) + (mode === "single" ? 60 : 0);
     const jumpLines = (chunk.text.match(/\r?\n/g) || []).length;
     const captionHeight =
-      Math.ceil(chunk.height) +
-      (jumpLines + 1) * verticalPadding * 2 +
-      14 * (jumpLines + 1);
+      Math.ceil(chunk.height) + (jumpLines + 1) * verticalPadding * 2 + 14 * (jumpLines + 1);
     const captionBottomPadding = 450 - (maxCaptionHeight - captionHeight) / 2;
     clips.push({
       type: "Caption",

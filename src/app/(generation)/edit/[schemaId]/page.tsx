@@ -7,7 +7,7 @@ import { convertSchemaToDesign } from "@/utils/schema-converter";
 import { convertUgcSchemaToDesign } from "@/utils/ugc-schema-converter";
 import { useSchemaStore } from "@/stores/schema-store";
 import { Design } from "@/types/editor";
-import { Loading } from '@/components/editor/loading';
+import { Loading } from "@/components/editor/loading";
 
 export default function FolderPage({ params }: { params: Promise<{ schemaId: string }> }) {
   const { schemaId } = use(params);
@@ -138,9 +138,11 @@ export default function FolderPage({ params }: { params: Promise<{ schemaId: str
   }, [schemaId]);
 
   if (loading || isConverting) {
-    return <div className="absolute inset-0 z-100">
-      <Loading />
-    </div>
+    return (
+      <div className="absolute inset-0 z-100">
+        <Loading />
+      </div>
+    );
   }
 
   if (error) {
@@ -153,9 +155,9 @@ export default function FolderPage({ params }: { params: Promise<{ schemaId: str
     <Editor
       isDataLoading={isGenerating}
       initialDesign={design}
-    // projectId={projectData?.project?.id}
-    // projectName={projectData?.project?.name}
-    // isOwner={isOwner}
+      // projectId={projectData?.project?.id}
+      // projectName={projectData?.project?.name}
+      // isOwner={isOwner}
     />
   );
 }

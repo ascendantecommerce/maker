@@ -15,7 +15,8 @@ export async function POST(req: Request) {
     const userId = session?.user?.id || null;
 
     const body = await req.json();
-    const { schemeId, segmentId, shotId, shotIndex, prompt, shotType, projectId, model, mode } = body;
+    const { schemeId, segmentId, shotId, shotIndex, prompt, shotType, projectId, model, mode } =
+      body;
 
     if (!schemeId || !segmentId || (!shotId && shotIndex === undefined) || !prompt || !shotType) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -31,7 +32,7 @@ export async function POST(req: Request) {
         progress: 0,
         user_id: userId || null,
         input: { segmentId, shotIndex, prompt, shotType, model },
-        metadata: { type: "shot-generation", schemeId, model }
+        metadata: { type: "shot-generation", schemeId, model },
       });
 
       const schema = await segmentQueries.findSchemaById(schemeId);
@@ -41,25 +42,23 @@ export async function POST(req: Request) {
           const data = ensureObject(s.segment_data);
           return { ...data, dbId: s.id };
         });
-        
+
         const seg = segsWithDbId.find((s: any) => s.id === segmentId);
         if (seg && seg.shots) {
           let idx = -1;
           if (shotId) idx = seg.shots.findIndex((s: any) => s.id === shotId);
           if (idx === -1 && shotIndex !== undefined) idx = shotIndex;
-          
+
           if (idx !== -1 && seg.shots[idx]) {
             seg.shots[idx].status = "generating";
             seg.shots[idx].generationId = generationId;
             seg.shots[idx].error = undefined;
-            
+
             const dbId = seg.dbId;
             const cleanSeg = { ...seg };
             delete (cleanSeg as any).dbId;
 
-            await segmentQueries.bulkUpdateSegments([
-              { id: dbId, segment_data: cleanSeg }
-            ]);
+            await segmentQueries.bulkUpdateSegments([{ id: dbId, segment_data: cleanSeg }]);
           }
         }
       }
@@ -83,7 +82,7 @@ export async function POST(req: Request) {
         projectId,
         userId,
         model,
-        mode: mode || "image"
+        mode: mode || "image",
       },
     });
 

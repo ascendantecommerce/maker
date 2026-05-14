@@ -1,10 +1,4 @@
-import {
-  ALL_FORMATS,
-  Input,
-  UrlSource,
-  VideoSample,
-  VideoSampleSink,
-} from 'mediabunny';
+import { ALL_FORMATS, Input, UrlSource, VideoSample, VideoSampleSink } from "mediabunny";
 
 type Options = {
   track: { width: number; height: number };
@@ -12,9 +6,7 @@ type Options = {
   durationInSeconds: number | null;
 };
 
-export type ExtractFramesTimestampsInSecondsFn = (
-  options: Options
-) => Promise<number[]> | number[];
+export type ExtractFramesTimestampsInSecondsFn = (options: Options) => Promise<number[]> | number[];
 
 export type ExtractFramesProps = {
   src: string;
@@ -41,15 +33,15 @@ export async function extractFrames({
   ]);
 
   if (!videoTrack) {
-    throw new Error('No video track found in the input');
+    throw new Error("No video track found in the input");
   }
 
   if (signal?.aborted) {
-    throw new Error('Aborted');
+    throw new Error("Aborted");
   }
 
   const timestamps =
-    typeof timestampsInSeconds === 'function'
+    typeof timestampsInSeconds === "function"
       ? await timestampsInSeconds({
           track: {
             width: videoTrack.displayWidth,
@@ -65,7 +57,7 @@ export async function extractFrames({
   }
 
   if (signal?.aborted) {
-    throw new Error('Aborted');
+    throw new Error("Aborted");
   }
 
   const sink = new VideoSampleSink(videoTrack);

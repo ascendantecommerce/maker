@@ -24,7 +24,7 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const {
-      schemeId, 
+      schemeId,
       segmentId,
       shotId,
       firstFrameUrl,
@@ -60,16 +60,16 @@ export async function POST(req: Request) {
           progress: 0,
           user_id: userId,
           input: body,
-          metadata: { 
-            type: "ugc-image-generation", 
-            schemeId, 
-            segmentId, 
-            shotId, 
-            assetId 
-          }
+          metadata: {
+            type: "ugc-image-generation",
+            schemeId,
+            segmentId,
+            shotId,
+            assetId,
+          },
         });
 
-        // For image generation, we might not need to update segment status synchronously 
+        // For image generation, we might not need to update segment status synchronously
         // as the hook handles it, but let's be consistent if possible.
       } catch (e) {
         console.error("Failed to update status synchronously", e);
@@ -80,12 +80,14 @@ export async function POST(req: Request) {
         data: {
           generationId,
           schemeId,
-          segments: [{
-            id: segmentId,
-            shotId,
-            description: videoPrompt,
-            ...body.segmentData // Pass through any extra segment data
-          }],
+          segments: [
+            {
+              id: segmentId,
+              shotId,
+              description: videoPrompt,
+              ...body.segmentData, // Pass through any extra segment data
+            },
+          ],
           avatarUrl,
           productUrls,
           aspectRatio,
@@ -95,7 +97,12 @@ export async function POST(req: Request) {
         },
       });
 
-      return NextResponse.json({ success: true, generationId, assetId, message: "UGC Image Generation started" });
+      return NextResponse.json({
+        success: true,
+        generationId,
+        assetId,
+        message: "UGC Image Generation started",
+      });
     }
 
     // Default to video generation
@@ -107,13 +114,13 @@ export async function POST(req: Request) {
         progress: 0,
         user_id: userId,
         input: body,
-        metadata: { 
-          type: "ugc-shot-generation", 
-          schemeId, 
-          segmentId, 
-          shotId, 
-          assetId 
-        }
+        metadata: {
+          type: "ugc-shot-generation",
+          schemeId,
+          segmentId,
+          shotId,
+          assetId,
+        },
       });
 
       let schema = await segmentQueries.findSchemaById(schemeId);
@@ -133,23 +140,21 @@ export async function POST(req: Request) {
           const data = ensureObject(s.segment_data);
           return { ...data, dbId: s.id };
         });
-        
+
         const seg = segsWithDbId.find((s: any) => s.id === segmentId);
         if (seg && seg.shots && seg.shots[0]) {
           seg.shots[0].status = "generating";
           seg.shots[0].generationId = generationId;
           seg.shots[0].error = undefined;
-          
+
           // Ensure we use the latest prompt from the request body
           seg.shots[0].videoPrompt = videoPrompt;
-          
+
           const dbId = seg.dbId;
           const cleanSeg = { ...seg };
           delete (cleanSeg as any).dbId;
 
-          await segmentQueries.bulkUpdateSegments([
-            { id: dbId, segment_data: cleanSeg }
-          ]);
+          await segmentQueries.bulkUpdateSegments([{ id: dbId, segment_data: cleanSeg }]);
         }
       }
     } catch (e) {
@@ -177,7 +182,12 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json({ success: true, generationId, assetId, message: "UGC Video Generation started" });
+    return NextResponse.json({
+      success: true,
+      generationId,
+      assetId,
+      message: "UGC Video Generation started",
+    });
   } catch (error: any) {
     console.error("UGC shot generation API error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

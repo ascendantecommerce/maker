@@ -17,10 +17,12 @@ function GlobalOutputNode({ id, data, selected }: NodeProps<GlobalOutputNode>) {
   const segmentCount = data.segmentCount || 0;
 
   return (
-    <Card 
+    <Card
       className={cn(
         "w-[320px] p-0 overflow-hidden border-2 shadow-2xl transition-all rounded-[24px]",
-        selected ? "border-primary ring-4 ring-primary/10" : "border-border/40 bg-gradient-to-br from-card to-primary/5"
+        selected
+          ? "border-primary ring-4 ring-primary/10"
+          : "border-border/40 bg-gradient-to-br from-card to-primary/5",
       )}
     >
       <CardHeader className="m-0 bg-primary/10 px-4 py-3 border-b border-primary/20 flex flex-row items-center gap-2">
@@ -29,7 +31,7 @@ function GlobalOutputNode({ id, data, selected }: NodeProps<GlobalOutputNode>) {
           Final Compile
         </CardTitle>
       </CardHeader>
-      
+
       <CardContent className="p-0 flex flex-col">
         <div className="relative h-[160px] flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border))_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border))_1px,transparent_1px)] bg-[size:14px_24px] opacity-20" />
@@ -41,7 +43,9 @@ function GlobalOutputNode({ id, data, selected }: NodeProps<GlobalOutputNode>) {
 
         <div className="p-6 flex flex-col gap-5">
           <div className="text-center space-y-2">
-            <h3 className="text-lg font-black text-foreground uppercase tracking-tight">Project Master</h3>
+            <h3 className="text-lg font-black text-foreground uppercase tracking-tight">
+              Project Master
+            </h3>
             <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-60">
               Compilation Suite
             </p>

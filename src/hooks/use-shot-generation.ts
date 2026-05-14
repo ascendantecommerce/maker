@@ -6,7 +6,7 @@ export function useShotGeneration() {
 
   const handleGenerateStandardImage = useCallback(
     async (segmentId: string, shotIndexStr: string, _type?: string, model?: string) => {
-      console.log("generating", { segmentId, shotIndexStr, _type, model })
+      console.log("generating", { segmentId, shotIndexStr, _type, model });
       const selectedSegment = (schema?.segments || []).find((s) => s.id === segmentId);
       if (!segmentId || !shotIndexStr || !selectedSegment || !schema) return;
 
@@ -24,7 +24,11 @@ export function useShotGeneration() {
         // Optimistically update status to show progress instantly
         updateShot(segmentId, shotIndex, { status: "generating", error: undefined });
 
-        const prompt = targetShot.firstFramePrompt || targetShot.scenePrompt || selectedSegment.description || "";
+        const prompt =
+          targetShot.firstFramePrompt ||
+          targetShot.scenePrompt ||
+          selectedSegment.description ||
+          "";
         const shotType = targetShot.type || "generic";
 
         const response = await fetch("/api/workflow/generate-shot", {
@@ -34,36 +38,35 @@ export function useShotGeneration() {
             schemeId: schema.id,
             segmentId,
             shotId: targetShot.id, // Keep passing ID if it has it
-            shotIndex,             // Pass index as reliable fallback
+            shotIndex, // Pass index as reliable fallback
             prompt,
             shotType,
             mode: "image",
-            projectId: null, 
-            model: model || targetShot.model
+            projectId: null,
+            model: model || targetShot.model,
           }),
         });
 
         if (!response.ok) throw new Error("Failed to start shot generation");
         const { generationId } = await response.json();
-        
+
         if (generationId) {
           setGeneratingShots((prev) => ({ ...prev, [shotKey]: generationId }));
-          
+
           // Persist generationId to schema
           updateShot(segmentId, shotIndex, { generationId, status: "generating" });
         }
-
       } catch (error) {
         console.error("Error initiating single shot generation:", error);
         setGeneratingShots((prev) => ({ ...prev, [shotKey]: false }));
       }
     },
-    [schema, setSchema]
+    [schema, setSchema],
   );
 
   const handleGenerateStandardVideo = useCallback(
     async (segmentId: string, shotIndexStr: string, _type?: string, model?: string) => {
-      console.log("generating standard video", { segmentId, shotIndexStr, _type, model })
+      console.log("generating standard video", { segmentId, shotIndexStr, _type, model });
       const selectedSegment = (schema?.segments || []).find((s) => s.id === segmentId);
       if (!segmentId || !shotIndexStr || !selectedSegment || !schema) return;
 
@@ -77,7 +80,8 @@ export function useShotGeneration() {
         setGeneratingShots((prev) => ({ ...prev, [shotKey]: true }));
         updateShot(segmentId, shotIndex, { status: "generating", error: undefined });
 
-        const prompt = targetShot.videoPrompt || targetShot.scenePrompt || selectedSegment.description || "";
+        const prompt =
+          targetShot.videoPrompt || targetShot.scenePrompt || selectedSegment.description || "";
         const shotType = targetShot.type || "generic";
 
         const response = await fetch("/api/workflow/generate-shot", {
@@ -92,7 +96,7 @@ export function useShotGeneration() {
             shotType,
             mode: "video",
             projectId: null,
-            model: model || targetShot.model
+            model: model || targetShot.model,
           }),
         });
 
@@ -105,18 +109,17 @@ export function useShotGeneration() {
           // Persist generationId to schema
           updateShot(segmentId, shotIndex, { generationId, status: "generating" });
         }
-
       } catch (error) {
         console.error("Error initiating standard video generation:", error);
         setGeneratingShots((prev) => ({ ...prev, [shotKey]: false }));
       }
     },
-    [schema, setSchema]
+    [schema, setSchema],
   );
 
   const pollStatus = useCallback(async () => {
     if (!schema?.id) return;
-    
+
     const activeShots = Object.entries(generatingShots).filter(([_, genId]) => !!genId);
     if (activeShots.length === 0) return;
 
@@ -126,7 +129,7 @@ export function useShotGeneration() {
       try {
         const response = await fetch(`/api/workflow/generation/status?id=${generationId}`);
         if (!response.ok) continue;
-        
+
         const data = await response.json();
         const { status, output } = data;
 
@@ -136,7 +139,7 @@ export function useShotGeneration() {
           const shotIndexStr = parts.pop();
           const segmentId = parts.join("-");
           const shotIndex = parseInt(shotIndexStr || "0", 10);
-          
+
           if (status === "COMPLETED") {
             console.log("shot completed", {
               shotKey,
@@ -145,26 +148,37 @@ export function useShotGeneration() {
               output,
               segmentId,
               shotIndex,
-              type
-            })
+              type,
+            });
             const url = output?.url;
             if (url) {
               const isVideo = type === "vid";
               if (isVideo) {
-                updateShot(segmentId, shotIndex, { videoUrl: url, status: "completed", progress: 100 });
+                updateShot(segmentId, shotIndex, {
+                  videoUrl: url,
+                  status: "completed",
+                  progress: 100,
+                });
               } else {
-                updateShot(segmentId, shotIndex, { imageUrl: url, status: "completed", progress: 100 });
+                updateShot(segmentId, shotIndex, {
+                  imageUrl: url,
+                  status: "completed",
+                  progress: 100,
+                });
               }
             }
-            
+
             setGeneratingShots((prev) => {
               const next = { ...prev };
               delete next[shotKey];
               return next;
             });
           } else if (status === "FAILED") {
-            updateShot(segmentId, shotIndex, { status: "failed", error: output?.error || "Generation failed" });
-            
+            updateShot(segmentId, shotIndex, {
+              status: "failed",
+              error: output?.error || "Generation failed",
+            });
+
             setGeneratingShots((prev) => {
               const next = { ...prev };
               delete next[shotKey];
@@ -186,9 +200,9 @@ export function useShotGeneration() {
   useEffect(() => {
     if (!schema?.id || !schema?.segments) return;
     if (resumedSchemas.current.has(schema.id)) return;
-    
+
     resumedSchemas.current.add(schema.id);
-    
+
     const initialGenerating: Record<string, string | boolean> = {};
     let hasResume = false;
 

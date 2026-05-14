@@ -1,11 +1,11 @@
-import { FabricObject, util } from '@openvideo/timeline';
+import { FabricObject, util } from "@openvideo/timeline";
 
 export function drawVerticalLine(
   ctx: CanvasRenderingContext2D,
   left: number,
   top: number,
   _: {},
-  fabricObject: FabricObject
+  fabricObject: FabricObject,
 ) {
   const cSize = 12;
   const cSizeBy2 = cSize / 2;
@@ -16,8 +16,8 @@ export function drawVerticalLine(
 
   // Draw the yellow outline
   ctx.lineWidth = 6; // Total width for the outline (4 + 2)
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = 'white'; // Yellow color for the outline
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "white"; // Yellow color for the outline
   ctx.beginPath();
   ctx.moveTo(-cSizeBy2, 0);
   ctx.lineTo(cSizeBy2, 0);
@@ -25,7 +25,7 @@ export function drawVerticalLine(
 
   // Draw the main line
   ctx.lineWidth = 4; // Width of the main line
-  ctx.strokeStyle = 'black'; // Color of the main line
+  ctx.strokeStyle = "black"; // Color of the main line
   ctx.beginPath();
   ctx.moveTo(-cSizeBy2, 0);
   ctx.lineTo(cSizeBy2, 0);
@@ -39,7 +39,7 @@ export function drawVerticalLeftIcon(
   left: number,
   top: number,
   styleOverride: any,
-  fabricObject: FabricObject
+  fabricObject: FabricObject,
 ) {
   const width = 6; // Handle width
   const height = fabricObject.height;
@@ -51,7 +51,7 @@ export function drawVerticalLeftIcon(
   ctx.rotate(util.degreesToRadians(fabricObject.angle));
 
   // Draw transparent rectangle
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
   ctx.beginPath();
   ctx.roundRect(-width / 2, -height / 2, width, height, borderRadius);
   ctx.fill();
@@ -59,15 +59,9 @@ export function drawVerticalLeftIcon(
   // Draw centered vertical line
   const lineWidth = 2;
   const lineHeight = 14;
-  ctx.fillStyle = 'white';
+  ctx.fillStyle = "white";
   ctx.beginPath();
-  ctx.roundRect(
-    -lineWidth / 2,
-    -lineHeight / 2,
-    lineWidth,
-    lineHeight,
-    lineWidth / 2
-  );
+  ctx.roundRect(-lineWidth / 2, -lineHeight / 2, lineWidth, lineHeight, lineWidth / 2);
   ctx.fill();
 
   ctx.restore();
@@ -78,7 +72,7 @@ export function drawVerticalRightIcon(
   left: number,
   top: number,
   styleOverride: any,
-  fabricObject: FabricObject
+  fabricObject: FabricObject,
 ) {
   const width = 6; // Handle width
   const height = fabricObject.height;
@@ -90,7 +84,7 @@ export function drawVerticalRightIcon(
   ctx.rotate(util.degreesToRadians(fabricObject.angle));
 
   // Draw transparent rectangle
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
   ctx.beginPath();
   ctx.roundRect(-width / 2, -height / 2, width, height, borderRadius);
   ctx.fill();
@@ -98,15 +92,9 @@ export function drawVerticalRightIcon(
   // Draw centered vertical line
   const lineWidth = 2;
   const lineHeight = 14;
-  ctx.fillStyle = 'white';
+  ctx.fillStyle = "white";
   ctx.beginPath();
-  ctx.roundRect(
-    -lineWidth / 2,
-    -lineHeight / 2,
-    lineWidth,
-    lineHeight,
-    lineWidth / 2
-  );
+  ctx.roundRect(-lineWidth / 2, -lineHeight / 2, lineWidth, lineHeight, lineWidth / 2);
   ctx.fill();
 
   ctx.restore();

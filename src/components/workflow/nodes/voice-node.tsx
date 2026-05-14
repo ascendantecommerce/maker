@@ -21,15 +21,13 @@ function VoiceNode({ id, data, selected }: NodeProps<VoiceNode>) {
       {/* Label above the card */}
       <div className="absolute -top-7 left-0 flex items-center gap-2 px-1 pointer-events-none whitespace-nowrap z-30">
         <Mic className="w-3.5 h-3.5" />
-        <span className="text-sm font-bold">
-          Voice Engine
-        </span>
+        <span className="text-sm font-bold">Voice Engine</span>
       </div>
 
       <div
         className={cn(
           "relative w-full h-full rounded-xl  border-border border-3 transition-all duration-500 bg-card",
-          selected && "border-primary/40"
+          selected && "border-primary/40",
         )}
       >
         <div className="flex flex-col h-full">
@@ -51,7 +49,9 @@ function VoiceNode({ id, data, selected }: NodeProps<VoiceNode>) {
             ) : (
               <div className="flex flex-col items-center gap-4 text-muted-foreground/20 py-10">
                 <Mic className="w-16 h-16 opacity-10" />
-                <span className="text-[11px] font-black uppercase tracking-[0.3em]">Processing...</span>
+                <span className="text-[11px] font-black uppercase tracking-[0.3em]">
+                  Processing...
+                </span>
               </div>
             )}
           </CardContent>

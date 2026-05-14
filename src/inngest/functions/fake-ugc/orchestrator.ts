@@ -121,7 +121,8 @@ export const fakeUgcVideoOrchestrator = inngest.createFunction(
                   shotType: shot.type,
                 });
               }
-              shot.videoPrompt = `${shot.videoPrompt || ""}. ${shot.scenePrompt || ""}`.trim() || shot.words || "";
+              shot.videoPrompt =
+                `${shot.videoPrompt || ""}. ${shot.scenePrompt || ""}`.trim() || shot.words || "";
               delete shot.scenePrompt;
             });
           });

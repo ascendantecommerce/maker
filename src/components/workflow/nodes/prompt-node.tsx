@@ -2,7 +2,16 @@
 
 import React, { memo, useRef, useState } from "react";
 import { Position, type NodeProps, type Node, Handle } from "@xyflow/react";
-import { PencilRuler, Play, Sparkles, Type, ChevronDown, Check, Loader2Icon, ImageIcon } from "lucide-react";
+import {
+  PencilRuler,
+  Play,
+  Sparkles,
+  Type,
+  ChevronDown,
+  Check,
+  Loader2Icon,
+  ImageIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CardContent, CardFooter } from "@/components/ui/card";
@@ -42,7 +51,15 @@ type NanoBananaModelId = (typeof NANO_BANANA_MODELS)[number]["id"];
 // Banana icon as inline SVG
 function BananaIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M4 13c3.5-2 8-2 10 2a5.5 5.5 0 0 1-7.78 7.78C4 20 3.5 15.5 4 13Z" />
       <path d="M5.15 17.89c5.52-1.52 8.65-6.89 7-12C11.55 4 11.5 2 13 2c3.22 0 5 5.5 4.5 11" />
     </svg>
@@ -61,7 +78,13 @@ export type PromptNodeData = {
   assets?: { id: string; url: string; name: string; type: string }[];
   segmentId?: string;
   onUpdate?: (id: string, updates: any) => void;
-  onGenerate?: (segmentId: string, shotIndexStr: string, type: "IMAGE" | "VIDEO", model?: string, options?: { mode?: string; firstFrameSource?: string }) => void;
+  onGenerate?: (
+    segmentId: string,
+    shotIndexStr: string,
+    type: "IMAGE" | "VIDEO",
+    model?: string,
+    options?: { mode?: string; firstFrameSource?: string },
+  ) => void;
 };
 
 export type PromptNode = Node<PromptNodeData, "prompt">;
@@ -70,9 +93,10 @@ function PromptNode({ id, data, selected }: NodeProps<PromptNode>) {
   const isVideo = data.type === "VIDEO";
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [selectedModel, setSelectedModel] = useState<NanoBananaModelId>(
-    (data.model as NanoBananaModelId) ?? "gemini-2.5-flash-image"
+    (data.model as NanoBananaModelId) ?? "gemini-2.5-flash-image",
   );
-  const activeModel = NANO_BANANA_MODELS.find((m) => m.id === selectedModel) ?? NANO_BANANA_MODELS[0];
+  const activeModel =
+    NANO_BANANA_MODELS.find((m) => m.id === selectedModel) ?? NANO_BANANA_MODELS[0];
 
   const handleModelChange = (modelId: NanoBananaModelId) => {
     setSelectedModel(modelId);
@@ -84,32 +108,30 @@ function PromptNode({ id, data, selected }: NodeProps<PromptNode>) {
       {/* Label above the card */}
       <div className="absolute -top-7 left-0 flex items-center gap-2 px-1 pointer-events-none whitespace-nowrap z-30">
         <PencilRuler className="w-3.5 h-3.5" />
-        <span className="text-sm font-bold">
-          {isVideo ? "Motion Prompt" : "Visual Prompt"}
-        </span>
+        <span className="text-sm font-bold">{isVideo ? "Motion Prompt" : "Visual Prompt"}</span>
       </div>
 
       <div
         className={cn(
           "relative w-full h-full rounded-xl  border-border border-3 transition-all duration-500 bg-card",
-          selected && "border-primary/40"
+          selected && "border-primary/40",
         )}
       >
         <div className="flex flex-col h-full">
           <CardContent className="p-6 space-y-6 flex-1">
             <div className="space-y-3">
-              <Label className="text-[10px] uppercase text-muted-foreground">
-                Prompt
-              </Label>
+              <Label className="text-[10px] uppercase text-muted-foreground">Prompt</Label>
               <Textarea
                 ref={textareaRef}
                 value={data.promptText || ""}
-                onChange={(e) => data.onUpdate?.(id, {
-                  promptText: e.target.value,
-                  segmentId: data.segmentId,
-                  shotIndex: data.shotIndex,
-                  type: data.type === "VIDEO" ? "vid" : "img"
-                })}
+                onChange={(e) =>
+                  data.onUpdate?.(id, {
+                    promptText: e.target.value,
+                    segmentId: data.segmentId,
+                    shotIndex: data.shotIndex,
+                    type: data.type === "VIDEO" ? "vid" : "img",
+                  })
+                }
                 placeholder="Describe the visual scene..."
                 className="nodrag nopan nowheel h-[200px] text-[13px] leading-relaxed bg-transparent border-none focus-visible:ring-0 p-1 resize-none overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/10 scrollbar-track-transparent placeholder:text-muted-foreground/20"
               />
@@ -144,7 +166,7 @@ function PromptNode({ id, data, selected }: NodeProps<PromptNode>) {
             <div className="flex items-center gap-2 shrink-0">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button 
+                  <button
                     className="nodrag flex items-center justify-center w-9 h-9 rounded-full bg-card border border-border hover:border-primary/50 hover:bg-accent transition-all shrink-0 group outline-none"
                     title={`Model: ${activeModel.name}`}
                   >
@@ -161,9 +183,13 @@ function PromptNode({ id, data, selected }: NodeProps<PromptNode>) {
                       <BananaIcon className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                       <div className="flex flex-col gap-0.5 min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[12px] font-semibold text-foreground truncate">{model.name}</span>
+                          <span className="text-[12px] font-semibold text-foreground truncate">
+                            {model.name}
+                          </span>
                         </div>
-                        <span className="text-[10px] text-muted-foreground/60 truncate">{model.description}</span>
+                        <span className="text-[10px] text-muted-foreground/60 truncate">
+                          {model.description}
+                        </span>
                       </div>
                       {selectedModel === model.id && (
                         <Check className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
@@ -177,7 +203,7 @@ function PromptNode({ id, data, selected }: NodeProps<PromptNode>) {
                 <>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button 
+                      <button
                         className="nodrag flex items-center justify-center w-9 h-9 rounded-full bg-card border border-border hover:border-primary/50 hover:bg-accent transition-all shrink-0 group outline-none"
                         title={`Mode: ${data.mode === "FIRST_FRAME_TO_VIDEO" ? "First Frame" : "Reference"}`}
                       >
@@ -202,7 +228,7 @@ function PromptNode({ id, data, selected }: NodeProps<PromptNode>) {
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button 
+                      <button
                         className="nodrag flex items-center justify-center w-9 h-9 rounded-full bg-card border border-border hover:border-primary/50 hover:bg-accent transition-all shrink-0 group outline-none"
                         title={`Source: ${data.firstFrameSource === "last_frame" ? "Last Frame" : "Avatar"}`}
                       >
@@ -229,18 +255,16 @@ function PromptNode({ id, data, selected }: NodeProps<PromptNode>) {
             </div>
 
             <Button
-              className={cn(
-                "h-9 w-9 p-0 rounded-full shadow-2xl transition-all shrink-0"
-              )}
-              variant={data.status === "processing" ? "outline" : 'default'}
+              className={cn("h-9 w-9 p-0 rounded-full shadow-2xl transition-all shrink-0")}
+              variant={data.status === "processing" ? "outline" : "default"}
               onClick={() => {
                 if (data.segmentId && data.shotIndex !== undefined) {
                   data.onGenerate?.(
-                    data.segmentId, 
-                    data.shotIndex.toString(), 
-                    data.type, 
+                    data.segmentId,
+                    data.shotIndex.toString(),
+                    data.type,
                     selectedModel,
-                    { mode: data.mode, firstFrameSource: data.firstFrameSource }
+                    { mode: data.mode, firstFrameSource: data.firstFrameSource },
                   );
                 }
               }}

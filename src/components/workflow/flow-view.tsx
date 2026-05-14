@@ -60,23 +60,12 @@ interface FlowViewProps {
 }
 
 export default function FlowView({ onReady }: FlowViewProps) {
-  const {
-    schema,
-    updateShot,
-    updateSchema,
-    updateSegment,
-  } = useStoryboardEditor();
+  const { schema, updateShot, updateSchema, updateSegment } = useStoryboardEditor();
   const { generatingShots } = useSchemaStore();
 
-  const {
-    handleGenerateUGCImage,
-    handleGenerateUGCVideo,
-  } = useUGCGeneration();
+  const { handleGenerateUGCImage, handleGenerateUGCVideo } = useUGCGeneration();
 
-  const {
-    handleGenerateStandardImage,
-    handleGenerateStandardVideo,
-  } = useShotGeneration();
+  const { handleGenerateStandardImage, handleGenerateStandardVideo } = useShotGeneration();
 
   useEffect(() => {
     onReady?.();
@@ -118,9 +107,15 @@ export default function FlowView({ onReady }: FlowViewProps) {
   );
 
   const stableOnGenerate = useCallback(
-    (segmentId: string, shotIndexStr: string, type: "IMAGE" | "VIDEO", model?: string, options?: { mode?: string; firstFrameSource?: string }) => {
+    (
+      segmentId: string,
+      shotIndexStr: string,
+      type: "IMAGE" | "VIDEO",
+      model?: string,
+      options?: { mode?: string; firstFrameSource?: string },
+    ) => {
       const schemaType = schema?.type || "";
-      const isUGCProject = schemaType === "ugc-video-ad"
+      const isUGCProject = schemaType === "ugc-video-ad";
       if (isUGCProject) {
         if (type === "VIDEO") {
           handleGenerateUGCVideo(segmentId, options);
@@ -135,7 +130,13 @@ export default function FlowView({ onReady }: FlowViewProps) {
         }
       }
     },
-    [schema?.type, handleGenerateStandardImage, handleGenerateStandardVideo, handleGenerateUGCImage, handleGenerateUGCVideo],
+    [
+      schema?.type,
+      handleGenerateStandardImage,
+      handleGenerateStandardVideo,
+      handleGenerateUGCImage,
+      handleGenerateUGCVideo,
+    ],
   );
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
@@ -148,7 +149,8 @@ export default function FlowView({ onReady }: FlowViewProps) {
   useEffect(() => {
     const nextJson = schema ? JSON.stringify(schema) : "";
     const nextGenJson = JSON.stringify(generatingShots);
-    if (nextJson === lastSchemaJsonRef.current && nextGenJson === lastGeneratingShotsRef.current) return;
+    if (nextJson === lastSchemaJsonRef.current && nextGenJson === lastGeneratingShotsRef.current)
+      return;
 
     lastSchemaJsonRef.current = nextJson;
     lastGeneratingShotsRef.current = nextGenJson;
@@ -168,12 +170,9 @@ export default function FlowView({ onReady }: FlowViewProps) {
     [setEdges],
   );
 
-  const onNodeClick = useCallback(
-    (event: React.MouseEvent, node: Node) => {
-      // Logic for selecting node if needed
-    },
-    [],
-  );
+  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+    // Logic for selecting node if needed
+  }, []);
 
   return (
     <div className="w-full h-full relative bg-black">
@@ -188,9 +187,8 @@ export default function FlowView({ onReady }: FlowViewProps) {
         fitView
         colorMode="dark"
         className="[&_.react-flow__node]:p-0"
-        style={{ '--xy-background-color': '#111111' } as React.CSSProperties}
+        style={{ "--xy-background-color": "#111111" } as React.CSSProperties}
         defaultEdgeOptions={{
-
           type: "default",
           style: { strokeWidth: 1.5, stroke: "#4f4f7a", opacity: 0.85 },
           markerEnd: {

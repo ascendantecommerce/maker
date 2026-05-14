@@ -1,40 +1,31 @@
-import { useEffect, useRef, useMemo, useState } from 'react';
+import { useEffect, useRef, useMemo, useState } from "react";
 import {
   Studio,
   fontManager,
   registerCustomTransition,
   registerCustomEffect,
-} from '@openvideo/engine-pixi';
-import { useStudioStore } from '@/stores/studio-store';
-import { useProjectStore } from '@/stores/project-store';
-import { core } from '@/lib/project';
-import { editorFont } from './constants';
-import { CUSTOM_TRANSITIONS } from './transition-custom';
-import { CUSTOM_EFFECTS } from './effect-custom';
-import { useClipActions } from './studio-context-menu';
+} from "@openvideo/engine-pixi";
+import { useStudioStore } from "@/stores/studio-store";
+import { useProjectStore } from "@/stores/project-store";
+import { core } from "@/lib/project";
+import { editorFont } from "./constants";
+import { CUSTOM_TRANSITIONS } from "./transition-custom";
+import { CUSTOM_EFFECTS } from "./effect-custom";
+import { useClipActions } from "./studio-context-menu";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuShortcut,
   ContextMenuTrigger,
-} from '@/components/ui/context-menu';
-import {
-  Clipboard,
-  Copy,
-  CopyPlus,
-  LockKeyhole,
-  LockKeyholeOpen,
-  Trash2,
-} from 'lucide-react';
+} from "@/components/ui/context-menu";
+import { Clipboard, Copy, CopyPlus, LockKeyhole, LockKeyholeOpen, Trash2 } from "lucide-react";
 
 const STUDIO_CONFIG = {
   fps: 30,
   interactivity: true,
   spacing: 20,
 } as const;
-
-
 
 interface CanvasPanelProps {
   onReady?: () => void;
@@ -86,7 +77,7 @@ export function CanvasPanel({ onReady }: CanvasPanelProps) {
     studioRef.current = new Studio({
       ...canvasSize,
       ...STUDIO_CONFIG,
-      bgColor: '#222222',
+      bgColor: "#222222",
       canvas: canvasRef.current,
       core: core,
     });
@@ -110,7 +101,7 @@ export function CanvasPanel({ onReady }: CanvasPanelProps) {
 
         onReadyRef.current?.();
       } catch (error) {
-        console.error('Failed to initialize studio:', error);
+        console.error("Failed to initialize studio:", error);
       }
     };
 
@@ -126,10 +117,7 @@ export function CanvasPanel({ onReady }: CanvasPanelProps) {
 
     if (parentElement) {
       resizeObserver = new ResizeObserver(() => {
-        if (
-          studioRef.current &&
-          (studioRef.current as any).updateArtboardLayout
-        ) {
+        if (studioRef.current && (studioRef.current as any).updateArtboardLayout) {
           (studioRef.current as any).updateArtboardLayout();
         }
       });
@@ -163,8 +151,6 @@ export function CanvasPanel({ onReady }: CanvasPanelProps) {
     });
   }, []);
 
-
-
   const handleContextMenu = (e: React.MouseEvent) => {
     if (!studioRef.current || !canvasRef.current) return;
 
@@ -193,17 +179,17 @@ export function CanvasPanel({ onReady }: CanvasPanelProps) {
             onContextMenu={handleContextMenu}
             style={{
               flex: 1,
-              position: 'relative', // Ensure relative positioning for absolute children if needed
-              overflow: 'hidden', // Hide anything outside (though canvas masks it too)
+              position: "relative", // Ensure relative positioning for absolute children if needed
+              overflow: "hidden", // Hide anything outside (though canvas masks it too)
             }}
           >
             <canvas
               ref={canvasRef}
               style={{
-                display: 'block',
-                width: '100%',
-                height: '100%',
-                outline: 'none', // Avoid focus outline on canvas click
+                display: "block",
+                width: "100%",
+                height: "100%",
+                outline: "none", // Avoid focus outline on canvas click
               }}
               tabIndex={0}
             />
@@ -218,7 +204,7 @@ export function CanvasPanel({ onReady }: CanvasPanelProps) {
           e.stopPropagation();
         }}
       >
-        {selectedClip && selectedClip?.type !== 'Transition' ? (
+        {selectedClip && selectedClip?.type !== "Transition" ? (
           <>
             {!isLocked && (
               <>
@@ -234,10 +220,7 @@ export function CanvasPanel({ onReady }: CanvasPanelProps) {
                   <ContextMenuShortcut>⌘ V</ContextMenuShortcut>
                 </ContextMenuItem>
 
-                <ContextMenuItem
-                  onClick={handleDuplicate}
-                  disabled={!selectedClip}
-                >
+                <ContextMenuItem onClick={handleDuplicate} disabled={!selectedClip}>
                   <CopyPlus className="mr-2 w-4 h-4" />
                   Duplicate
                   <ContextMenuShortcut>⌘ D</ContextMenuShortcut>
@@ -251,7 +234,7 @@ export function CanvasPanel({ onReady }: CanvasPanelProps) {
               ) : (
                 <LockKeyhole className="mr-2 w-4 h-4" />
               )}
-              {isLocked ? 'Unlock' : 'Lock'}
+              {isLocked ? "Unlock" : "Lock"}
               <ContextMenuShortcut>⌘ L</ContextMenuShortcut>
             </ContextMenuItem>
 

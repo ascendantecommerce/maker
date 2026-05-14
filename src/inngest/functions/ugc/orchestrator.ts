@@ -120,14 +120,14 @@ export const ugcVideoOrchestrator = inngest.createFunction(
         }));
 
         scheme.segments = pipelineSteps.mapPromptsToSegments(scheme, shots, bRolls);
-        
+
         // BAKE CREATIVE PROMPT: Pre-assemble the rich prompt for the UI to display and edit
         scheme.segments = scheme.segments.map((seg: any) => {
           const updatedShots = (seg.shots || []).map((shot: any) => {
             const dialogue = `AUDIO DIALOGUE (SPOKEN ONLY): ${seg.text || ""}`;
             const visuals = `VISUALS: ${shot.scenePrompt || "Professional environment"}`;
             const actions = `ACTIONS: ${shot.videoPrompt || "Natural speaking performance"}`;
-            
+
             const newShot = {
               ...shot,
               videoPrompt: `${dialogue}\n${visuals}\n${actions}`.trim(),
@@ -139,7 +139,7 @@ export const ugcVideoOrchestrator = inngest.createFunction(
           const updatedBRolls = (seg.bRolls || []).map((br: any) => {
             const visuals = `VISUALS: ${br.scenePrompt || "Cinematic cutaway"}`;
             const actions = `ACTIONS: ${br.videoPrompt || "Subtle motion"}`;
-            
+
             const newBRoll = {
               ...br,
               videoPrompt: `${visuals}\n${actions}`.trim(),
@@ -236,7 +236,6 @@ export const ugcVideoOrchestrator = inngest.createFunction(
           const segmentId = segData.id as string;
 
           const taskPromise = (async () => {
-
             // 1. Dependency Resolution
             let resolvedUrls: Record<string, string> = {};
             if (needsPreviousFrame && previousSegmentDbId) {
@@ -266,7 +265,10 @@ export const ugcVideoOrchestrator = inngest.createFunction(
                     aspectRatio: dbSchemaSurrogate.aspect_ratio || "9:16",
                     schemaId: schemeId,
                     segmentId,
-                    firstFrameUrl: needsPreviousFrame && previousSegmentDbId ? (await taskPromiseByDbId[previousSegmentDbId])?.lastFrameUrl : undefined,
+                    firstFrameUrl:
+                      needsPreviousFrame && previousSegmentDbId
+                        ? (await taskPromiseByDbId[previousSegmentDbId])?.lastFrameUrl
+                        : undefined,
                   },
                   services,
                 });
@@ -401,39 +403,55 @@ export const ugcVideoOrchestrator = inngest.createFunction(
 
           try {
             // Clone the voice from the selected candidate
-            const clonedVoiceId = await step.run(`clone-voice-${voiceTag}-${runToken}`, async () => {
-              return await pipelineSteps.cloneVoice(candidate.videoUrl, services);
-            });
+            const clonedVoiceId = await step.run(
+              `clone-voice-${voiceTag}-${runToken}`,
+              async () => {
+                return await pipelineSteps.cloneVoice(candidate.videoUrl, services);
+              },
+            );
 
             await step.run(`mark-generation-progress-voice-align-${voiceTag}`, async () => {
               return await advanceGenerationTask(schemeId, UGC_TASK_KEYS.VOICEALIGN, UGC_TASKS);
             });
 
             // 3. Process all segments in parallel using the current cloned voice
-            await Promise.all(dbSegments.map(async (segment) => {
-              const sd = segment.segment_data as any;
-              const videoAsset = (sd.assets || sd.shots || []).find(
-                (a: any) => a.type === "video" && a.videoUrl && a.active !== false,
-              );
-              const currentUrl = videoAsset?.videoUrl || sd.shots?.[0]?.videoUrl;
+            await Promise.all(
+              dbSegments.map(async (segment) => {
+                const sd = segment.segment_data as any;
+                const videoAsset = (sd.assets || sd.shots || []).find(
+                  (a: any) => a.type === "video" && a.videoUrl && a.active !== false,
+                );
+                const currentUrl = videoAsset?.videoUrl || sd.shots?.[0]?.videoUrl;
 
-              if (!currentUrl) return;
+                if (!currentUrl) return;
 
-              // Step A: Speech-to-Speech conversion
-              const stsResult = await step.run(`process-sts-${segment.id}-${voiceTag}-${runToken}`, async () => {
-                return await pipelineSteps.processStsSegment(segment, clonedVoiceId!, projectId, services);
-              });
+                // Step A: Speech-to-Speech conversion
+                const stsResult = await step.run(
+                  `process-sts-${segment.id}-${voiceTag}-${runToken}`,
+                  async () => {
+                    return await pipelineSteps.processStsSegment(
+                      segment,
+                      clonedVoiceId!,
+                      projectId,
+                      services,
+                    );
+                  },
+                );
 
-              // Step B: Update Database with the new aligned video URL
-              return await step.run(`update-segment-sts-${segment.id}-${voiceTag}-${runToken}`, async () => {
-                return await pipelineSteps.updateVeoSegmentInDb({
-                  segmentDbId: segment.id,
-                  segData: segment.segment_data,
-                  finalR2Url: stsResult.comparison.updated,
-                  actualDuration: (segment.segment_data as any).estimatedDuration || 5,
-                });
-              });
-            }));
+                // Step B: Update Database with the new aligned video URL
+                return await step.run(
+                  `update-segment-sts-${segment.id}-${voiceTag}-${runToken}`,
+                  async () => {
+                    return await pipelineSteps.updateVeoSegmentInDb({
+                      segmentDbId: segment.id,
+                      segData: segment.segment_data,
+                      finalR2Url: stsResult.comparison.updated,
+                      actualDuration: (segment.segment_data as any).estimatedDuration || 5,
+                    });
+                  },
+                );
+              }),
+            );
 
             stsSuccess = true;
             break; // All segments processed successfully
@@ -442,17 +460,21 @@ export const ugcVideoOrchestrator = inngest.createFunction(
 
             // If ElevenLabs denied the voice, we retry with the next candidate
             if (err.message?.includes("VOICE_ACCESS_DENIED")) {
-              console.warn(`[Voice Alignment] Candidate ${attempt} denied. Moving to next candidate...`);
+              console.warn(
+                `[Voice Alignment] Candidate ${attempt} denied. Moving to next candidate...`,
+              );
               continue;
             }
-            
+
             // Re-throw other errors (e.g. database issues, network timeouts) to trigger Inngest retries
             throw err;
           }
         }
 
         if (!stsSuccess) {
-          console.error("[Voice Alignment] All candidates failed or were denied. Workflow will continue without STS.");
+          console.error(
+            "[Voice Alignment] All candidates failed or were denied. Workflow will continue without STS.",
+          );
         }
       }
 
@@ -540,7 +562,9 @@ export const ugcVideoOrchestrator = inngest.createFunction(
           .execute();
 
         if (!metadataPersisted) {
-          throw new NonRetriableError(`UGC Master V3 workflow failed early: ${message}`, { cause: err });
+          throw new NonRetriableError(`UGC Master V3 workflow failed early: ${message}`, {
+            cause: err,
+          });
         }
       }
 

@@ -18,7 +18,7 @@ function SegmentGroupNode({ data, selected }: NodeProps<SegmentGroupNode>) {
     <div
       className={cn(
         "relative w-full h-full rounded-xl  border-border border-2 transition-all duration-500 bg-card",
-        selected && "border-primary/40"
+        selected && "border-primary/40",
       )}
     >
       <Handle
@@ -31,13 +31,7 @@ function SegmentGroupNode({ data, selected }: NodeProps<SegmentGroupNode>) {
       </Handle>
 
       <div className="absolute -top-12 left-0 flex items-center gap-3">
-        <div
-          className={cn(
-            "text-base px-4 font-bold"
-          )}
-        >
-          Segment {data.index + 1}
-        </div>
+        <div className={cn("text-base px-4 font-bold")}>Segment {data.index + 1}</div>
       </div>
     </div>
   );

@@ -17,10 +17,10 @@ function ProductNode({ id, data, selected }: NodeProps<ProductNode>) {
   const hasProducts = data.products && data.products.length > 0;
 
   return (
-    <Card 
+    <Card
       className={cn(
         "w-[300px] p-0 overflow-hidden border-2 shadow-2xl transition-all rounded-[24px]",
-        selected ? "border-primary ring-4 ring-primary/10" : "border-border/40 bg-card"
+        selected ? "border-primary ring-4 ring-primary/10" : "border-border/40 bg-card",
       )}
     >
       <CardHeader className="m-0 bg-muted/30 px-4 py-3 border-b border-border/50 flex flex-row items-center gap-2">
@@ -63,7 +63,7 @@ function ProductNode({ id, data, selected }: NodeProps<ProductNode>) {
         )}
 
         <div className="flex flex-col gap-3 pt-2">
-           <Label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-60 px-1">
+          <Label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-60 px-1">
             Library Sync
           </Label>
           <div className="grid grid-cols-2 gap-4">

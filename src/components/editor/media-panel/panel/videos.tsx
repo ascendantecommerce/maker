@@ -1,17 +1,13 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { core } from '@/lib/project';
-import { Log } from '@openvideo/engine-pixi';
-import { Search, Film, Loader2 } from 'lucide-react';
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from '@/components/ui/input-group';
-import { debounce } from 'lodash';
-import Draggable from '@/components/shared/draggable';
+import { useState, useEffect, useCallback } from "react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { core } from "@/lib/project";
+import { Log } from "@openvideo/engine-pixi";
+import { Search, Film, Loader2 } from "lucide-react";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { debounce } from "lodash";
+import Draggable from "@/components/shared/draggable";
 
 interface PexelsVideo {
   id: number;
@@ -27,7 +23,7 @@ interface PexelsVideo {
   };
   video_files: {
     id: number;
-    quality: 'hd' | 'sd';
+    quality: "hd" | "sd";
     file_type: string;
     width: number;
     height: number;
@@ -36,7 +32,7 @@ interface PexelsVideo {
 }
 
 export default function PanelVideos() {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [videos, setVideos] = useState<PexelsVideo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -54,7 +50,7 @@ export default function PanelVideos() {
         setVideos([]);
       }
     } catch (error) {
-      console.error('Failed to fetch videos:', error);
+      console.error("Failed to fetch videos:", error);
     } finally {
       setIsLoading(false);
     }
@@ -62,11 +58,11 @@ export default function PanelVideos() {
 
   const debouncedFetch = useCallback(
     debounce((query: string) => fetchVideos(query), 500),
-    []
+    [],
   );
 
   useEffect(() => {
-    fetchVideos('');
+    fetchVideos("");
   }, []);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -77,24 +73,25 @@ export default function PanelVideos() {
 
   const addItemToCanvas = async (asset: PexelsVideo) => {
     try {
-      const videoFile =
-        asset.video_files.find((f) => f.quality === 'hd') ||
-        asset.video_files[0];
-      if (!videoFile) throw new Error('No video file found');
-      console.log('Adding video:', asset);
+      const videoFile = asset.video_files.find((f) => f.quality === "hd") || asset.video_files[0];
+      if (!videoFile) throw new Error("No video file found");
+      console.log("Adding video:", asset);
       // Use the new Core command-based API to add a video clip
-      await core.clip.add({
-        type: 'Video',
-        src: videoFile.link,
-        name: `Video by ${asset.user.name}`,
-        width: asset.width,
-        height: asset.height,
-        display: { from: 0, to: asset.duration * 1e6 },
-        trim: { from: 0, to: asset.duration * 1e6 },
-        metadata: {
-          previewUrl: asset.image,
+      await core.clip.add(
+        {
+          type: "Video",
+          src: videoFile.link,
+          name: `Video by ${asset.user.name}`,
+          width: asset.width,
+          height: asset.height,
+          display: { from: 0, to: asset.duration * 1e6 },
+          trim: { from: 0, to: asset.duration * 1e6 },
+          metadata: {
+            previewUrl: asset.image,
+          },
         },
-      }, { objectFit: 'contain' });
+        { objectFit: "contain" },
+      );
     } catch (error) {
       Log.error(`Failed to add video:`, error);
     }
@@ -133,13 +130,12 @@ export default function PanelVideos() {
           <div className="grid grid-cols-[repeat(auto-fill,minmax(100px,1fr))] gap-2">
             {videos.map((video) => {
               const videoFile =
-                video.video_files.find((f) => f.quality === 'hd') ||
-                video.video_files[0];
+                video.video_files.find((f) => f.quality === "hd") || video.video_files[0];
               return (
                 <Draggable
                   key={video.id}
                   data={{
-                    type: 'Video',
+                    type: "Video",
                     src: videoFile?.link,
                     name: `Video by ${video.user.name}`,
                     width: video.width,
@@ -151,10 +147,7 @@ export default function PanelVideos() {
                   }}
                   renderCustomPreview={
                     <div className="w-20 aspect-video rounded-md overflow-hidden shadow-xl border-2 border-primary">
-                      <img
-                        src={video.image}
-                        className="w-full h-full object-cover"
-                      />
+                      <img src={video.image} className="w-full h-full object-cover" />
                     </div>
                   }
                 >
@@ -166,8 +159,8 @@ export default function PanelVideos() {
                       className="w-full h-full flex items-center justify-center bg-black/20 text-[0px]"
                       style={{
                         backgroundImage: `url(${video.image})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
                       }}
                     >
                       <span className="absolute bottom-1 right-1 text-[8px] bg-black/60 text-white px-1 rounded">

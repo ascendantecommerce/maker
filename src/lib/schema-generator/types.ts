@@ -156,7 +156,7 @@ export interface VisualShot {
   dialogue?: string;
   emotion?: string;
   cameraMotion?: string;
-  
+
   status?: "completed" | "failed" | "generating";
   progress?: number;
   error?: string;
@@ -176,7 +176,7 @@ export interface VisualBroll {
   scenePrompt?: string;
   words?: string;
   productSizing?: string;
-  
+
   imageUrl?: string;
   videoUrl?: string;
   status?: "completed" | "failed" | "generating";

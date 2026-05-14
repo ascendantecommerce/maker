@@ -1,15 +1,12 @@
-import { useEffect, useState, useRef } from 'react';
-import { createPortal } from 'react-dom';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  getTransitionOptions,
-  registerCustomTransition,
-} from '@openvideo/engine-pixi';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2 } from 'lucide-react';
-import { Icons } from '@/components/shared/icons';
-import { core } from '@/lib/project';
-import Draggable from '@/components/shared/draggable';
+import { useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { getTransitionOptions, registerCustomTransition } from "@openvideo/engine-pixi";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2 } from "lucide-react";
+import { Icons } from "@/components/shared/icons";
+import { core } from "@/lib/project";
+import Draggable from "@/components/shared/draggable";
 
 const TRANSITION_DURATION_DEFAULT = 2_000_000;
 
@@ -55,7 +52,7 @@ const TransitionCard = ({
   const [isHovered, setIsHovered] = useState(false);
 
   const dragData = {
-    type: 'Transition',
+    type: "Transition",
     name: label,
     transitionEffect: {
       id: effectKey,
@@ -123,7 +120,7 @@ const TransitionDefault = () => {
           previewDynamic={effect.previewDynamic}
           onClick={async () => {
             await core.clip.add({
-              type: 'Transition',
+              type: "Transition",
               name: effect.label,
               transitionEffect: {
                 id: effect.key,
@@ -152,13 +149,13 @@ const TransitionCustom = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const res = await fetch('/api/custom-presets?category=transitions');
-        if (!res.ok) throw new Error('Failed to fetch custom transitions');
+        const res = await fetch("/api/custom-presets?category=transitions");
+        if (!res.ok) throw new Error("Failed to fetch custom transitions");
         const json = await res.json();
         setOwnPresets(json.own ?? []);
         setPublishedPresets(json.published ?? []);
       } catch {
-        setError('Could not load custom transitions.');
+        setError("Could not load custom transitions.");
       } finally {
         setIsLoading(false);
       }
@@ -175,7 +172,7 @@ const TransitionCustom = () => {
     } as any);
 
     await core.clip.add({
-      type: 'Transition',
+      type: "Transition",
       name: preset.data.label || preset.name,
       transitionEffect: {
         id: key,
@@ -200,9 +197,7 @@ const TransitionCustom = () => {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center py-12 text-xs text-destructive">
-        {error}
-      </div>
+      <div className="flex items-center justify-center py-12 text-xs text-destructive">{error}</div>
     );
   }
 
@@ -210,9 +205,7 @@ const TransitionCustom = () => {
     return (
       <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground">
         <span className="text-xs">No custom transitions yet.</span>
-        <span className="text-[10px]">
-          Create one from the Gallery to see it here.
-        </span>
+        <span className="text-[10px]">Create one from the Gallery to see it here.</span>
       </div>
     );
   }
@@ -260,8 +253,8 @@ const PanelTransition = () => {
         </TabsList>
 
         {[
-          { value: 'default', Component: TransitionDefault },
-          { value: 'custom', Component: TransitionCustom },
+          { value: "default", Component: TransitionDefault },
+          { value: "custom", Component: TransitionCustom },
         ].map(({ value, Component }) => (
           <TabsContent key={value} value={value} className="h-full">
             <ScrollArea className="h-[calc(100%-60px)]">
