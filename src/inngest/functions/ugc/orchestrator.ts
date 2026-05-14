@@ -16,6 +16,7 @@ import { DistributedSemaphore } from "../../services/semaphore";
 
 import { fetchWorkflowState } from "../common/services/utils";
 import { UGC_TASK_KEYS, UGC_TASKS } from "./constants";
+import { generateCreativePrompt } from "@/lib/prompts";
 
 const phonosSemaphore = new DistributedSemaphore("phonos:audio_enhancement_slots", 5, 300000);
 
@@ -31,6 +32,7 @@ export const ugcVideoOrchestrator = inngest.createFunction(
     let scheme: VideoSchema = event.data.scheme;
     const schemeId = scheme.id;
 
+    let metadataPersisted = false;
     try {
       // ========================================================================
       // PIPELINE STAGES - CONTROLS
@@ -40,7 +42,7 @@ export const ugcVideoOrchestrator = inngest.createFunction(
       const STAGE_3_CUTAWAY_B_ROLL = false; // Phase 3: Generating full-screen B-roll clips
       const STAGE_4_OVERLAY_IMAGE = false; // Phase 4: Generating demonstrative Image Overlays (nano-banana-2)
       const STAGE_5_VOICE_ALIGNMENT = true; // Phase 5: Optional Voice Cloning & Alignment (STS)
-      const STAGE_6_AUDIO_ENHANCEMENT = true; // Phase 6: Phonos Refinement
+      const STAGE_6_AUDIO_ENHANCEMENT = false; // Phase 6: Phonos Refinement
       // ========================================================================
 
       // --- PHASE 1: AI ANALYSIS & SCHEMA GENERATION ---
@@ -118,6 +120,40 @@ export const ugcVideoOrchestrator = inngest.createFunction(
         }));
 
         scheme.segments = pipelineSteps.mapPromptsToSegments(scheme, shots, bRolls);
+        
+        // BAKE CREATIVE PROMPT: Pre-assemble the rich prompt for the UI to display and edit
+        scheme.segments = scheme.segments.map((seg: any) => {
+          const updatedShots = (seg.shots || []).map((shot: any) => {
+            const dialogue = `AUDIO DIALOGUE (SPOKEN ONLY): ${seg.text || ""}`;
+            const visuals = `VISUALS: ${shot.scenePrompt || "Professional environment"}`;
+            const actions = `ACTIONS: ${shot.videoPrompt || "Natural speaking performance"}`;
+            
+            const newShot = {
+              ...shot,
+              videoPrompt: `${dialogue}\n${visuals}\n${actions}`.trim(),
+            };
+            delete newShot.scenePrompt;
+            return newShot;
+          });
+
+          const updatedBRolls = (seg.bRolls || []).map((br: any) => {
+            const visuals = `VISUALS: ${br.scenePrompt || "Cinematic cutaway"}`;
+            const actions = `ACTIONS: ${br.videoPrompt || "Subtle motion"}`;
+            
+            const newBRoll = {
+              ...br,
+              videoPrompt: `${visuals}\n${actions}`.trim(),
+            };
+            delete newBRoll.scenePrompt;
+            return newBRoll;
+          });
+
+          return {
+            ...seg,
+            shots: updatedShots,
+            bRolls: updatedBRolls,
+          };
+        });
 
         await step.run("mark-generation-progress-schema", async () => {
           return await advanceGenerationTask(schemeId, UGC_TASK_KEYS.SCHEMA, UGC_TASKS);
@@ -167,6 +203,19 @@ export const ugcVideoOrchestrator = inngest.createFunction(
         const taskPromiseByDbId: Record<string, Promise<any> | undefined> = {};
         const allWaveItems = waves.flat();
 
+        // 0. Persist All Metadata Before Generation
+        await step.run("persist-generation-plan-metadata", async () => {
+          for (const item of allWaveItems) {
+            await pipelineSteps.updateUgcShotMetadata({
+              segmentDbId: item.segmentId,
+              mode: item.mode,
+              firstFrameSource: item.firstFrameSource,
+            });
+          }
+        });
+
+        metadataPersisted = true;
+
         const dbSchemaSurrogate = {
           ...scheme,
           aspect_ratio: scheme.aspectRatio,
@@ -176,20 +225,18 @@ export const ugcVideoOrchestrator = inngest.createFunction(
 
         const allTasks = allWaveItems.map((waveItem) => {
           const {
-            segment,
+            segmentId: segmentDbId,
+            segData,
             previousSegmentDbId,
             needsPreviousFrame,
             mode,
             firstFrameSource,
-            isProductShot,
-            isFirstProductMention,
           } = waveItem;
 
-          const segData = segment.segment_data as any;
-          const segmentDbId = segment.id as string;
           const segmentId = segData.id as string;
 
           const taskPromise = (async () => {
+
             // 1. Dependency Resolution
             let resolvedUrls: Record<string, string> = {};
             if (needsPreviousFrame && previousSegmentDbId) {
@@ -204,24 +251,24 @@ export const ugcVideoOrchestrator = inngest.createFunction(
               `generate-ugc-video-${segmentId}-${runToken}`,
               async () => {
                 return await pipelineSteps.generateUgcVideo({
-                  segData,
-                  isExpand: !!previousSegmentDbId,
-                  previousSegmentDbId,
-                  globalIndex: segment.order,
-                  videoUrlByDbId: resolvedUrls,
-                  avatarUrl,
-                  productUrls,
-                  schemaId: schemeId,
-                  projectId,
-                  segmentId,
-                  schema: dbSchemaSurrogate,
+                  request: {
+                    text: segData.text || "",
+                    estimatedDuration: segData.estimatedDuration ?? 5,
+                    shot: segData.shots?.[0],
+                    mode,
+                    firstFrameSource,
+                    avatarUrl,
+                    product: {
+                      urls: productUrls,
+                      name: (dbSchemaSurrogate as any)?.product?.name,
+                      description: (dbSchemaSurrogate as any)?.product?.description,
+                    },
+                    aspectRatio: dbSchemaSurrogate.aspect_ratio || "9:16",
+                    schemaId: schemeId,
+                    segmentId,
+                    firstFrameUrl: needsPreviousFrame && previousSegmentDbId ? (await taskPromiseByDbId[previousSegmentDbId])?.lastFrameUrl : undefined,
+                  },
                   services,
-                  mode,
-                  firstFrameSource,
-                  isProductShot,
-                  isFirstProductMention,
-                  runToken,
-                  phonosSemaphore,
                 });
               },
             );
@@ -234,6 +281,8 @@ export const ugcVideoOrchestrator = inngest.createFunction(
                 finalR2Url: result.improvedUrl || result.finalTrimmedUrl,
                 actualDuration: result.actualDuration,
                 tsUrl: result.tsUrl,
+                mode,
+                firstFrameSource,
               });
             });
 
@@ -480,14 +529,22 @@ export const ugcVideoOrchestrator = inngest.createFunction(
       await step.run("publish-error-toast", async () => {});
 
       if (schemeId) {
+        // If we haven't even persisted the metadata, the user can't fix things manually.
+        // In that case, we mark as FAILED. Otherwise, we mark as COMPLETED so the UI is usable.
+        const finalStatus = metadataPersisted ? ResolverStatus.COMPLETED : ResolverStatus.FAILED;
+
         await db
           .updateTable("generations")
-          .set({ status: ResolverStatus.FAILED })
+          .set({ status: finalStatus })
           .where("id", "=", schemeId)
           .execute();
+
+        if (!metadataPersisted) {
+          throw new NonRetriableError(`UGC Master V3 workflow failed early: ${message}`, { cause: err });
+        }
       }
 
-      throw new NonRetriableError(`UGC Master V3 workflow failed: ${message}`, { cause: err });
+      return { success: false, error: message };
     }
   },
 );

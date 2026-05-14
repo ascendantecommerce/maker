@@ -9,10 +9,7 @@ import { initializeFakeUgcServices } from "./services";
 import * as fakeUgcSteps from "./steps/index";
 import * as fakeUgcVisuals from "./steps/visuals";
 import * as pipelineSteps from "../common/steps";
-
 import { ResolverStatus, VideoType } from "@/utils/enum";
-import { workflowChannel } from "../../utils/common";
-import { ToastType } from "../../utils/types";
 import { advanceGenerationTask } from "../../utils/generation-progress";
 import { ensureObject, fetchWorkflowState } from "../common/services/utils";
 import { FAKE_UGC_TASK_KEYS, FAKE_UGC_TASKS } from "./constants";
@@ -29,7 +26,6 @@ export const fakeUgcVideoOrchestrator = inngest.createFunction(
   async ({ event, step, attempt }) => {
     let scheme: VideoSchema = event.data.scheme;
     const schemeId = scheme.id;
-    const channel = workflowChannel(schemeId);
     const services = initializeFakeUgcServices();
     const defaultVisuals = {
       type: VideoType.AI_VIDEOS,
@@ -125,6 +121,8 @@ export const fakeUgcVideoOrchestrator = inngest.createFunction(
                   shotType: shot.type,
                 });
               }
+              shot.videoPrompt = `${shot.videoPrompt || ""}. ${shot.scenePrompt || ""}`.trim() || shot.words || "";
+              delete shot.scenePrompt;
             });
           });
 

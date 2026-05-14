@@ -312,6 +312,18 @@ export const mapSchemaToFlow = (
         else if (shot.status === "failed") vidStatus = "error";
 
         const vidPromptId = `${shotBaseId}-vid-prompt`;
+
+        console.log("Video prompt node data:", {
+          segmentId: segment.id,
+          shotIndex: shotIndex,
+          promptText: shot.videoPrompt ?? "",
+          status: vidStatus,
+          model: "luma-ray",
+          mode: (shot as any).mode,
+          firstFrameSource: (shot as any).firstFrameSource,
+          assets: schema?.assets as any,
+          shot
+        });
         nodes.push({
           id: vidPromptId,
           type: "prompt",
@@ -323,6 +335,9 @@ export const mapSchemaToFlow = (
             promptText: shot.videoPrompt ?? "",
             status: vidStatus,
             model: "luma-ray",
+            mode: (shot as any).mode,
+            firstFrameSource: (shot as any).firstFrameSource,
+            assets: schema?.assets as any,
             onUpdate: callbacks?.onUpdate,
             onGenerate: callbacks?.onGenerate,
           },

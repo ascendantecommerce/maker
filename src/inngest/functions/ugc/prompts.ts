@@ -18,19 +18,12 @@ export function buildUgcNegativePrompt() {
 }
 
 export function buildUgcPrompt(
-  text?: string,
   videoPrompt?: string,
-  scenePrompt?: string,
-  productSizing?: string,
 ) {
-  const cleanText = text ? text.trim() + (text.endsWith(".") ? "" : ".") : "";
-
   return `
-AUDIO DIALOGUE (SPOKEN ONLY): "${cleanText}"
-${AUDIO_CONTROL}
+${videoPrompt || ""}
 DELIVERY: ${DELIVERY_CONTROL}
-ACTION: ${productSizing ? `Scale: ${productSizing}. ` : ""} Subject speaks directly to camera with highly accurate articulation. ${videoPrompt || "natural speaking"}. ${MOUTH_CONTROL}
-SCENE: ${scenePrompt || "professional environment"}
+${MOUTH_CONTROL}
 STRICTLY NO ON-SCREEN TEXT, NO CAPTIONS, NO OVERLAYS. THE FRAME MUST BE CLEAN OF ALL TYPOGRAPHY.
 `.trim();
 }
@@ -57,7 +50,7 @@ export const UGC_VISUAL_ANALYSIS_STEP = `## STEP 1 — ANALYZE THE IMAGES
 | **product_on_surface** | Package rests on a counter/table in frame while avatar speaks beside it. Best for a relaxed intro or lifestyle shot. |
 | **product_reveal** | Avatar reaches for and picks up the product, bringing it into frame. Use for the very first time the product appears. |
 
-**Product Scale & Sizing:** Determine the physical size of the product relative to a human hand or a standard surface. **Look at all provided product images (including hero shots and closeups) to accurately estimate this scale.** Define it as a concise phrase (e.g., "palm-sized small bottle", "large cereal-style box", "thin credit-card sized device"). You will use this description in ALL shots where the product appears to maintain perfect scale consistency.`;
+**Product Scale & Sizing:** Determine the physical size of the product relative to a human hand or a standard surface. **Look at all provided product images (including hero shots and closeups) to accurately estimate this scale.** Define it as a concise phrase (e.g., "palm-sized small bottle", "large cereal-style box", "thin credit-card sized device"). Use this understanding to maintain perfect scale consistency in your descriptions.`;
 
 // ─── Step 2: Script Intelligence ─────────────────────────────────────────────
 
@@ -196,14 +189,15 @@ export const UGC_SHOT_STRUCTURE = `## SHOT STRUCTURE
 > product_reveal: "[product_reveal] The [AVATAR] stands in a modern living room, looking at the camera. The closed [PRODUCT] dark navy stand-up pouch sits on the wooden coffee table in front of them, label facing forward."
 > generic: "The [AVATAR] stands in a warmly lit living room, looking directly at camera with a knowing expression, one hand raised slightly."
 
-**videoPrompt** — What happens in the clip. Sent verbatim to Veo 3.1 — must be 100% self-contained. Always include full avatar and product appearance descriptions when product is present. VERY IMPORTANT: explicitly describe the physical ACTION the avatar is taking while speaking.
+**videoPrompt** — Detailed motion description, avatar appearance, product interaction.
+**scenePrompt** — (Optional) Concise scene description.
+**words** — Exact narration text for this segment.
 
-**💡 WORD-GESTURE SYNC:** To match a gesture to a specific spoken word, use the pattern \`"As she says '[exact word or phrase]', she [gesture]"\`. This anchors the gesture to the narration timing.
-> Example: \`"...As she says 'number two', she nods twice firmly. As she says 'anything natural', she gestures with an open palm. As she says 'you don't', she shakes her head slowly."\`
-> product_reveal: "[product_reveal] The [FULL AVATAR DESCRIPTION] reaches forward to the coffee table, picks up the closed [FULL PRODUCT DESCRIPTION], raises it to chest height [product_in_hand] with the label facing the camera, and continues speaking while holding it up."
-> product_in_hand: "[product_in_hand] The [FULL AVATAR DESCRIPTION] holds the closed [FULL PRODUCT DESCRIPTION] naturally in one hand, extends it slightly toward the lens, then pulls it back and speaks with their free hand gesturing."
-> continuation: "[product_in_hand] The [FULL AVATAR DESCRIPTION] continues standing in the bright kitchen holding the closed [FULL PRODUCT DESCRIPTION]. They gently tap the label with one finger while speaking directly to the camera."
-> generic: "The [FULL AVATAR DESCRIPTION] speaks to the camera, raises one finger to mark a point, gently shakes their head to signal disagreement, confident and composed."
+**ACTION EXAMPLES (FOR THE "ACTION:" SECTION):**
+- **product_reveal:** "[product_reveal] The [FULL AVATAR DESCRIPTION] reaches forward to the coffee table, picks up the closed [FULL PRODUCT DESCRIPTION], raises it to chest height [product_in_hand] with the label facing the camera, and continues speaking while holding it up."
+- **product_in_hand:** "[product_in_hand] The [FULL AVATAR DESCRIPTION] holds the closed [FULL PRODUCT DESCRIPTION] naturally in one hand, extends it slightly toward the lens, then pulls it back and speaks with their free hand gesturing."
+- **continuation:** "[product_in_hand] The [FULL AVATAR DESCRIPTION] continues standing in the bright kitchen holding the closed [FULL PRODUCT DESCRIPTION]. They gently tap the label with one finger while speaking directly to the camera."
+- **generic:** "The [FULL AVATAR DESCRIPTION] speaks to the camera, raises one finger to mark a point, gently shakes their head to signal disagreement, confident and composed."
 
 **⚠️ GESTURE SAFETY RULE (CRITICAL):**
 - **NEVER describe finger counting** (e.g. "holds up two fingers", "counts on fingers", "shows two fingers"). AI video models cannot reliably render specific finger positions and will produce incorrect or offensive results (e.g. middle finger instead of two fingers).
@@ -215,9 +209,7 @@ export const UGC_SHOT_STRUCTURE = `## SHOT STRUCTURE
   - ✅ "raises one index finger to make a point"
   - ❌ "holds up two fingers" / "counts to two on fingers" / "shows the number with fingers"
 
-**scenePrompt** — One sentence: location, lighting, mood, camera style.
-> "Bright modern kitchen, warm natural window light, handheld UGC smartphone video aesthetic."
-
+**scenePrompt** — (Optional) Concise scene description.
 **words** — Exact narration text for this segment.`;
 
 // ─── Output Format ────────────────────────────────────────────────────────────
@@ -234,11 +226,10 @@ Return a JSON array of objects, one per segment:
       {
         "type": "product" | "generic",
         "firstFramePrompt": "...",
-        "videoPrompt": "...",
-        "scenePrompt": "...",
-        "words": "...",
-        "hasProductInteraction": true | false,
-        "productSizing": "concise sizing phrase (e.g. palm-sized small bottle)"
+        "videoPrompt": "Detailed motion description.",
+        "scenePrompt": "(Optional) Concise scene description.",
+        "words": "Exact narration text.",
+        "hasProductInteraction": true
       }
     ]
   }
@@ -265,8 +256,7 @@ Return a JSON array of objects, one per segment:
         "firstFramePrompt": "A highly detailed, self-contained image generation prompt for the FROZEN STARTING FRAME of this B-roll clip. Describe the exact product, composition, lighting, surface, and environment. Do NOT reference asset filenames like image_1.png. Example: 'A macro close-up of small blue cubic gummy supplements piled on a pristine white marble surface. Natural daylight from the left creates soft shadows, revealing the slightly crystalline texture of the gummies. Shallow depth of field, photorealistic.'",
         "videoPrompt": "...",
         "scenePrompt": "...",
-        "words": "...",
-        "productSizing": "concise sizing phrase (e.g. palm-sized small bottle)"
+        "words": "..."
       }
     ]
   }
@@ -324,11 +314,10 @@ Return a JSON array of objects, one per segment:
       {
         "type": "product" | "generic",
         "firstFramePrompt": "...",
-        "videoPrompt": "...",
-        "scenePrompt": "...",
-        "words": "...",
-        "hasProductInteraction": true | false,
-        "productSizing": "concise sizing phrase (e.g. palm-sized small bottle)"
+        "videoPrompt": "Detailed motion description.",
+        "scenePrompt": "(Optional) Concise scene description.",
+        "words": "Exact narration text.",
+        "hasProductInteraction": true
       }
     ]
   }
@@ -440,11 +429,10 @@ Return a JSON array of objects, one per segment:
       {
         "type": "product" | "generic",
         "firstFramePrompt": "...",
-        "videoPrompt": "...",
-        "scenePrompt": "...",
-        "words": "...",
-        "hasProductInteraction": true | false,
-        "productSizing": "concise sizing phrase (e.g. palm-sized small bottle)"
+        "videoPrompt": "Detailed motion description.",
+        "scenePrompt": "(Optional) Concise scene description.",
+        "words": "Exact narration text.",
+        "hasProductInteraction": true
       }
     ],
     "bRolls": [
@@ -456,8 +444,7 @@ Return a JSON array of objects, one per segment:
         "firstFramePrompt": "A highly detailed, self-contained image generation prompt for the FROZEN STARTING FRAME of this B-roll clip. Describe the exact product, composition, lighting, surface, and environment. Do NOT reference asset filenames like image_1.png.",
         "videoPrompt": "...",
         "scenePrompt": "...",
-        "words": "...",
-        "productSizing": "concise sizing phrase (e.g. palm-sized small bottle)"
+        "words": "..."
       }
     ]
   }

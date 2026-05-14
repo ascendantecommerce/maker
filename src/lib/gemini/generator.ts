@@ -976,15 +976,22 @@ CRITICAL prompt writing rules — REALISM IS PARAMOUNT for UGC ads:
    */
   async checkProductVisibility(
     imageUrl: string,
-    productDescription: string,
+    productInfo: { name?: string; description?: string; referenceImageUrls?: string[] },
   ): Promise<{ isVisible: boolean; confidence: number }> {
     try {
       const { buffer, contentType } = await fileUrlToBuffer(imageUrl);
       const base64Image = buffer.toString("base64");
 
-      const prompt = `Analyze this image to determine if the product described below is clearly and prominently visible. 
-Product Description: ${productDescription}
+      let prompt = `Analyze the target image to determine if the product described below is clearly and prominently visible. 
+`;
+      if (productInfo.name) prompt += `Product Name: ${productInfo.name}\n`;
+      if (productInfo.description) prompt += `Product Description: ${productInfo.description}\n`;
 
+      if (productInfo.referenceImageUrls && productInfo.referenceImageUrls.length > 0) {
+        prompt += `\nYou are also provided with reference images of the product for comparison.`;
+      }
+
+      prompt += `
 Identify if the product is:
 1. Clearly visible and recognizable.
 2. Partially obscured or missing.
@@ -997,9 +1004,24 @@ Return ONLY a JSON object:
   "reasoning": "Brief explanation of what is seen"
 }`;
 
+      const contents: any[] = [{ text: prompt }];
+
+      // Add reference images first
+      if (productInfo.referenceImageUrls && productInfo.referenceImageUrls.length > 0) {
+        for (const url of productInfo.referenceImageUrls.slice(0, 2)) {
+          const { buffer: refBuffer, contentType: refContentType } = await fileUrlToBuffer(url);
+          const prepared = await this.prepareImageForGemini(refBuffer, refContentType);
+          contents.push({ inlineData: prepared });
+        }
+      }
+
+      // Add the target image last
+      contents.push({ text: "TARGET IMAGE TO ANALYZE:" });
+      contents.push({ inlineData: { mimeType: contentType, data: base64Image } });
+
       const response = await this.gemini.models.generateContent({
         model: this.model,
-        contents: [{ text: prompt }, { inlineData: { mimeType: contentType, data: base64Image } }],
+        contents,
         config: { responseMimeType: "application/json" },
       });
 

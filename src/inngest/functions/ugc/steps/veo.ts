@@ -16,6 +16,54 @@ export const getClosestVeoDuration = (estimatedDuration: number) => {
   return 8;
 };
 
+export const getIsProductShot = (shot?: any) => {
+  if (!shot) return false;
+  return shot.type === "product" || shot.hasProductInteraction !== false;
+};
+
+export type UgcVideoMode = "FIRST_FRAME_TO_VIDEO" | "REFERENCE_TO_VIDEO";
+
+export interface VeoInput {
+  prompt: string;
+  negativePrompt?: string;
+  durationSeconds: number;
+  aspectRatio: string;
+  firstFrameUrl?: string;
+  lastFrameUrl?: string;
+  referenceImageUrls?: string[];
+}
+
+export interface UgcVideoRequest {
+  text: string;
+  estimatedDuration: number;
+  shot?: {
+    videoPrompt?: string;
+    type?: string;
+    hasProductInteraction?: boolean;
+  };
+  mode: UgcVideoMode;
+  firstFrameSource: "avatar" | "last_frame" | "none";
+  avatarUrl?: string;
+  product: {
+    urls: string[];
+    name?: string;
+    description?: string;
+  };
+  aspectRatio: string;
+  schemaId: string;
+  segmentId: string;
+  firstFrameUrl?: string;
+}
+
+export type WaveItem = {
+  segmentId: string; // The database ID (segment.id)
+  segData: any; // The segment_data object
+  previousSegmentDbId?: string | null;
+  mode: UgcVideoMode;
+  needsPreviousFrame: boolean;
+  firstFrameSource: "avatar" | "last_frame" | "none";
+};
+
 export function buildGenerationPlan(sortedSegments: any[]) {
   const waveGroups: any[][] = [];
   let currentGroup: any[] = [];
@@ -24,9 +72,7 @@ export function buildGenerationPlan(sortedSegments: any[]) {
   for (const seg of sortedSegments) {
     const segData = seg.segment_data as any;
     const currentShot = segData.shots?.[0];
-    const estimatedDuration = segData.estimatedDuration ?? 5;
-    const isProductShot =
-      currentShot?.type === "product" || currentShot?.hasProductInteraction !== false;
+    const isProductShot = getIsProductShot(currentShot);
 
     // Detect dependency needs:
     // Priority 1: schema explicitly flags this as a continuation of a sentence/paragraph.
@@ -39,14 +85,8 @@ export function buildGenerationPlan(sortedSegments: any[]) {
       if (!productMentionedInWaves) {
         // First product mention uses Reference mode -> no dependency
         willNeedPreviousFrame = false;
-      } else if (estimatedDuration > 6) {
-        // Long product shot uses Reference mode -> no dependency
-        willNeedPreviousFrame = false;
-      } else if (estimatedDuration < 4.5) {
-        // Short product shot uses Avatar mode -> no dependency
-        willNeedPreviousFrame = false;
       } else {
-        // Non-first product shot between 4.5-6s uses Continuity -> HAS DEPENDENCY
+        // Subsequent product shots use Continuity -> HAS DEPENDENCY
         willNeedPreviousFrame = true;
       }
     } else {
@@ -81,27 +121,15 @@ export function buildGenerationPlan(sortedSegments: any[]) {
   }
   if (currentGroup.length > 0) waveGroups.push(currentGroup);
 
-  type WaveItem = {
-    segment: any;
-    isExpand: boolean;
-    previousSegmentDbId: string | null;
-    mode: "first frame to video" | "reference to video";
-    needsPreviousFrame: boolean;
-    firstFrameSource: "avatar" | "last_frame" | "none";
-    isProductShot: boolean;
-    isFirstProductMention: boolean;
-  };
 
   let productMentionedForMapping = false;
 
   const waves: WaveItem[][] = waveGroups.map((group) =>
     group.map((seg, index) => {
       const segData = seg.segment_data as any;
-      const estimatedDuration = segData.estimatedDuration ?? 5;
       const isContinuation = index > 0;
       const currentShot = segData.shots?.[0];
-      const isProductShot =
-        currentShot?.type === "product" || currentShot?.hasProductInteraction !== false;
+      const isProductShot = getIsProductShot(currentShot);
 
       let isFirstProductMention = false;
       if (isProductShot && !productMentionedForMapping) {
@@ -109,57 +137,35 @@ export function buildGenerationPlan(sortedSegments: any[]) {
         productMentionedForMapping = true;
       }
 
-      let mode: "first frame to video" | "reference to video" = "first frame to video";
+      let mode: UgcVideoMode = "FIRST_FRAME_TO_VIDEO";
       let firstFrameSource: "avatar" | "last_frame" | "none" = "avatar";
       let needsPreviousFrame = false;
 
       // RULE PRIORITIES (highest to lowest)
-      if (segData.isContinuation === true && index > 0) {
-        // Rule 0 (Highest): Explicit schema continuation -> always use last frame of previous clip
-        mode = "first frame to video";
+      if (isContinuation) {
+        // Rule 0 (Highest): Any continuation within a wave -> always use last frame of previous clip
+        mode = "FIRST_FRAME_TO_VIDEO";
         firstFrameSource = "last_frame";
         needsPreviousFrame = true;
       } else if (isFirstProductMention) {
-        // Rule 1: First product mention -> References
-        mode = "reference to video";
+        // Rule 1: First product mention at start of wave -> References
+        mode = "REFERENCE_TO_VIDEO";
         firstFrameSource = "none";
         needsPreviousFrame = false;
-      } else if (!isProductShot) {
-        // Rule 2: No product -> Avatar talking head
-        mode = "first frame to video";
-        firstFrameSource = "avatar";
-        needsPreviousFrame = false;
-      } else if (estimatedDuration < 4.5) {
-        // Rule 3: Short product shot < 4.5s -> Avatar (isContinuation already handled above)
-        mode = "first frame to video";
-        firstFrameSource = "avatar";
-        needsPreviousFrame = false;
-      } else if (isProductShot && estimatedDuration > 6) {
-        // Rule 4: Product shot > 6s -> References
-        mode = "reference to video";
-        firstFrameSource = "none";
-        needsPreviousFrame = false;
-      } else if (isContinuation) {
-        // Fallthrough (Implicit Continuity): 4.5-6s, product mentioned, not first time
-        mode = "first frame to video";
-        firstFrameSource = "last_frame";
-        needsPreviousFrame = true;
       } else {
-        // Default: Start of scene, not first mention, 4.5-6s
-        mode = "first frame to video";
+        // Rule 2: Start of wave, not first mention (or non-product shot) -> Avatar
+        mode = "FIRST_FRAME_TO_VIDEO";
         firstFrameSource = "avatar";
         needsPreviousFrame = false;
       }
 
       return {
-        segment: seg,
-        isExpand: isContinuation,
+        segmentId: seg.id,
+        segData,
         previousSegmentDbId: isContinuation ? group[index - 1].id : null,
         mode,
         needsPreviousFrame,
         firstFrameSource,
-        isProductShot,
-        isFirstProductMention,
       };
     }),
   );
@@ -205,207 +211,37 @@ export const extractLastFrameFromVideoUrl = async ({
   }
 };
 
-export const generateAndUploadVeo = async ({
-  segData,
-  isExpand,
-  previousSegmentDbId,
-  globalIndex,
-  videoUrlByDbId,
-  avatarUrl,
-  productUrls,
+export async function generateVeoVideoRaw({
+  input,
+  services,
   schemaId,
   segmentId,
-  schema,
-  services,
-  mode,
-  firstFrameSource,
-  isProductShot,
-  isFirstProductMention,
 }: {
-  segData: Segment;
-  isExpand: boolean;
-  previousSegmentDbId: string | null;
-  globalIndex: number;
-  videoUrlByDbId: Record<string, string | null>;
-  avatarUrl?: string;
-  productUrls: string[];
+  input: VeoInput;
+  services: UgcServices;
   schemaId: string;
   segmentId: string;
-  schema: VideoSchema;
-  services: UgcServices;
-  mode: "first frame to video" | "reference to video";
-  firstFrameSource: "avatar" | "last_frame" | "none";
-  isProductShot: boolean;
-  isFirstProductMention: boolean;
-}) => {
-  const { videoGenerator, gemini, r2 } = services;
-  const MAX_RETRIES = 3;
-  let retryCount = 0;
-  let rawVideoUrl: string | null = null;
+}) {
+  const { videoGenerator, r2 } = services;
 
-  while (retryCount < MAX_RETRIES && !rawVideoUrl) {
-    try {
-      const estimatedDuration = segData.estimatedDuration ?? 5;
-      let durationSeconds = getClosestVeoDuration(estimatedDuration);
+  const generatorOutput = await videoGenerator.create({
+    prompt: input.prompt,
+    negativePrompt: input.negativePrompt || buildUgcNegativePrompt(),
+    style: "Cinematic",
+    aspectRatio: input.aspectRatio,
+    durationSeconds: input.durationSeconds,
+    firstFrameUrl: input.firstFrameUrl,
+    lastFrameUrl: input.lastFrameUrl,
+    referenceImageUrls: input.referenceImageUrls,
+  });
 
-      const currentShot = segData.shots?.[0];
-      let finalPrompt = buildUgcPrompt(segData.text ?? "", "", "");
-      if (currentShot) {
-        finalPrompt = buildUgcPrompt(
-          segData.text ?? "",
-          currentShot.videoPrompt,
-          currentShot.scenePrompt,
-          currentShot.productSizing,
-        );
-      }
-
-      let useFirstFrame = mode === "first frame to video";
-      let useReferences = mode === "reference to video";
-
-      let firstFrameUrlToUse: string | undefined = undefined;
-      let referenceImageUrlsToUse: string[] | undefined = undefined;
-      let lastFrameUrlToUse: string | undefined = undefined;
-
-      // Track the initial duration to fallback properly if continuity fails
-      const initialDurationSeconds = durationSeconds;
-
-      if (useFirstFrame) {
-        if (firstFrameSource === "avatar") {
-          console.log(`[Veo] Using avatarUrl as firstFrame for segment: ${segmentId}`);
-          firstFrameUrlToUse = avatarUrl;
-        } else if (firstFrameSource === "last_frame") {
-          // The orchestrator pre-extracts the last frame PNG from the previous segment's result
-          // and passes it here via videoUrlByDbId. Use it directly — no re-ffmpeg needed.
-          const preExtractedLastFrameUrl = previousSegmentDbId
-            ? videoUrlByDbId[previousSegmentDbId]
-            : null;
-
-          if (preExtractedLastFrameUrl) {
-            console.log(
-              `[Veo] Continuity mode: using pre-extracted last frame for segment: ${segmentId}`,
-            );
-            firstFrameUrlToUse = preExtractedLastFrameUrl;
-            lastFrameUrlToUse = avatarUrl;
-            durationSeconds = 8; // Continuity interpolation forces 8s generation
-
-            // Verify product visibility in the pre-extracted frame
-            if (isProductShot) {
-              const productDescription = (schema as any)?.product?.description ?? "";
-              const visibility = await gemini.checkProductVisibility(
-                firstFrameUrlToUse,
-                productDescription,
-              );
-
-              const isClearlyVisible = visibility.isVisible && visibility.confidence > 0.7;
-
-              if (!isClearlyVisible) {
-                console.log(
-                  `[Veo] Product NOT clearly visible in last frame (Confidence: ${visibility.confidence}). Applying fallback...`,
-                );
-
-                const originalEstimatedDuration =
-                  (segData as any).originalEstimatedDuration ?? estimatedDuration;
-
-                if (originalEstimatedDuration > 4.5) {
-                  // Fallback to Reference Mode for longer product shots
-                  console.log(`[Veo] Falling back to Reference Mode.`);
-                  useFirstFrame = false;
-                  useReferences = true;
-                  firstFrameUrlToUse = undefined;
-                  lastFrameUrlToUse = undefined;
-                  durationSeconds = 8;
-                } else {
-                  // Transform short product shot to Generic talking head
-                  console.log(`[Veo] Transforming short product shot to Generic talking head.`);
-                  firstFrameUrlToUse = avatarUrl;
-                  lastFrameUrlToUse = undefined;
-                  durationSeconds = initialDurationSeconds;
-                }
-              }
-            }
-          } else {
-            console.warn(
-              `[Veo] Continuation expected but no pre-extracted frame found. Using avatar.`,
-            );
-            firstFrameUrlToUse = avatarUrl;
-            lastFrameUrlToUse = undefined;
-            durationSeconds = initialDurationSeconds;
-          }
-        } else {
-          firstFrameUrlToUse = avatarUrl;
-        }
-
-        // If we ended up using the Avatar as first frame but it was a product-heavy shot,
-        // we MUST rewrite the prompt to a generic talking head to prevent hallucinations.
-        if (firstFrameUrlToUse === avatarUrl && isProductShot && currentShot) {
-          console.log(`[Veo] Rewriting prompt to Generic for avatar-based first frame.`);
-          const avatarDescription =
-            (schema as any)?.avatar?.description ?? "A professional avatar speaker";
-          const productDesc = (schema as any)?.product?.description ?? "";
-          const rewrittenVideoPrompt = await gemini.rewriteToGenericPrompt(
-            currentShot,
-            avatarDescription,
-            productDesc,
-          );
-          finalPrompt = buildUgcPrompt(
-            segData.text,
-            rewrittenVideoPrompt,
-            currentShot?.scenePrompt,
-            "",
-          );
-        }
-      }
-
-      if (useReferences) {
-        referenceImageUrlsToUse = [...(avatarUrl ? [avatarUrl] : []), ...productUrls];
-        durationSeconds = 8; // Reference injections also force 8s
-      }
-
-      console.log({
-        segmentId,
-        mode: useFirstFrame ? "first-frame" : "references",
-        durationSeconds,
-        hasFirstFrame: !!firstFrameUrlToUse,
-        hasReferences: !!referenceImageUrlsToUse,
-        firstFrameUrlToUse,
-        lastFrameUrlToUse,
-      });
-
-      console.log({ finalPrompt });
-
-      const negativePrompt = buildUgcNegativePrompt();
-      const generatorOutput = await videoGenerator.create({
-        prompt: finalPrompt,
-        negativePrompt,
-        style: "Cinematic",
-        aspectRatio: (schema as any).aspect_ratio ?? "9:16",
-        durationSeconds,
-        firstFrameUrl: firstFrameUrlToUse,
-        lastFrameUrl: lastFrameUrlToUse,
-        referenceImageUrls: referenceImageUrlsToUse,
-      });
-      rawVideoUrl = typeof generatorOutput === "string" ? generatorOutput : generatorOutput.url;
-    } catch (e: any) {
-      retryCount++;
-      console.error(
-        `[Veo Retry ${retryCount}/${MAX_RETRIES}] Failed to generate segment ${segmentId}:`,
-        e.message,
-      );
-      if (retryCount >= MAX_RETRIES) {
-        throw new Error(
-          `Failed to generate segment ${segmentId} after ${MAX_RETRIES} attempts. Last error: ${e.message}`,
-        );
-      }
-      await new Promise((r) => setTimeout(r, 5000));
-    }
-  }
+  const rawVideoUrl = typeof generatorOutput === "string" ? generatorOutput : generatorOutput.url;
 
   if (!rawVideoUrl) {
-    throw new Error(
-      `Veo failed to generate for segment ${segmentId} after ${MAX_RETRIES} attempts.`,
-    );
+    throw new Error(`Veo failed to generate for segment ${segmentId}`);
   }
 
+  // Handle base64 or URL
   let buffer: Buffer;
   let contentType = "video/mp4";
 
@@ -422,12 +258,92 @@ export const generateAndUploadVeo = async ({
     buffer = Buffer.from(arrayBuffer);
     contentType = response.headers.get("content-type") || "video/mp4";
   }
+
   const fileName = `ugc-videos/${schemaId}/${segmentId}/raw-${nanoid()}.mp4`;
+  const rawR2Url = await r2.uploadData(fileName, buffer, contentType);
+
+  return { rawR2Url };
+}
+
+export async function resolveVeoGenerationStrategy(
+  request: UgcVideoRequest,
+  services: UgcServices
+): Promise<VeoInput> {
+  const { gemini } = services;
+  let durationSeconds = getClosestVeoDuration(request.estimatedDuration);
+  const initialDurationSeconds = durationSeconds;
+
+  let finalPrompt = buildUgcPrompt(
+    request.shot?.videoPrompt ?? ""
+  );
+
+  let useFirstFrame = request.mode === "FIRST_FRAME_TO_VIDEO";
+  let useReferences = request.mode === "REFERENCE_TO_VIDEO";
+
+  let firstFrameUrlToUse: string | undefined = undefined;
+  let referenceImageUrlsToUse: string[] | undefined = undefined;
+  let lastFrameUrlToUse: string | undefined = undefined;
+
+  if (useFirstFrame) {
+    if (request.firstFrameSource === "avatar") {
+      firstFrameUrlToUse = request.avatarUrl;
+    } else if (request.firstFrameSource === "last_frame") {
+      const preExtractedLastFrameUrl = request.firstFrameUrl;
+
+      if (preExtractedLastFrameUrl) {
+        firstFrameUrlToUse = preExtractedLastFrameUrl;
+        lastFrameUrlToUse = request.avatarUrl;
+        durationSeconds = 8;
+
+        if (getIsProductShot(request.shot)) {
+          const visibility = await gemini.checkProductVisibility(
+            firstFrameUrlToUse,
+            {
+              name: request.product.name,
+              description: request.product.description,
+              referenceImageUrls: request.product.urls,
+            }
+          );
+
+          if (!visibility.isVisible || visibility.confidence < 0.7) {
+            // Fallback to avatar talking head if product visibility is low
+            firstFrameUrlToUse = request.avatarUrl;
+            lastFrameUrlToUse = undefined;
+            durationSeconds = initialDurationSeconds;
+          }
+        }
+      } else {
+        firstFrameUrlToUse = request.avatarUrl;
+        durationSeconds = initialDurationSeconds;
+      }
+    } else {
+      firstFrameUrlToUse = request.avatarUrl;
+    }
+
+    // Simplified Prompt Fallback instead of Gemini rewrite
+    if (firstFrameUrlToUse === request.avatarUrl && getIsProductShot(request.shot)) {
+      console.log(`[Veo] Using simple avatar fallback prompt for segment: ${request.segmentId}`);
+      finalPrompt = `AUDIO DIALOGUE (SPOKEN ONLY): "${request.text}"\nACTION: A professional avatar speaker speaks directly to the camera.`;
+    }
+  }
+
+  if (useReferences) {
+    referenceImageUrlsToUse = [
+      ...(request.avatarUrl ? [request.avatarUrl] : []),
+      ...request.product.urls,
+    ];
+    durationSeconds = 8;
+  }
 
   return {
-    rawR2Url: await r2.uploadData(fileName, buffer, contentType),
+    prompt: finalPrompt,
+    durationSeconds,
+    aspectRatio: request.aspectRatio,
+    firstFrameUrl: firstFrameUrlToUse,
+    lastFrameUrl: lastFrameUrlToUse,
+    referenceImageUrls: referenceImageUrlsToUse,
   };
-};
+}
 
 export const updateVeoSegmentInDb = async ({
   segmentDbId,
@@ -435,21 +351,23 @@ export const updateVeoSegmentInDb = async ({
   finalR2Url,
   tsUrl,
   actualDuration,
+  mode,
+  firstFrameSource,
 }: {
   segmentDbId: string;
   segData: Segment;
   finalR2Url: string;
   tsUrl?: string;
   actualDuration: number;
+  mode?: string;
+  firstFrameSource?: string;
 }) => {
   const prompt =
     (segData.shots?.length ?? 0) > 0
       ? buildUgcPrompt(
-          segData.text ?? "",
           segData.shots![0].videoPrompt,
-          segData.shots![0].scenePrompt,
         )
-      : buildUgcPrompt(segData.text ?? "", "", "");
+      : buildUgcPrompt("");
   const assetId = nanoid();
 
   const existingAssets = (segData.assets ?? []).map((a: any) => ({
@@ -484,14 +402,17 @@ export const updateVeoSegmentInDb = async ({
 
   if (updatePayload.shots && updatePayload.shots.length > 0) {
     const originalShot = updatePayload.shots[0];
+    const durationMs = actualDuration * 1000;
     updatePayload.shots[0] = {
       ...originalShot,
       videoUrl: finalR2Url,
-      duration: actualDuration,
-      display: { from: 0, to: actualDuration },
+      duration: durationMs,
+      display: { from: 0, to: durationMs },
       prompt: originalShot.prompt || originalShot.videoPrompt || originalShot.scenePrompt || "",
       category: originalShot.category || "Avatar",
       words: originalShot.words || segData.text || "",
+      mode: mode || originalShot.mode,
+      firstFrameSource: firstFrameSource || originalShot.firstFrameSource,
     };
   }
 
@@ -509,57 +430,61 @@ export const updateVeoSegmentInDb = async ({
     .execute();
 };
 
-/**
- * Unified function for generating 1 video:
- * 1. call video generator
- * 2. isolates voice using phonos api
- * 3. uploads it and return originalUrl and improved url and other needed params
- */
-export async function generateUgcVideo({
-  segData,
-  isExpand,
-  previousSegmentDbId,
-  globalIndex,
-  videoUrlByDbId,
-  avatarUrl,
-  productUrls,
-  schemaId,
-  segmentId,
-  schema,
-  services,
+export const updateUgcShotMetadata = async ({
+  segmentDbId,
   mode,
   firstFrameSource,
-  isProductShot,
-  isFirstProductMention,
 }: {
-  segData: Segment;
-  isExpand: boolean;
-  previousSegmentDbId: string | null;
-  globalIndex: number;
-  videoUrlByDbId: Record<string, string | null>;
-  avatarUrl?: string;
-  productUrls: string[];
-  schemaId: string;
-  projectId: string;
-  segmentId: string;
-  schema: VideoSchema;
+  segmentDbId: string;
+  mode?: string;
+  firstFrameSource?: string;
+}) => {
+  const freshSeg = await db
+    .selectFrom("segments")
+    .select("segment_data")
+    .where("id", "=", segmentDbId)
+    .executeTakeFirst();
+
+  if (!freshSeg) return;
+
+  const currentSegData = freshSeg.segment_data as any;
+  if (currentSegData.shots && currentSegData.shots.length > 0) {
+    currentSegData.shots[0] = {
+      ...currentSegData.shots[0],
+      mode: mode || currentSegData.shots[0].mode,
+      firstFrameSource: firstFrameSource || currentSegData.shots[0].firstFrameSource,
+    };
+    console.log(JSON.stringify(currentSegData))
+    await db
+      .updateTable("segments")
+      .set({
+        segment_data: currentSegData,
+        updated_at: new Date(),
+      })
+      .where("id", "=", segmentDbId)
+      .execute();
+  }
+};
+
+/**
+ * Unified function for generating 1 video:
+ * 1. Resolves generation strategy (prompts, frames, durations)
+ * 2. Calls video generator and uploads raw result to R2
+ * 3. Isolates voice, trims, and re-transcribes the result
+ */
+export async function generateUgcVideo({
+  request,
+  services,
+}: {
+  request: UgcVideoRequest;
   services: UgcServices;
-  mode: "first frame to video" | "reference to video";
-  firstFrameSource: "avatar" | "last_frame" | "none";
-  isProductShot: boolean;
-  isFirstProductMention: boolean;
-  runToken: string;
-  phonosSemaphore: any;
 }) {
-  const estimatedDurationInit = segData.estimatedDuration ?? 5;
-  const targetDuration = 7.5; // Max target duration
+  const estimatedDurationInit = request.estimatedDuration ?? 5;
+  const targetDuration = 7.75; // Aim close to 8s
 
-  // Apply fillers if it's reference mode OR continuity mode (last_frame interpolation) and shorter than 6.75s
-  const isShortReferenceMode = mode === "reference to video" && estimatedDurationInit < 6.75;
-  const isShortContinuityMode = firstFrameSource === "last_frame" && estimatedDurationInit < 6.75;
-  const needsFiller = isShortReferenceMode || isShortContinuityMode;
+  const needsFiller = estimatedDurationInit < 6.75;
 
-  let localSegData = { ...segData };
+  let localRequest = { ...request };
 
   if (needsFiller) {
     const timeToFillSeconds = Math.max(0, targetDuration - estimatedDurationInit);
@@ -586,52 +511,51 @@ export async function generateUgcVideo({
         break;
     }
 
-    const modeName = isShortContinuityMode ? "continuity" : "reference";
-    console.log(
-      `[Veo] Padding short ${modeName} video script [${estimatedDurationInit}s]. Adding ~${fillerSecondsNeeded}s filler to hit ~7.5s.`,
-    );
+    const prompt = localRequest.shot?.videoPrompt || "";
+    const dialogueRegex = /AUDIO DIALOGUE \(SPOKEN ONLY\):\s*([\s\S]*?)(?:\r?\n\s*VISUALS:|$)/i;
+    const match = prompt.match(dialogueRegex);
 
-    const trimmedBase = localSegData.text?.trim() ?? "";
-    const textWithDot = trimmedBase.endsWith(".") ? trimmedBase : `${trimmedBase}.`;
-    localSegData.text = `${textWithDot} ${selectedFiller}`;
-    localSegData.estimatedDuration = estimatedDurationInit + fillerSecondsNeeded; // Override so orchestration recognizes the bump
+    if (match) {
+      const currentText = match[1].trim();
+      const textWithDot = currentText.endsWith(".") ? currentText : `${currentText}.`;
+      const updatedDialogue = `AUDIO DIALOGUE (SPOKEN ONLY): ${textWithDot} ${selectedFiller}`;
+
+      if (localRequest.shot) {
+        // Use a function in replace to avoid issues with special characters in the text
+        localRequest.shot.videoPrompt = prompt.replace(dialogueRegex, (matchStr, p1) => {
+          return matchStr.replace(p1, `${textWithDot} ${selectedFiller}\n`);
+        });
+      }
+      localRequest.text = `${textWithDot} ${selectedFiller}`;
+    }
+
+    localRequest.estimatedDuration = estimatedDurationInit + fillerSecondsNeeded; // Override so orchestration recognizes the bump
   }
 
-  (localSegData as any).originalEstimatedDuration = estimatedDurationInit;
+  // 1. Resolve Strategy
+  const veoInput = await resolveVeoGenerationStrategy(localRequest, services);
 
-  // 1. Generate the video
-  const { rawR2Url } = await generateAndUploadVeo({
-    segData: localSegData,
-    isExpand,
-    previousSegmentDbId,
-    globalIndex,
-    videoUrlByDbId,
-    avatarUrl,
-    productUrls,
-    schemaId,
-    segmentId,
-    schema,
+  console.log("veoInput", veoInput);
+  // 2. Generate the video
+  const { rawR2Url } = await generateVeoVideoRaw({
+    input: veoInput,
     services,
-    mode,
-    firstFrameSource,
-    isProductShot,
-    isFirstProductMention,
+    schemaId: request.schemaId,
+    segmentId: request.segmentId,
   });
 
-  // 2. Isolate voice, trim, extract last frame, and re-transcribe
+  // 3. Isolate voice, trim, extract last frame, and re-transcribe
   const processedVideo = await transcribeAndTrimVeoVideo({
     rawR2Url,
-    schemaId,
-    segmentId,
-    expectedText: segData.text,
+    schemaId: request.schemaId,
+    segmentId: request.segmentId,
+    expectedText: localRequest.text,
     tts: services.tts,
   });
 
-  // lastFrameUrl is extracted inside transcribeAndTrimVeoVideo from the in-memory trimmed buffer,
-  // avoiding a redundant network download.
   const { finalR2Url, actualDuration, tsUrl, lastFrameUrl, isolatedVideoUrl } = processedVideo;
 
-  // 3. Return everything needed
+  // 4. Return everything needed
   return {
     rawR2Url, // The original video without isolation
     isolatedVideoUrl, // The raw untrimmed video with the isolated voice

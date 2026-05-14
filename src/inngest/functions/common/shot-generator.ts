@@ -1,9 +1,8 @@
 import fs from "fs";
 import { getInngestApp } from "../../index";
-import { db } from "@/lib/database";
 import { initializeServices } from "./services";
 import { generateImage, generateVideoClip } from "./steps/visuals";
-import { fetchWorkflowState, ensureObject } from "./services/utils";
+import { ensureObject } from "./services/utils";
 import { segmentQueries } from "@/lib/database/segment-queries";
 import { projectQueries } from "@/lib/database/project-queries";
 import { generationQueries } from "@/lib/database/generation-queries";

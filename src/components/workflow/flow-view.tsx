@@ -118,13 +118,12 @@ export default function FlowView({ onReady }: FlowViewProps) {
   );
 
   const stableOnGenerate = useCallback(
-    (segmentId: string, shotIndexStr: string, type: "IMAGE" | "VIDEO", model?: string) => {
+    (segmentId: string, shotIndexStr: string, type: "IMAGE" | "VIDEO", model?: string, options?: { mode?: string; firstFrameSource?: string }) => {
       const schemaType = schema?.type || "";
-      const isUGCProject = schemaType === "ugc-video-ad" || schemaType === "fake-ugc-video-ad";
-
+      const isUGCProject = schemaType === "ugc-video-ad"
       if (isUGCProject) {
         if (type === "VIDEO") {
-          handleGenerateUGCVideo(segmentId);
+          handleGenerateUGCVideo(segmentId, options);
         } else {
           handleGenerateUGCImage(segmentId);
         }

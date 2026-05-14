@@ -56,10 +56,12 @@ export type PromptNodeData = {
   promptText: string;
   status: "idle" | "processing" | "success" | "error";
   model?: string;
+  mode?: "FIRST_FRAME_TO_VIDEO" | "REFERENCE_TO_VIDEO";
+  firstFrameSource?: "last_frame" | "avatar";
   assets?: { id: string; url: string; name: string; type: string }[];
   segmentId?: string;
   onUpdate?: (id: string, updates: any) => void;
-  onGenerate?: (segmentId: string, shotIndexStr: string, type: "IMAGE" | "VIDEO", model?: string) => void;
+  onGenerate?: (segmentId: string, shotIndexStr: string, type: "IMAGE" | "VIDEO", model?: string, options?: { mode?: string; firstFrameSource?: string }) => void;
 };
 
 export type PromptNode = Node<PromptNodeData, "prompt">;
@@ -113,10 +115,10 @@ function PromptNode({ id, data, selected }: NodeProps<PromptNode>) {
               />
             </div>
 
-            {data.shotType === "product" && data.assets && data.assets.length > 0 && (
+            {data.assets && data.assets.length > 0 && (
               <div className="space-y-2">
                 <Label className="text-[10px] uppercase text-muted-foreground flex items-center gap-1.5">
-                  Assets
+                  {data.type === "VIDEO" ? "Source Image" : "Assets"}
                 </Label>
                 <div className="flex flex-row gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-muted-foreground/10 scrollbar-track-transparent">
                   {data.assets.map((asset) => (
@@ -139,45 +141,107 @@ function PromptNode({ id, data, selected }: NodeProps<PromptNode>) {
           </CardContent>
 
           <CardFooter className="flex items-center justify-between gap-2 p-4 bg-muted/20 border-t border-border/40">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="nodrag flex items-center gap-1.5 h-9 px-3 rounded-full bg-card  border border-border hover:border-border hover:bg-accent transition-all text-left shrink-0 min-w-0 max-w-[180px] group">
-                  <BananaIcon className="w-3.5 h-3.5 text-primary shrink-0" />
-                  <span className="text-[11px] font-semibold text-foreground/80 truncate">{activeModel.name}</span>
-                  <ChevronDown className="w-3 h-3 text-muted-foreground/60 shrink-0 ml-auto group-data-[state=open]:rotate-180 transition-transform" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-[220px] p-1.5">
-                {NANO_BANANA_MODELS.map((model) => (
-                  <DropdownMenuItem
-                    key={model.id}
-                    className="flex items-start gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer"
-                    onSelect={() => handleModelChange(model.id)}
+            <div className="flex items-center gap-2 shrink-0">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button 
+                    className="nodrag flex items-center justify-center w-9 h-9 rounded-full bg-card border border-border hover:border-primary/50 hover:bg-accent transition-all shrink-0 group outline-none"
+                    title={`Model: ${activeModel.name}`}
                   >
-                    <BananaIcon className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                    <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[12px] font-semibold text-foreground truncate">{model.name}</span>
-
+                    <BananaIcon className="w-4 h-4 text-primary shrink-0" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-[220px] p-1.5">
+                  {NANO_BANANA_MODELS.map((model) => (
+                    <DropdownMenuItem
+                      key={model.id}
+                      className="flex items-start gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer"
+                      onSelect={() => handleModelChange(model.id)}
+                    >
+                      <BananaIcon className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                      <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[12px] font-semibold text-foreground truncate">{model.name}</span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground/60 truncate">{model.description}</span>
                       </div>
-                      <span className="text-[10px] text-muted-foreground/60 truncate">{model.description}</span>
-                    </div>
-                    {selectedModel === model.id && (
-                      <Check className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
-                    )}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                      {selectedModel === model.id && (
+                        <Check className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {isVideo && (
+                <>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button 
+                        className="nodrag flex items-center justify-center w-9 h-9 rounded-full bg-card border border-border hover:border-primary/50 hover:bg-accent transition-all shrink-0 group outline-none"
+                        title={`Mode: ${data.mode === "FIRST_FRAME_TO_VIDEO" ? "First Frame" : "Reference"}`}
+                      >
+                        <Sparkles className="w-4 h-4 text-primary shrink-0" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-[180px] p-1.5">
+                      <DropdownMenuItem
+                        className="rounded-lg"
+                        onSelect={() => data.onUpdate?.(id, { mode: "FIRST_FRAME_TO_VIDEO" })}
+                      >
+                        <span className="text-[12px]">First Frame to Video</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="rounded-lg"
+                        onSelect={() => data.onUpdate?.(id, { mode: "REFERENCE_TO_VIDEO" })}
+                      >
+                        <span className="text-[12px]">Reference to Video</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button 
+                        className="nodrag flex items-center justify-center w-9 h-9 rounded-full bg-card border border-border hover:border-primary/50 hover:bg-accent transition-all shrink-0 group outline-none"
+                        title={`Source: ${data.firstFrameSource === "last_frame" ? "Last Frame" : "Avatar"}`}
+                      >
+                        <ImageIcon className="w-4 h-4 text-primary shrink-0" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-[180px] p-1.5">
+                      <DropdownMenuItem
+                        className="rounded-lg"
+                        onSelect={() => data.onUpdate?.(id, { firstFrameSource: "last_frame" })}
+                      >
+                        <span className="text-[12px]">Use Last Frame</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="rounded-lg"
+                        onSelect={() => data.onUpdate?.(id, { firstFrameSource: "avatar" })}
+                      >
+                        <span className="text-[12px]">Use Avatar</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
+              )}
+            </div>
 
             <Button
               className={cn(
-                "h-9 w-9 p-0 rounded-full shadow-2xl transition-all "
+                "h-9 w-9 p-0 rounded-full shadow-2xl transition-all shrink-0"
               )}
               variant={data.status === "processing" ? "outline" : 'default'}
               onClick={() => {
                 if (data.segmentId && data.shotIndex !== undefined) {
-                  data.onGenerate?.(data.segmentId, data.shotIndex.toString(), data.type, selectedModel);
+                  data.onGenerate?.(
+                    data.segmentId, 
+                    data.shotIndex.toString(), 
+                    data.type, 
+                    selectedModel,
+                    { mode: data.mode, firstFrameSource: data.firstFrameSource }
+                  );
                 }
               }}
               disabled={data.status === "processing"}
