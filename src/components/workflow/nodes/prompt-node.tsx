@@ -24,30 +24,46 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
 
 const NANO_BANANA_MODELS = [
   {
     id: "gemini-2.5-flash-image",
     name: "Nano Banana",
-    tier: "Free",
     description: "Gemini 2.5 Flash Image",
   },
   {
     id: "gemini-3.1-flash-image-preview",
     name: "Nano Banana 2",
-    tier: "Paid",
     description: "Gemini 3.1 Flash Image Preview",
   },
   {
     id: "gemini-3-pro-image-preview",
     name: "Nano Banana Pro",
-    tier: "Paid",
     description: "Gemini 3 Pro Image Preview",
   },
 ] as const;
 
+const VEO_MODELS = [
+  {
+    id: "veo-3.1-generate-preview",
+    name: "Veo 3.1",
+    description: "veo-3.1-generate-preview",
+  },
+  {
+    id: "veo-3.1-fast-generate-preview",
+    name: "Veo 3.1 Fast",
+    description: "veo-3.1-fast-generate-preview",
+  },
+  {
+    id: "veo-3.1-lite-generate-preview",
+    name: "Veo 3.1 Lite",
+    description: "veo-3.1-lite-generate-preview",
+  },
+] as const;
+
 type NanoBananaModelId = (typeof NANO_BANANA_MODELS)[number]["id"];
+type VeoModelId = (typeof VEO_MODELS)[number]["id"];
+type AnyModelId = NanoBananaModelId | VeoModelId;
 
 const SHOT_TYPES = [
   { id: "product", label: "Product" },
@@ -93,6 +109,7 @@ export type PromptNodeData = {
   firstFrameSource?: "last_frame" | "avatar";
   assets?: { id: string; url: string; name: string; type: string }[];
   segmentId?: string;
+  schemaType?: string;
   words?: string;
   display?: { from: number; to: number };
   onUpdate?: (id: string, updates: any) => void;
@@ -111,18 +128,20 @@ function PromptNode({ id, data, selected }: NodeProps<PromptNode>) {
   const isVideo = data.type === "VIDEO";
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const [selectedModel, setSelectedModel] = useState<NanoBananaModelId>(
-    (data.model as NanoBananaModelId) ?? "gemini-2.5-flash-image",
+  const MODELS = isVideo ? VEO_MODELS : NANO_BANANA_MODELS;
+  const defaultModelId = isVideo ? "veo-3.1-fast-generate-preview" : "gemini-2.5-flash-image";
+
+  const [selectedModel, setSelectedModel] = useState<AnyModelId>(
+    (data.model as AnyModelId) ?? defaultModelId,
   );
   const [selectedShotType, setSelectedShotType] = useState<ShotTypeId>(
     (data.shotType as ShotTypeId) ?? "generic",
   );
 
-  const activeModel =
-    NANO_BANANA_MODELS.find((m) => m.id === selectedModel) ?? NANO_BANANA_MODELS[0];
+  const activeModel = MODELS.find((m) => m.id === selectedModel) ?? MODELS[0];
   const activeShotType = SHOT_TYPES.find((s) => s.id === selectedShotType) ?? SHOT_TYPES[1];
 
-  const handleModelChange = (modelId: NanoBananaModelId) => {
+  const handleModelChange = (modelId: AnyModelId) => {
     setSelectedModel(modelId);
     data.onUpdate?.(id, { model: modelId });
   };
@@ -149,12 +168,12 @@ function PromptNode({ id, data, selected }: NodeProps<PromptNode>) {
           selected && "border-primary/40",
         )}
       >
-        <div className="flex flex-col h-full">
-          <CardContent className="p-4 space-y-4 flex-1">
+        <div className="flex flex-col h-full overflow-hidden">
+          <CardContent className="p-4 space-y-4 flex-1 flex flex-col overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/10 scrollbar-track-transparent">
 
             {/* ── Prompt ── */}
-            <div className="space-y-2">
-              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            <div className="space-y-2 flex flex-col flex-1 min-h-[80px] shrink-0">
+              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">
                 Prompt
               </Label>
               <Textarea
@@ -169,7 +188,7 @@ function PromptNode({ id, data, selected }: NodeProps<PromptNode>) {
                   })
                 }
                 placeholder="Describe the visual scene..."
-                className="nodrag nopan nowheel h-[140px] text-[13px] leading-relaxed bg-muted/20 border-border/40 focus-visible:ring-1 focus-visible:ring-primary/40 p-2.5 resize-none overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/10 scrollbar-track-transparent placeholder:text-muted-foreground/20"
+                className="nodrag nopan nowheel flex-1 text-[13px] leading-relaxed bg-muted/20 border-border/40 focus-visible:ring-1 focus-visible:ring-primary/40 p-2.5 resize-none overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/10 scrollbar-track-transparent placeholder:text-muted-foreground/20"
               />
             </div>
 
@@ -181,7 +200,10 @@ function PromptNode({ id, data, selected }: NodeProps<PromptNode>) {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="nodrag w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-muted/20 border border-border/40 hover:border-primary/40 hover:bg-muted/40 transition-all outline-none text-left">
-                    <BananaIcon className="w-3.5 h-3.5 text-primary shrink-0" />
+                    {isVideo
+                      ? <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
+                      : <BananaIcon className="w-3.5 h-3.5 text-primary shrink-0" />
+                    }
                     <div className="flex flex-col min-w-0 flex-1">
                       <span className="text-[12px] font-medium text-foreground truncate">
                         {activeModel.name}
@@ -190,33 +212,23 @@ function PromptNode({ id, data, selected }: NodeProps<PromptNode>) {
                         {activeModel.description}
                       </span>
                     </div>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "text-[9px] px-1.5 py-0 shrink-0",
-                        activeModel.tier === "Free"
-                          ? "border-emerald-500/40 text-emerald-400"
-                          : "border-amber-500/40 text-amber-400",
-                      )}
-                    >
-                      {activeModel.tier}
-                    </Badge>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-[220px] p-1.5">
-                  {NANO_BANANA_MODELS.map((model) => (
+                  {MODELS.map((model) => (
                     <DropdownMenuItem
                       key={model.id}
                       className="flex items-start gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer"
-                      onSelect={() => handleModelChange(model.id)}
+                      onSelect={() => handleModelChange(model.id as AnyModelId)}
                     >
-                      <BananaIcon className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                      {isVideo
+                        ? <Sparkles className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                        : <BananaIcon className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                      }
                       <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[12px] font-semibold text-foreground truncate">
-                            {model.name}
-                          </span>
-                        </div>
+                        <span className="text-[12px] font-semibold text-foreground truncate">
+                          {model.name}
+                        </span>
                         <span className="text-[10px] text-muted-foreground/60 truncate">
                           {model.description}
                         </span>
@@ -229,6 +241,79 @@ function PromptNode({ id, data, selected }: NodeProps<PromptNode>) {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
+
+            {/* ── Mode + First Frame Source (video only) ── */}
+            {isVideo && (
+              <>
+                <div className="space-y-2">
+                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <Sparkles className="w-3 h-3" />
+                    Mode
+                  </Label>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="nodrag w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-muted/20 border border-border/40 hover:border-primary/40 hover:bg-muted/40 transition-all outline-none text-left">
+                        <span className="text-[12px] font-medium text-foreground flex-1">
+                          {data.mode === "FIRST_FRAME_TO_VIDEO" ? "First Frame to Video" : "Reference to Video"}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground/40">▾</span>
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-[200px] p-1.5">
+                      <DropdownMenuItem
+                        className="rounded-lg"
+                        onSelect={() => data.onUpdate?.(id, { mode: "FIRST_FRAME_TO_VIDEO" })}
+                      >
+                        <span className="text-[12px]">First Frame to Video</span>
+                        {data.mode === "FIRST_FRAME_TO_VIDEO" && <Check className="w-3.5 h-3.5 text-primary ml-auto" />}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="rounded-lg"
+                        onSelect={() => data.onUpdate?.(id, { mode: "REFERENCE_TO_VIDEO" })}
+                      >
+                        <span className="text-[12px]">Reference to Video</span>
+                        {data.mode === "REFERENCE_TO_VIDEO" && <Check className="w-3.5 h-3.5 text-primary ml-auto" />}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                {data.schemaType === "ugc-video-ad" && (
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <ImageIcon className="w-3 h-3" />
+                      First Frame Source
+                    </Label>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="nodrag w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-muted/20 border border-border/40 hover:border-primary/40 hover:bg-muted/40 transition-all outline-none text-left">
+                        <span className="text-[12px] font-medium text-foreground flex-1">
+                          {data.firstFrameSource === "last_frame" ? "Use Last Frame" : "Use Avatar"}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground/40">▾</span>
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-[200px] p-1.5">
+                      <DropdownMenuItem
+                        className="rounded-lg"
+                        onSelect={() => data.onUpdate?.(id, { firstFrameSource: "last_frame" })}
+                      >
+                        <span className="text-[12px]">Use Last Frame</span>
+                        {data.firstFrameSource === "last_frame" && <Check className="w-3.5 h-3.5 text-primary ml-auto" />}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="rounded-lg"
+                        onSelect={() => data.onUpdate?.(id, { firstFrameSource: "avatar" })}
+                      >
+                        <span className="text-[12px]">Use Avatar</span>
+                        {data.firstFrameSource === "avatar" && <Check className="w-3.5 h-3.5 text-primary ml-auto" />}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                )}
+              </>
+            )}
 
             {/* ── Shot Type ── */}
             <div className="space-y-2">
@@ -359,62 +444,9 @@ function PromptNode({ id, data, selected }: NodeProps<PromptNode>) {
 
           </CardContent>
 
-          <CardFooter className="flex items-center justify-between gap-2 p-4 bg-muted/20 border-t border-border/40">
+          <CardFooter className="flex items-center justify-end gap-2 p-4 bg-muted/20 border-t border-border/40">
             <div className="flex items-center gap-2 shrink-0">
 
-              {isVideo && (
-                <>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        className="nodrag flex items-center justify-center w-9 h-9 rounded-full bg-card border border-border hover:border-primary/50 hover:bg-accent transition-all shrink-0 group outline-none"
-                        title={`Mode: ${data.mode === "FIRST_FRAME_TO_VIDEO" ? "First Frame" : "Reference"}`}
-                      >
-                        <Sparkles className="w-4 h-4 text-primary shrink-0" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-[180px] p-1.5">
-                      <DropdownMenuItem
-                        className="rounded-lg"
-                        onSelect={() => data.onUpdate?.(id, { mode: "FIRST_FRAME_TO_VIDEO" })}
-                      >
-                        <span className="text-[12px]">First Frame to Video</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="rounded-lg"
-                        onSelect={() => data.onUpdate?.(id, { mode: "REFERENCE_TO_VIDEO" })}
-                      >
-                        <span className="text-[12px]">Reference to Video</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        className="nodrag flex items-center justify-center w-9 h-9 rounded-full bg-card border border-border hover:border-primary/50 hover:bg-accent transition-all shrink-0 group outline-none"
-                        title={`Source: ${data.firstFrameSource === "last_frame" ? "Last Frame" : "Avatar"}`}
-                      >
-                        <ImageIcon className="w-4 h-4 text-primary shrink-0" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-[180px] p-1.5">
-                      <DropdownMenuItem
-                        className="rounded-lg"
-                        onSelect={() => data.onUpdate?.(id, { firstFrameSource: "last_frame" })}
-                      >
-                        <span className="text-[12px]">Use Last Frame</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="rounded-lg"
-                        onSelect={() => data.onUpdate?.(id, { firstFrameSource: "avatar" })}
-                      >
-                        <span className="text-[12px]">Use Avatar</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </>
-              )}
             </div>
 
             <Button

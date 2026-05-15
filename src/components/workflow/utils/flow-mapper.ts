@@ -254,6 +254,7 @@ export const mapSchemaToFlow = (
         data: {
           type: "IMAGE",
           segmentId: segment.id,
+          schemaType: schema?.type,
           shotType: isProductShot ? "product" : ((shot as any).type ?? "generic"),
           shotIndex: shotIndex,
           promptText: shot.firstFramePrompt ?? segment.description,
@@ -338,6 +339,7 @@ export const mapSchemaToFlow = (
           data: {
             type: "VIDEO",
             segmentId: segment.id,
+            schemaType: schema?.type,
             shotIndex: shotIndex,
             promptText: shot.videoPrompt ?? "",
             status: vidStatus,
