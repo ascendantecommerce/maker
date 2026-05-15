@@ -50,8 +50,8 @@ export const productImageOrchestrator = inngest.createFunction(
       // ========================================================================
       const STAGE_1_SCHEMA_PROMPTS = true;
       const STAGE_2_AUDIO_CAPTIONS = true;
-      const STAGE_3_FIRST_FRAMES = true;
-      const STAGE_4_TIMINGS = true;
+      const STAGE_3_TIMINGS = true;
+      const STAGE_4_FIRST_FRAMES = true;
       const STAGE_6_LIPSYNC = true;
       const STAGE_7_FINALIZING = true;
 
@@ -172,34 +172,10 @@ export const productImageOrchestrator = inngest.createFunction(
 
       try {
         // ========================================================================
-        // STAGE 3: FIRST FRAMES
+        // STAGE 3: TIMINGS
         // ========================================================================
-        if (
-          STAGE_3_FIRST_FRAMES &&
-          (scheme.visuals.type === VideoType.AI_IMAGES ||
-            scheme.visuals.type === VideoType.AI_VIDEOS)
-        ) {
+        if (STAGE_3_TIMINGS) {
           const { dbSegments } = await step.run("fetch-stage-3-state", async () =>
-            fetchWorkflowState(schemeId),
-          );
-          scheme.segments = dbSegments.map((s: any) => ensureObject(s.segment_data));
-          context = { services, scheme, schemeId, attempt };
-
-          const step3Results = await productVisuals.generateShotFirstFrames(
-            step,
-            context,
-            userId,
-            projectId,
-          );
-          if (step3Results.previewUrl) resultPreviewUrl = step3Results.previewUrl;
-          if (step3Results.prices) allVisualPrices.push(...step3Results.prices);
-        }
-
-        // ========================================================================
-        // STAGE 4: TIMINGS
-        // ========================================================================
-        if (STAGE_4_TIMINGS) {
-          const { dbSegments } = await step.run("fetch-stage-4-state", async () =>
             fetchWorkflowState(schemeId),
           );
           scheme.segments = dbSegments.map((s: any) => ensureObject(s.segment_data));
@@ -210,9 +186,33 @@ export const productImageOrchestrator = inngest.createFunction(
           });
 
           const { prices } = await step.run("Generating shot timings", () =>
-            productVisuals.generateShotTimings(context, userId, projectId),
+            productVisuals.generateShotTimings(context),
           );
           if (prices) allVisualPrices.push(...prices);
+        }
+
+        // ========================================================================
+        // STAGE 4: FIRST FRAMES
+        // ========================================================================
+        if (
+          STAGE_4_FIRST_FRAMES &&
+          (scheme.visuals.type === VideoType.AI_IMAGES ||
+            scheme.visuals.type === VideoType.AI_VIDEOS)
+        ) {
+          const { dbSegments } = await step.run("fetch-stage-4-state", async () =>
+            fetchWorkflowState(schemeId),
+          );
+          scheme.segments = dbSegments.map((s: any) => ensureObject(s.segment_data));
+          context = { services, scheme, schemeId, attempt };
+
+          const step4Results = await productVisuals.generateShotFirstFrames(
+            step,
+            context,
+            userId,
+            projectId,
+          );
+          if (step4Results.previewUrl) resultPreviewUrl = step4Results.previewUrl;
+          if (step4Results.prices) allVisualPrices.push(...step4Results.prices);
         }
 
         // ========================================================================

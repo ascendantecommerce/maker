@@ -148,9 +148,7 @@ export async function generateShotFirstFrames(
  * Modular Step 2: Generate Shot Timings
  */
 export async function generateShotTimings(
-  context: StepContext,
-  userId: string | null,
-  projectId: string | null,
+  context: StepContext
 ): Promise<{ prices: PriceItem[] }> {
   const { scheme } = context;
   const segments = scheme.segments;
@@ -200,6 +198,61 @@ export async function generateShotTimings(
         shot.duration = shotDurationMs;
 
         segmentPosMs += shotDurationMs;
+      }
+
+      // Merge shots that are too short (< 750ms)
+      const MIN_SHOT_DURATION_MS = 650;
+      let hasShortShots = true;
+
+      while (hasShortShots && seg.shots.length > 1) {
+        let shortestIdx = -1;
+        let shortestDuration = Infinity;
+
+        for (let j = 0; j < seg.shots.length; j++) {
+          if (
+            seg.shots[j].duration! < MIN_SHOT_DURATION_MS &&
+            seg.shots[j].duration! < shortestDuration
+          ) {
+            shortestDuration = seg.shots[j].duration!;
+            shortestIdx = j;
+          }
+        }
+
+        if (shortestIdx === -1) {
+          hasShortShots = false;
+          break;
+        }
+
+        let neighborIdx = -1;
+        if (shortestIdx === 0) {
+          neighborIdx = 1;
+        } else if (shortestIdx === seg.shots.length - 1) {
+          neighborIdx = shortestIdx - 1;
+        } else {
+          const prevDuration = seg.shots[shortestIdx - 1].duration!;
+          const nextDuration = seg.shots[shortestIdx + 1].duration!;
+          neighborIdx = prevDuration <= nextDuration ? shortestIdx - 1 : shortestIdx + 1;
+        }
+
+        const targetShot = seg.shots[neighborIdx];
+        const sourceShot = seg.shots[shortestIdx];
+
+        if (shortestIdx < neighborIdx) {
+          targetShot.words = `${sourceShot.words} ${targetShot.words}`.trim();
+          targetShot.display = {
+            from: sourceShot.display!.from,
+            to: targetShot.display!.to,
+          };
+        } else {
+          targetShot.words = `${targetShot.words} ${sourceShot.words}`.trim();
+          targetShot.display = {
+            from: targetShot.display!.from,
+            to: sourceShot.display!.to,
+          };
+        }
+        targetShot.duration = targetShot.display!.to - targetShot.display!.from;
+
+        seg.shots.splice(shortestIdx, 1);
       }
     }
 
