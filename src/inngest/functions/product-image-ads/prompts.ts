@@ -68,11 +68,31 @@ export function getProductImagePacingInstruction(): string {
 }
 
 export const PRODUCT_SHOT_RULES = `**Rules for Product Reference (type: "product"):**
+
+**FIDELITY — DO NOT ALTER THE PRODUCT (HIGHEST PRIORITY):**
+- The product's shape, silhouette, packaging structure, label layout, color palette, logo, and brand markings MUST be reproduced exactly as seen in the reference image. Do NOT reimagine, stylize, simplify, or reinterpret any physical attribute.
+- Refer to it ONLY as "the product from the provided reference image". Never substitute it with a generic object or a different product.
+- The product MUST remain closed and sealed. Never depict it open, partially open, spilled, or with contents visible.
+
+**PLACEMENT & FRAMING:**
 - **Implicit Product Placement**: If the script implies "relief", "solution", or "taking it", you MUST show the product even if it's not named.
-- **Show the Full Product**: When the script explicitly mentions the brand or the product by name, you MUST display the FULL product in the frame. Do NOT generate close-ups of specific parts (like the base, cap, or a detail).
-- Refer to the main subject as "the product from the provided reference image".
-- Ensure the product's color, logo, and form are identical to the reference.
-- **NO TEXT**: Absolutely NO labels or UI elements in the prompt.`;
+- **Full Product Hero Shot**: When the brand or product name is mentioned in the script, display the FULL product prominently in the frame. Do NOT crop to specific parts (base, cap, label detail). The entire packaging must be visible.
+- **Preferred Angles**: Shoot from a slightly elevated front-facing or 3/4 angle. The label/logo-facing side must always face the camera.
+- **Composition**: Place the product as the dominant foreground subject. It should occupy at least 40% of the frame. Use negative space intentionally — the product must never feel cluttered or lost in the scene.
+
+**BACKGROUND & ENVIRONMENT:**
+- Use clean, minimal backgrounds (e.g., white, soft gradient, marble, muted lifestyle surface) that complement the product's color palette without competing with it.
+- Avoid busy, textured, or visually complex backgrounds that distract from the product.
+- A subtle, soft shadow beneath the product is allowed to ground it — do NOT use dramatic cast shadows.
+
+**LIGHTING & VISIBILITY:**
+- Light the product from the front or front-top (soft box / ring light style). The product MUST be evenly, brightly lit with no underexposed areas on the label or packaging.
+- DO NOT use silhouettes, heavy backlighting, rim-only lighting, or dramatic dark shadows that obscure the product's true colors or details.
+- Reflective surfaces (glass, metallic caps) should show clean, soft specular highlights — not blown-out glares.
+- The lighting must enhance the product's natural appearance. Colors on the label and packaging must match the reference exactly — do NOT let colored lighting tint or shift the product's actual colors.
+
+**NO TEXT OR UI:**
+- Absolutely NO text overlays, labels invented by the model, captions, or UI elements in the prompt. The product's existing label is part of its physical form — do not add to it or alter it.`;
 
 export const GENERIC_SHOT_RULES = `**Rules for Contextual Shots:**
 - **type: "medical_cgi"**: Internal views (nerves, cells, inflammation). Use red for pain, blue for relief.

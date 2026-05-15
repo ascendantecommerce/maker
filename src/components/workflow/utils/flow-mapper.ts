@@ -259,11 +259,13 @@ export const mapSchemaToFlow = (
           promptText: shot.firstFramePrompt ?? segment.description,
           status: imgStatus,
           model: (shot as any).model ?? "gemini-2.5-flash-image",
-          assets: isProductShot && schemaProductAssets.length > 0 ? schemaProductAssets : undefined,
+          assets: schemaProductAssets.length > 0 ? schemaProductAssets : undefined,
+          words: shot.words,
+          display: shot.display,
           onUpdate: callbacks?.onUpdate,
           onGenerate: callbacks?.onGenerate,
         },
-        style: { width: NODE_WIDTH, height: 480 },
+        style: { width: NODE_WIDTH, height: 560 },
         position: { x: 0, y: 0 },
       });
 
@@ -343,10 +345,12 @@ export const mapSchemaToFlow = (
             mode: (shot as any).mode,
             firstFrameSource: (shot as any).firstFrameSource,
             assets: schema?.assets as any,
+            words: shot.words,
+            display: shot.display,
             onUpdate: callbacks?.onUpdate,
             onGenerate: callbacks?.onGenerate,
           },
-          style: { width: NODE_WIDTH, height: 480 },
+          style: { width: NODE_WIDTH, height: 560 },
           position: { x: 0, y: 0 },
         });
 

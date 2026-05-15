@@ -144,6 +144,8 @@ export const generateStandardImage = inngest.createFunction(
         targetShot.status = "completed";
         targetShot.firstFramePrompt = prompt;
         targetShot.generationId = generationId;
+        // Persist the shot type from the UI selection so it survives page refreshes
+        if (shotType) targetShot.type = shotType;
 
         const newAsset = {
           id: generateId(),
@@ -258,6 +260,8 @@ export const generateStandardVideo = inngest.createFunction(
         targetShot.status = "completed";
         targetShot.videoPrompt = prompt;
         targetShot.generationId = generationId;
+        // Persist the shot type from the UI selection so it survives page refreshes
+        if (shotType) targetShot.type = shotType;
 
         const newAsset = {
           id: generateId(),

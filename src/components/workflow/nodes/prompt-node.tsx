@@ -7,10 +7,11 @@ import {
   Play,
   Sparkles,
   Type,
-  ChevronDown,
   Check,
   Loader2Icon,
   ImageIcon,
+  Clock,
+  Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -48,6 +49,15 @@ const NANO_BANANA_MODELS = [
 
 type NanoBananaModelId = (typeof NANO_BANANA_MODELS)[number]["id"];
 
+const SHOT_TYPES = [
+  { id: "product", label: "Product" },
+  { id: "generic", label: "Generic" },
+  { id: "lifestyle", label: "Lifestyle" },
+  { id: "b-roll", label: "B-Roll" },
+] as const;
+
+type ShotTypeId = (typeof SHOT_TYPES)[number]["id"];
+
 // Banana icon as inline SVG
 function BananaIcon({ className }: { className?: string }) {
   return (
@@ -66,9 +76,15 @@ function BananaIcon({ className }: { className?: string }) {
   );
 }
 
+function formatMs(ms: number | undefined): string {
+  if (ms === undefined || ms === null) return "--";
+  const s = (ms / 1000).toFixed(2);
+  return `${s}s`;
+}
+
 export type PromptNodeData = {
   type: "IMAGE" | "VIDEO";
-  shotType?: "product" | "generic" | "b-roll";
+  shotType?: "product" | "generic" | "lifestyle" | "b-roll" | string;
   shotIndex?: number;
   promptText: string;
   status: "idle" | "processing" | "success" | "error";
@@ -77,13 +93,15 @@ export type PromptNodeData = {
   firstFrameSource?: "last_frame" | "avatar";
   assets?: { id: string; url: string; name: string; type: string }[];
   segmentId?: string;
+  words?: string;
+  display?: { from: number; to: number };
   onUpdate?: (id: string, updates: any) => void;
   onGenerate?: (
     segmentId: string,
     shotIndexStr: string,
     type: "IMAGE" | "VIDEO",
     model?: string,
-    options?: { mode?: string; firstFrameSource?: string },
+    options?: { mode?: string; firstFrameSource?: string; shotType?: string },
   ) => void;
 };
 
@@ -92,16 +110,30 @@ export type PromptNode = Node<PromptNodeData, "prompt">;
 function PromptNode({ id, data, selected }: NodeProps<PromptNode>) {
   const isVideo = data.type === "VIDEO";
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   const [selectedModel, setSelectedModel] = useState<NanoBananaModelId>(
     (data.model as NanoBananaModelId) ?? "gemini-2.5-flash-image",
   );
+  const [selectedShotType, setSelectedShotType] = useState<ShotTypeId>(
+    (data.shotType as ShotTypeId) ?? "generic",
+  );
+
   const activeModel =
     NANO_BANANA_MODELS.find((m) => m.id === selectedModel) ?? NANO_BANANA_MODELS[0];
+  const activeShotType = SHOT_TYPES.find((s) => s.id === selectedShotType) ?? SHOT_TYPES[1];
 
   const handleModelChange = (modelId: NanoBananaModelId) => {
     setSelectedModel(modelId);
     data.onUpdate?.(id, { model: modelId });
   };
+
+  const handleShotTypeChange = (typeId: ShotTypeId) => {
+    setSelectedShotType(typeId);
+    data.onUpdate?.(id, { shotType: typeId });
+  };
+
+  const hasDisplay = data.display !== undefined;
+  const shotTypeIsProduct = selectedShotType === "product";
 
   return (
     <div className="relative group/node w-full h-full bg-transparent">
@@ -113,14 +145,18 @@ function PromptNode({ id, data, selected }: NodeProps<PromptNode>) {
 
       <div
         className={cn(
-          "relative w-full h-full rounded-xl  border-border border-3 transition-all duration-500 bg-card",
+          "relative w-full h-full rounded-xl border-border border-3 transition-all duration-500 bg-card",
           selected && "border-primary/40",
         )}
       >
         <div className="flex flex-col h-full">
-          <CardContent className="p-6 space-y-6 flex-1">
-            <div className="space-y-3">
-              <Label className="text-[10px] uppercase text-muted-foreground">Prompt</Label>
+          <CardContent className="p-4 space-y-4 flex-1">
+
+            {/* ── Prompt ── */}
+            <div className="space-y-2">
+              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Prompt
+              </Label>
               <Textarea
                 ref={textareaRef}
                 value={data.promptText || ""}
@@ -129,48 +165,42 @@ function PromptNode({ id, data, selected }: NodeProps<PromptNode>) {
                     promptText: e.target.value,
                     segmentId: data.segmentId,
                     shotIndex: data.shotIndex,
-                    type: data.type === "VIDEO" ? "vid" : "img",
+                    mediaType: data.type === "VIDEO" ? "vid" : "img",
                   })
                 }
                 placeholder="Describe the visual scene..."
-                className="nodrag nopan nowheel h-[200px] text-[13px] leading-relaxed bg-transparent border-none focus-visible:ring-0 p-1 resize-none overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/10 scrollbar-track-transparent placeholder:text-muted-foreground/20"
+                className="nodrag nopan nowheel h-[140px] text-[13px] leading-relaxed bg-muted/20 border-border/40 focus-visible:ring-1 focus-visible:ring-primary/40 p-2.5 resize-none overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/10 scrollbar-track-transparent placeholder:text-muted-foreground/20"
               />
             </div>
 
-            {data.assets && data.assets.length > 0 && (
-              <div className="space-y-2">
-                <Label className="text-[10px] uppercase text-muted-foreground flex items-center gap-1.5">
-                  {data.type === "VIDEO" ? "Source Image" : "Assets"}
-                </Label>
-                <div className="flex flex-row gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-muted-foreground/10 scrollbar-track-transparent">
-                  {data.assets.map((asset) => (
-                    <div
-                      key={asset.id}
-                      className="relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-border/50 bg-muted/30 group/asset shadow-sm"
-                      title={asset.name}
-                    >
-                      <img
-                        src={asset.url}
-                        alt={asset.name}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover/asset:scale-110"
-                      />
-                      <div className="absolute inset-0 ring-1 ring-inset ring-primary/0 group-hover/asset:ring-primary/40 rounded-lg transition-all duration-200" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-
-          <CardFooter className="flex items-center justify-between gap-2 p-4 bg-muted/20 border-t border-border/40">
-            <div className="flex items-center gap-2 shrink-0">
+            {/* ── Model ── */}
+            <div className="space-y-2">
+              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Model
+              </Label>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button
-                    className="nodrag flex items-center justify-center w-9 h-9 rounded-full bg-card border border-border hover:border-primary/50 hover:bg-accent transition-all shrink-0 group outline-none"
-                    title={`Model: ${activeModel.name}`}
-                  >
-                    <BananaIcon className="w-4 h-4 text-primary shrink-0" />
+                  <button className="nodrag w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-muted/20 border border-border/40 hover:border-primary/40 hover:bg-muted/40 transition-all outline-none text-left">
+                    <BananaIcon className="w-3.5 h-3.5 text-primary shrink-0" />
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span className="text-[12px] font-medium text-foreground truncate">
+                        {activeModel.name}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground/60 truncate">
+                        {activeModel.description}
+                      </span>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "text-[9px] px-1.5 py-0 shrink-0",
+                        activeModel.tier === "Free"
+                          ? "border-emerald-500/40 text-emerald-400"
+                          : "border-amber-500/40 text-amber-400",
+                      )}
+                    >
+                      {activeModel.tier}
+                    </Badge>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-[220px] p-1.5">
@@ -198,6 +228,139 @@ function PromptNode({ id, data, selected }: NodeProps<PromptNode>) {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
+            </div>
+
+            {/* ── Shot Type ── */}
+            <div className="space-y-2">
+              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Layers className="w-3 h-3" />
+                Shot Type
+              </Label>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="nodrag w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-muted/20 border border-border/40 hover:border-primary/40 hover:bg-muted/40 transition-all outline-none text-left">
+                    <div
+                      className={cn(
+                        "w-2 h-2 rounded-full shrink-0",
+                        shotTypeIsProduct ? "bg-amber-400" : "bg-blue-400",
+                      )}
+                    />
+                    <span className="text-[12px] font-medium text-foreground flex-1">
+                      {activeShotType.label}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground/40">▾</span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-[160px] p-1.5">
+                  {SHOT_TYPES.map((st) => (
+                    <DropdownMenuItem
+                      key={st.id}
+                      className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer"
+                      onSelect={() => handleShotTypeChange(st.id)}
+                    >
+                      <div
+                        className={cn(
+                          "w-2 h-2 rounded-full shrink-0",
+                          st.id === "product" ? "bg-amber-400" : "bg-blue-400",
+                        )}
+                      />
+                      <span className="text-[12px] flex-1">{st.label}</span>
+                      {selectedShotType === st.id && (
+                        <Check className="w-3.5 h-3.5 text-primary shrink-0" />
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* ── Assets / Product Images ── */}
+            {shotTypeIsProduct && data.assets && data.assets.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <ImageIcon className="w-3 h-3" />
+                  {data.type === "VIDEO" ? "Source Image" : "Product Images"}
+                </Label>
+                <div className="flex flex-row gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-muted-foreground/10 scrollbar-track-transparent">
+                  {data.assets.map((asset) => (
+                    <div
+                      key={asset.id}
+                      className="relative shrink-0 w-14 h-14 rounded-lg overflow-hidden border border-border/50 bg-muted/30 group/asset shadow-sm"
+                      title={asset.name}
+                    >
+                      <img
+                        src={asset.url}
+                        alt={asset.name}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover/asset:scale-110"
+                      />
+                      <div className="absolute inset-0 ring-1 ring-inset ring-primary/0 group-hover/asset:ring-primary/40 rounded-lg transition-all duration-200" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── Words ── */}
+            {data.words && (
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Type className="w-3 h-3" />
+                  Words
+                </Label>
+                <p className="text-[11px] text-muted-foreground/60 italic leading-relaxed px-2.5 py-1.5 rounded-lg bg-muted/10 border border-border/30 select-none">
+                  {data.words}
+                </p>
+              </div>
+            )}
+
+            {/* ── Timing ── */}
+            <div className="space-y-2">
+              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Clock className="w-3 h-3" />
+                Timing
+              </Label>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-muted/20 border border-border/40">
+                  <span className="text-[9px] uppercase text-muted-foreground/50 shrink-0">
+                    From
+                  </span>
+                  <span
+                    className={cn(
+                      "text-[12px] font-mono font-medium flex-1 text-center",
+                      hasDisplay ? "text-foreground" : "text-muted-foreground/30",
+                    )}
+                  >
+                    {formatMs(data.display?.from)}
+                  </span>
+                </div>
+                <span className="text-muted-foreground/30 text-[10px] shrink-0">→</span>
+                <div className="flex-1 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-muted/20 border border-border/40">
+                  <span className="text-[9px] uppercase text-muted-foreground/50 shrink-0">
+                    To
+                  </span>
+                  <span
+                    className={cn(
+                      "text-[12px] font-mono font-medium flex-1 text-center",
+                      hasDisplay ? "text-foreground" : "text-muted-foreground/30",
+                    )}
+                  >
+                    {formatMs(data.display?.to)}
+                  </span>
+                </div>
+                {hasDisplay && data.display && (
+                  <div className="px-2 py-1.5 rounded-lg bg-primary/10 border border-primary/20 shrink-0">
+                    <span className="text-[11px] font-mono text-primary">
+                      {formatMs(data.display.to - data.display.from)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+          </CardContent>
+
+          <CardFooter className="flex items-center justify-between gap-2 p-4 bg-muted/20 border-t border-border/40">
+            <div className="flex items-center gap-2 shrink-0">
 
               {isVideo && (
                 <>
@@ -264,7 +427,7 @@ function PromptNode({ id, data, selected }: NodeProps<PromptNode>) {
                     data.shotIndex.toString(),
                     data.type,
                     selectedModel,
-                    { mode: data.mode, firstFrameSource: data.firstFrameSource },
+                    { mode: data.mode, firstFrameSource: data.firstFrameSource, shotType: selectedShotType },
                   );
                 }
               }}

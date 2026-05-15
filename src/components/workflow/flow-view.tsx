@@ -93,13 +93,29 @@ export default function FlowView({ onReady }: FlowViewProps) {
       if (parts[0] === "shot" || updates.segmentId) {
         const segId = updates.segmentId || parts[1];
         const shotIdx = updates.shotIndex !== undefined ? updates.shotIndex : parseInt(parts[2]);
-        const type = updates.type || parts[3];
-        const isPromptUpdate = id.endsWith("prompt") || parts[4] === "prompt";
+        const mediaType = updates.mediaType || updates.type || (id.includes("-vid-") ? "vid" : "img");
+        const isPromptUpdate = id.endsWith("prompt") || id.includes("-prompt");
 
         if (isPromptUpdate) {
-          const field = type === "vid" ? "videoPrompt" : "firstFramePrompt";
+          const field = mediaType === "vid" ? "videoPrompt" : "firstFramePrompt";
           const text = updates.text || updates.promptText;
-          updateShot(segId, shotIdx, { [field]: text, ...updates });
+          
+          const {
+            mediaType: _mediaType,
+            type: _type,
+            promptText: _promptText,
+            segmentId: _segmentId,
+            shotIndex: _shotIndex,
+            text: _text,
+            ...restUpdates
+          } = updates;
+          
+          const shotUpdates = { ...restUpdates };
+          if (text !== undefined) {
+            shotUpdates[field] = text;
+          }
+          
+          updateShot(segId, shotIdx, shotUpdates);
         }
       }
     },
@@ -112,7 +128,7 @@ export default function FlowView({ onReady }: FlowViewProps) {
       shotIndexStr: string,
       type: "IMAGE" | "VIDEO",
       model?: string,
-      options?: { mode?: string; firstFrameSource?: string },
+      options?: { mode?: string; firstFrameSource?: string; shotType?: string },
     ) => {
       const schemaType = schema?.type || "";
       const isUGCProject = schemaType === "ugc-video-ad";
@@ -124,9 +140,9 @@ export default function FlowView({ onReady }: FlowViewProps) {
         }
       } else {
         if (type === "VIDEO") {
-          handleGenerateStandardVideo(segmentId, shotIndexStr, type, model);
+          handleGenerateStandardVideo(segmentId, shotIndexStr, type, model, options?.shotType);
         } else {
-          handleGenerateStandardImage(segmentId, shotIndexStr, type, model);
+          handleGenerateStandardImage(segmentId, shotIndexStr, type, model, options?.shotType);
         }
       }
     },

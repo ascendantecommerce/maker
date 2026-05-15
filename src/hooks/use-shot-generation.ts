@@ -5,8 +5,8 @@ export function useShotGeneration() {
   const { schema, setSchema, updateShot, generatingShots, setGeneratingShots } = useSchemaStore();
 
   const handleGenerateStandardImage = useCallback(
-    async (segmentId: string, shotIndexStr: string, _type?: string, model?: string) => {
-      console.log("generating", { segmentId, shotIndexStr, _type, model });
+    async (segmentId: string, shotIndexStr: string, _type?: string, model?: string, shotTypeOverride?: string) => {
+      console.log("generating", { segmentId, shotIndexStr, _type, model, shotTypeOverride });
       const selectedSegment = (schema?.segments || []).find((s) => s.id === segmentId);
       if (!segmentId || !shotIndexStr || !selectedSegment || !schema) return;
 
@@ -29,7 +29,8 @@ export function useShotGeneration() {
           targetShot.scenePrompt ||
           selectedSegment.description ||
           "";
-        const shotType = targetShot.type || "generic";
+        // Use the override from the UI if provided, otherwise fall back to DB value
+        const shotType = shotTypeOverride || targetShot.type || "generic";
 
         const response = await fetch("/api/workflow/generate-shot", {
           method: "POST",
@@ -37,8 +38,8 @@ export function useShotGeneration() {
           body: JSON.stringify({
             schemeId: schema.id,
             segmentId,
-            shotId: targetShot.id, // Keep passing ID if it has it
-            shotIndex, // Pass index as reliable fallback
+            shotId: targetShot.id,
+            shotIndex,
             prompt,
             shotType,
             mode: "image",
@@ -52,8 +53,6 @@ export function useShotGeneration() {
 
         if (generationId) {
           setGeneratingShots((prev) => ({ ...prev, [shotKey]: generationId }));
-
-          // Persist generationId to schema
           updateShot(segmentId, shotIndex, { generationId, status: "generating" });
         }
       } catch (error) {
@@ -65,8 +64,8 @@ export function useShotGeneration() {
   );
 
   const handleGenerateStandardVideo = useCallback(
-    async (segmentId: string, shotIndexStr: string, _type?: string, model?: string) => {
-      console.log("generating standard video", { segmentId, shotIndexStr, _type, model });
+    async (segmentId: string, shotIndexStr: string, _type?: string, model?: string, shotTypeOverride?: string) => {
+      console.log("generating standard video", { segmentId, shotIndexStr, _type, model, shotTypeOverride });
       const selectedSegment = (schema?.segments || []).find((s) => s.id === segmentId);
       if (!segmentId || !shotIndexStr || !selectedSegment || !schema) return;
 
@@ -82,7 +81,8 @@ export function useShotGeneration() {
 
         const prompt =
           targetShot.videoPrompt || targetShot.scenePrompt || selectedSegment.description || "";
-        const shotType = targetShot.type || "generic";
+        // Use the override from the UI if provided, otherwise fall back to DB value
+        const shotType = shotTypeOverride || targetShot.type || "generic";
 
         const response = await fetch("/api/workflow/generate-shot", {
           method: "POST",
@@ -105,8 +105,6 @@ export function useShotGeneration() {
 
         if (generationId) {
           setGeneratingShots((prev) => ({ ...prev, [shotKey]: generationId }));
-
-          // Persist generationId to schema
           updateShot(segmentId, shotIndex, { generationId, status: "generating" });
         }
       } catch (error) {
