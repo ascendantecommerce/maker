@@ -93,13 +93,14 @@ export default function FlowView({ onReady }: FlowViewProps) {
       if (parts[0] === "shot" || updates.segmentId) {
         const segId = updates.segmentId || parts[1];
         const shotIdx = updates.shotIndex !== undefined ? updates.shotIndex : parseInt(parts[2]);
-        const mediaType = updates.mediaType || updates.type || (id.includes("-vid-") ? "vid" : "img");
+        const mediaType =
+          updates.mediaType || updates.type || (id.includes("-vid-") ? "vid" : "img");
         const isPromptUpdate = id.endsWith("prompt") || id.includes("-prompt");
 
         if (isPromptUpdate) {
           const field = mediaType === "vid" ? "videoPrompt" : "firstFramePrompt";
           const text = updates.text || updates.promptText;
-          
+
           const {
             mediaType: _mediaType,
             type: _type,
@@ -109,12 +110,12 @@ export default function FlowView({ onReady }: FlowViewProps) {
             text: _text,
             ...restUpdates
           } = updates;
-          
+
           const shotUpdates = { ...restUpdates };
           if (text !== undefined) {
             shotUpdates[field] = text;
           }
-          
+
           updateShot(segId, shotIdx, shotUpdates);
         }
       }

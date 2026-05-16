@@ -2,8 +2,7 @@
 
 import React, { memo } from "react";
 import { Position, type NodeProps, type Node, Handle } from "@xyflow/react";
-import { Film, PlayCircle, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Film, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -14,67 +13,47 @@ export type GlobalOutputNodeData = {
 export type GlobalOutputNode = Node<GlobalOutputNodeData, "globalOutput">;
 
 function GlobalOutputNode({ id, data, selected }: NodeProps<GlobalOutputNode>) {
-  const segmentCount = data.segmentCount || 0;
-
   return (
-    <Card
-      className={cn(
-        "w-[320px] p-0 overflow-hidden border-2 shadow-2xl transition-all rounded-[24px]",
-        selected
-          ? "border-primary ring-4 ring-primary/10"
-          : "border-border/40 bg-gradient-to-br from-card to-primary/5",
-      )}
-    >
-      <CardHeader className="m-0 bg-primary/10 px-4 py-3 border-b border-primary/20 flex flex-row items-center gap-2">
-        <Sparkles className="w-4 h-4 text-primary" />
-        <CardTitle className="text-[11px] font-black uppercase tracking-widest text-primary">
-          Final Compile
-        </CardTitle>
-      </CardHeader>
+    <div className="relative group/node min-w-[340px] max-w-[380px]">
+      <Card
+        className={cn(
+          "relative w-full h-full rounded-md border-2 transition-all duration-300 shadow-sm overflow-hidden",
+          selected ? "border-primary/40 shadow-md" : "border-border/50 hover:border-border",
+        )}
+      >
+        <CardHeader className="px-4 h-10  py-0 border-b border-border/40 flex flex-row items-center gap-2 space-y-0 bg-muted/10 shrink-0">
+          <CardTitle className="text-sm font-semibold flex-1 py-3">Final Compile</CardTitle>
+        </CardHeader>
 
-      <CardContent className="p-0 flex flex-col">
-        <div className="relative h-[160px] flex items-center justify-center overflow-hidden">
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border))_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border))_1px,transparent_1px)] bg-[size:14px_24px] opacity-20" />
-
-          <div className="relative z-10 w-24 h-24 rounded-full bg-background border-[4px] border-primary flex items-center justify-center shadow-[0_0_50px_rgba(var(--primary),0.2)]">
-            <Film className="w-10 h-10 text-primary" />
-          </div>
-        </div>
-
-        <div className="p-6 flex flex-col gap-5">
-          <div className="text-center space-y-2">
-            <h3 className="text-lg font-black text-foreground uppercase tracking-tight">
-              Project Master
-            </h3>
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-60">
-              Compilation Suite
-            </p>
-          </div>
-
-          <Button className="w-full h-12 rounded-2xl text-[11px] font-black uppercase tracking-[0.1em] shadow-2xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all flex items-center justify-center gap-3">
-            <PlayCircle className="w-5 h-5" />
-            COMPILE TO TIMELINE
-          </Button>
-        </div>
-
-        <div className="px-4 py-3 border-t border-border bg-muted/20 relative">
-          <div className="mb-2 text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-60">
-            Segments Incoming ({segmentCount})
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="relative flex items-center gap-2">
-              <Handle
-                id="input"
-                type="target"
-                position={Position.Left}
-                className="!w-4 !h-4 !-left-[22px] !bg-primary !border-2 !border-background shadow-lg hover:scale-110 transition-transform"
-              />
-              <span className="text-[11px] font-black text-primary/70">Global Stream</span>
+        <CardContent className="p-0 flex flex-col items-center justify-center min-h-[360px] bg-muted/5">
+          <div className="flex flex-col items-center justify-center gap-8 w-full p-8">
+            <div className="relative aspect-[9/16] w-36 rounded-xl border-2 border-dashed border-primary/20 bg-primary/5 flex flex-col items-center justify-center gap-4 overflow-hidden group/placeholder transition-all hover:bg-primary/10 hover:border-primary/40 shadow-inner">
+              <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--primary)/0.05)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--primary)/0.05)_1px,transparent_1px)] bg-[size:14px_24px]" />
+              <Film className="w-10 h-10 text-primary/40 transition-transform group-hover/placeholder:scale-110" />
+              <div className="flex flex-col items-center gap-1.5 relative z-10">
+                <span className="text-[10px] font-black text-primary/40 uppercase tracking-[0.2em]">
+                  Master
+                </span>
+                <span className="text-[9px] font-black text-primary/20 uppercase tracking-widest">
+                  Final Render
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      {/* Handles */}
+      <Handle
+        id="input"
+        type="target"
+        position={Position.Left}
+        className="!w-10 !h-10 !rounded-full !bg-card !border !border-border/60 !shadow-lg !flex !items-center !justify-center z-10 hover:!border-primary/50 transition-colors cursor-crosshair"
+        style={{ left: -40, top: "50%", transform: "translateY(-50%)" }}
+      >
+        <Sparkles className="w-4 h-4 text-primary/70" />
+      </Handle>
+    </div>
   );
 }
 

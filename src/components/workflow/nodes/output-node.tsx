@@ -2,21 +2,11 @@
 
 import React, { memo } from "react";
 import { Position, type NodeProps, type Node, Handle } from "@xyflow/react";
-import {
-  Eye,
-  RefreshCw,
-  Settings2,
-  Plus,
-  Minus,
-  ChevronDown,
-  Wand2,
-  Loader2,
-  ImageIcon,
-  Type,
-} from "lucide-react";
+import { Eye, RefreshCw, Wand2, Loader2, ImageIcon, Type, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { VideoPlayer } from "@/components/ui/video-player";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 
 export type OutputNodeData = {
   type: "IMAGE" | "VIDEO";
@@ -36,48 +26,57 @@ function OutputNode({ id, data, selected }: NodeProps<OutputNode>) {
   const isVideo = data.type === "VIDEO";
 
   return (
-    <div className="relative group/node w-full h-full bg-transparent">
-      {/* Label above the card - Moved to absolute -top to sit outside the clipping boundary */}
-      <div className="absolute -top-7 left-0 flex items-center gap-2 px-1 pointer-events-none whitespace-nowrap z-30">
-        <Eye className="w-3.5 h-3.5" />
-        <span className="text-sm font-bold">{isVideo ? "Motion Output" : "Visual Output"}</span>
-      </div>
-
-      <div
+    <div className="relative group/node min-w-[340px] max-w-[380px]">
+      <Card
         className={cn(
-          "relative w-full h-full rounded-xl  border-border border-3 transition-all duration-500 bg-card overflow-hidden",
-          selected && "border-primary/40",
+          "relative w-full pb-0 h-[340px] flex flex-col gap-0 rounded-md border-2 transition-all duration-300 shadow-sm overflow-hidden",
+          selected ? "border-primary/40 shadow-md" : "border-border/50 hover:border-border",
         )}
       >
-        <div className="relative w-full h-full flex flex-col">
-          {/* Media Container - Perfectly flush with the rounded card edges */}
-          <div className="absolute inset-0 z-0">
+        <CardHeader className="px-4 h-10  py-0 border-b border-border/40 flex flex-row items-center gap-2 space-y-0 bg-muted/10 shrink-0">
+          <CardTitle className="text-sm font-semibold flex-1">
+            {isVideo ? "Motion Output" : "Visual Output"}
+          </CardTitle>
+          <div className="flex items-center">
+            {data.status === "processing" && (
+              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+            )}
+            {data.status === "success" && <Check className="w-4 h-4 text-green-500" />}
+          </div>
+        </CardHeader>
+
+        <div className="relative flex-1 w-full bg-muted/5 flex flex-col overflow-hidden">
+          {/* Media Container */}
+          <div className="absolute inset-0 z-0 bg-black/5">
             {data.outputUrl ? (
               isVideo ? (
                 <VideoPlayer
                   src={data.outputUrl}
                   size="full"
-                  objectFit="cover"
-                  showBottomControls={false}
-                  className="w-full h-full rounded-none"
+                  objectFit="contain"
+                  className="w-full h-full rounded-none absolute inset-0"
                 />
               ) : (
-                <img src={data.outputUrl} alt="Output" className="w-full h-full object-cover" />
+                <img
+                  src={data.outputUrl}
+                  alt="Output"
+                  className="w-full h-full object-contain absolute inset-0"
+                />
               )
             ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-muted-foreground/20 bg-muted/5">
+              <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-muted-foreground/20">
                 {data.status === "processing" ? (
                   <>
-                    <Loader2 className="w-12 h-12 animate-spin text-primary/40" />
-                    <span className="text-[10px] font-black tracking-[0.2em] uppercase animate-pulse">
+                    <Loader2 className="w-10 h-10 animate-spin text-primary/40" />
+                    <span className="text-[10px] font-bold tracking-widest uppercase animate-pulse">
                       Processing...
                     </span>
                   </>
                 ) : (
                   <>
-                    <Wand2 className="w-12 h-12 opacity-10" />
-                    <span className="text-[10px] font-black tracking-[0.2em] uppercase">
-                      No Result
+                    <ImageIcon className="w-10 h-10 opacity-20" />
+                    <span className="text-[10px] font-bold tracking-widest uppercase">
+                      No Media
                     </span>
                   </>
                 )}
@@ -86,47 +85,41 @@ function OutputNode({ id, data, selected }: NodeProps<OutputNode>) {
           </div>
 
           {/* Floating Overlays */}
-          <div className="relative w-full h-full pointer-events-none">
-            {/* Bottom Overlay Info */}
-            <div className="absolute bottom-0 left-0 right-0 z-10 p-6 pt-24 bg-gradient-to-t from-background via-background/20 to-transparent pointer-events-auto">
-              <div className="flex flex-col gap-5">
-                {/* Toolbar */}
-                <div className="flex items-center justify-end gap-2 mt-1">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="icon"
-                      className={cn("h-9 w-9 p-0 rounded-full shadow-2xl transition-all ")}
-                      variant={data.status === "processing" ? "outline" : "default"}
-                      onClick={() => {
-                        if (data.segmentId && data.shotIndex !== undefined) {
-                          data.onGenerate?.(data.segmentId, data.shotIndex.toString(), data.type);
-                        }
-                      }}
-                      disabled={data.status === "processing"}
-                    >
-                      {data.status === "processing" ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <RefreshCw className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div className="absolute top-3 right-3 z-10 pointer-events-none flex justify-end">
+            <Button
+              className={cn("h-8 w-8 rounded-md px-3 shadow-md transition-all pointer-events-auto")}
+              variant="outline"
+              onClick={() => {
+                if (data.segmentId && data.shotIndex !== undefined) {
+                  data.onGenerate?.(data.segmentId, data.shotIndex.toString(), data.type);
+                }
+              }}
+              disabled={data.status === "processing"}
+              size="icon"
+            >
+              {data.status === "processing" ? (
+                <>
+                  <Loader2 />
+                </>
+              ) : (
+                <>
+                  <RefreshCw />
+                </>
+              )}
+            </Button>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Input handle — fully outside left border */}
       <Handle
         id="input"
         type="target"
         position={Position.Left}
-        className="!w-10 !h-10 !rounded-full !bg-card !border !border-border border-2! !shadow-lg !flex !items-center !justify-center"
+        className="!w-10 !h-10 !rounded-full !bg-card !border !border-border/60 !shadow-lg !flex !items-center !justify-center"
         style={{ left: -40, top: "50%", transform: "translateY(-50%)" }}
       >
-        <ImageIcon className="w-4 h-4   pointer-events-none" />
+        <ImageIcon className="w-4 h-4 text-muted-foreground/70 pointer-events-none" />
       </Handle>
 
       {/* Output handle — fully outside right border */}
@@ -134,7 +127,7 @@ function OutputNode({ id, data, selected }: NodeProps<OutputNode>) {
         id="result"
         type="source"
         position={Position.Right}
-        className="!w-10 !h-10 !rounded-full !bg-card !border !border-border/60 !shadow-lg !flex !items-center !justify-center"
+        className="!w-10 !h-10 !rounded-full !border !border-border border-2! bg-card! !shadow-lg !flex !items-center !justify-center"
         style={{ right: -40, top: "50%", transform: "translateY(-50%)" }}
       >
         <Type className="w-4 h-4 text-muted-foreground/70 pointer-events-none" />
