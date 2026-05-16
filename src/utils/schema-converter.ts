@@ -1174,7 +1174,7 @@ export const convertSchemaToDesign = async (
       style: {},
       trim: {
         from: 0,
-        to: 0,
+        to: currentSegmentOffsetUs,
       },
       loop: true,
       id: clipId,
