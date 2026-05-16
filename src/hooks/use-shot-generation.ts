@@ -5,7 +5,13 @@ export function useShotGeneration() {
   const { schema, setSchema, updateShot, generatingShots, setGeneratingShots } = useSchemaStore();
 
   const handleGenerateStandardImage = useCallback(
-    async (segmentId: string, shotIndexStr: string, _type?: string, model?: string, shotTypeOverride?: string) => {
+    async (
+      segmentId: string,
+      shotIndexStr: string,
+      _type?: string,
+      model?: string,
+      shotTypeOverride?: string,
+    ) => {
       console.log("generating", { segmentId, shotIndexStr, _type, model, shotTypeOverride });
       const selectedSegment = (schema?.segments || []).find((s) => s.id === segmentId);
       if (!segmentId || !shotIndexStr || !selectedSegment || !schema) return;
@@ -64,8 +70,20 @@ export function useShotGeneration() {
   );
 
   const handleGenerateStandardVideo = useCallback(
-    async (segmentId: string, shotIndexStr: string, _type?: string, model?: string, shotTypeOverride?: string) => {
-      console.log("generating standard video", { segmentId, shotIndexStr, _type, model, shotTypeOverride });
+    async (
+      segmentId: string,
+      shotIndexStr: string,
+      _type?: string,
+      model?: string,
+      shotTypeOverride?: string,
+    ) => {
+      console.log("generating standard video", {
+        segmentId,
+        shotIndexStr,
+        _type,
+        model,
+        shotTypeOverride,
+      });
       const selectedSegment = (schema?.segments || []).find((s) => s.id === segmentId);
       if (!segmentId || !shotIndexStr || !selectedSegment || !schema) return;
 

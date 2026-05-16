@@ -4,7 +4,7 @@ import React, { memo } from "react";
 import { Position, type NodeProps, type Node, Handle } from "@xyflow/react";
 import { Volume2, Mic, Clock, Play, Type } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export type VoiceNodeData = {
   voiceUrl?: string;
@@ -17,21 +17,18 @@ function VoiceNode({ id, data, selected }: NodeProps<VoiceNode>) {
   const hasVoice = !!data.voiceUrl;
 
   return (
-    <div className="relative group/node w-full h-full bg-transparent">
-      {/* Label above the card */}
-      <div className="absolute -top-7 left-0 flex items-center gap-2 px-1 pointer-events-none whitespace-nowrap z-30">
-        <Mic className="w-3.5 h-3.5" />
-        <span className="text-sm font-bold">Voice Engine</span>
-      </div>
-
-      <div
+    <div className="relative group/node min-w-[340px] max-w-[380px]">
+      <Card
         className={cn(
-          "relative w-full h-full rounded-xl  border-border border-3 transition-all duration-500 bg-card",
-          selected && "border-primary/40",
+          "relative w-full h-full rounded-md border-2 transition-all duration-300 shadow-sm overflow-hidden",
+          selected ? "border-primary/40 shadow-md" : "border-border/50 hover:border-border",
         )}
       >
+        <CardHeader className="px-4 h-10  py-0 border-b border-border/40 flex flex-row items-center gap-2 space-y-0 bg-muted/10 shrink-0">
+          <CardTitle className="text-sm font-semibold flex-1 py-3">Voice Engine</CardTitle>
+        </CardHeader>
         <div className="flex flex-col h-full">
-          <CardContent className="p-6 flex flex-col items-center justify-center h-full gap-6">
+          <CardContent className="p-4 flex flex-col items-center justify-center h-full gap-6">
             {hasVoice ? (
               <>
                 <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center border-4 border-primary/20 shadow-xl relative group/voice">
@@ -56,7 +53,7 @@ function VoiceNode({ id, data, selected }: NodeProps<VoiceNode>) {
             )}
           </CardContent>
         </div>
-      </div>
+      </Card>
 
       {/* Handles */}
       <Handle

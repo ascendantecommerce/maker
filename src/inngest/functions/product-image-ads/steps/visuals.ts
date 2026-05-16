@@ -147,9 +147,7 @@ export async function generateShotFirstFrames(
 /**
  * Modular Step 2: Generate Shot Timings
  */
-export async function generateShotTimings(
-  context: StepContext
-): Promise<{ prices: PriceItem[] }> {
+export async function generateShotTimings(context: StepContext): Promise<{ prices: PriceItem[] }> {
   const { scheme } = context;
   const segments = scheme.segments;
   const prices: PriceItem[] = [];
